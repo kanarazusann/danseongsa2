@@ -373,13 +373,9 @@ function ProductRegister() {
       return;
     }
 
-<<<<<<< HEAD
+
     const sellerId = sessionUser.userId;
-=======
-    // sellerId 확인
-    // 테스트용: userId가 없으면 기본값 1 사용 (실제로는 DB에 해당 사용자가 있어야 함)
-    const sellerId = user.userId || user.id || 1;
->>>>>>> 8853213a537c9b38a0537753db70cf3bbc57aa44
+
     if (!sellerId) {
       alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       navigate('/login');
