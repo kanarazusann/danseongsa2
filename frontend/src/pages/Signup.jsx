@@ -1,9 +1,14 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import './Signup.css';
+import { requestEmailVerificationCode, verifyEmailCode } from '../services/emailService';
+import { registerUser } from '../services/authService';
 
 function Signup() {
+  const navigate = useNavigate();
   const [userType, setUserType] = useState('general'); // 'general' or 'business'
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 일반회원 폼 데이터
   const [generalForm, setGeneralForm] = useState({
@@ -14,8 +19,19 @@ function Signup() {
     password: '',
     passwordConfirm: '',
     phone: '',
+    zipcode: '',
     address: '',
-    addressDetail: ''
+    detailAddress: ''
+  });
+
+  const [generalVerification, setGeneralVerification] = useState({
+    verificationId: '',
+    expiresAt: null
+  });
+
+  const [businessVerification, setBusinessVerification] = useState({
+    verificationId: '',
+    expiresAt: null
   });
 
   // 사업자 폼 데이터
@@ -23,43 +39,75 @@ function Signup() {
     email: '',
     emailVerified: false,
     emailCode: '',
-    businessName: '',
+    brand: '',
     businessNumber: '',
     managerName: '',
     password: '',
     passwordConfirm: '',
     phone: '',
+    zipcode: '',
     address: '',
-    addressDetail: ''
+    detailAddress: ''
   });
+
+  useEffect(() => {
+    if (window.daum && window.daum.Postcode) {
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // 다음 주소 API 호출
   const handleAddressSearch = () => {
-    if (window.daum && window.daum.Postcode) {
-      new window.daum.Postcode({
-        oncomplete: function(data) {
-          const address = data.address;
-          const extraAddress = data.addressType === 'R' ? data.bname : '';
-          
-          if (userType === 'general') {
-            setGeneralForm(prev => ({
-              ...prev,
-              address: address + (extraAddress ? ` (${extraAddress})` : '')
-            }));
-          } else {
-            setBusinessForm(prev => ({
-              ...prev,
-              address: address + (extraAddress ? ` (${extraAddress})` : '')
-            }));
-          }
-        }
-      }).open();
+    if (!window.daum || !window.daum.Postcode) {
+      alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
     }
+
+    new window.daum.Postcode({
+      oncomplete: function(data) {
+        const baseAddress = data.address;
+        const extraAddress = data.addressType === 'R' && data.bname ? ` (${data.bname})` : '';
+        const formattedAddress = baseAddress + extraAddress;
+
+        if (userType === 'general') {
+          setGeneralForm(prev => ({
+            ...prev,
+            zipcode: data.zonecode,
+            address: formattedAddress
+          }));
+        } else {
+          setBusinessForm(prev => ({
+            ...prev,
+            zipcode: data.zonecode,
+            address: formattedAddress
+          }));
+        }
+      }
+    }).open();
   };
 
   // 일반회원 폼 변경
   const handleGeneralChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'email') {
+      setGeneralVerification({ verificationId: '', expiresAt: null });
+      setGeneralForm(prev => ({
+        ...prev,
+        email: value,
+        emailCode: '',
+        emailVerified: false
+      }));
+      return;
+    }
+
     setGeneralForm(prev => ({
       ...prev,
       [name]: value
@@ -69,40 +117,103 @@ function Signup() {
   // 사업자 폼 변경
   const handleBusinessChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'email') {
+      setBusinessVerification({ verificationId: '', expiresAt: null });
+      setBusinessForm(prev => ({
+        ...prev,
+        email: value,
+        emailCode: '',
+        emailVerified: false
+      }));
+      return;
+    }
+
     setBusinessForm(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  // 이메일 인증 코드 전송
-  const handleSendEmailCode = () => {
-    const email = userType === 'general' ? generalForm.email : businessForm.email;
-    if (!email) {
+  const resetVerificationState = (type, options = { keepCode: true }) => {
+    if (type === 'general') {
+      setGeneralVerification({ verificationId: '', expiresAt: null });
+      if (!options.keepCode) {
+        setGeneralForm(prev => ({ ...prev, emailCode: '' }));
+      }
+    } else {
+      setBusinessVerification({ verificationId: '', expiresAt: null });
+      if (!options.keepCode) {
+        setBusinessForm(prev => ({ ...prev, emailCode: '' }));
+      }
+    }
+  };
+
+  const handleSendEmailCode = async () => {
+    const targetForm = userType === 'general' ? generalForm : businessForm;
+    const setTargetForm = userType === 'general' ? setGeneralForm : setBusinessForm;
+    const setVerification = userType === 'general' ? setGeneralVerification : setBusinessVerification;
+
+    if (!targetForm.email.trim()) {
       alert('이메일을 입력해주세요.');
       return;
     }
-    // TODO: 이메일 인증 코드 전송 API 호출
-    console.log('Send email code to:', email);
-    alert('인증 코드가 전송되었습니다.');
+
+    try {
+      setIsSendingCode(true);
+      resetVerificationState(userType, { keepCode: false });
+      const { verificationId, expiresAt } = await requestEmailVerificationCode(targetForm.email.trim());
+
+      setVerification({ verificationId, expiresAt });
+      setTargetForm(prev => ({
+        ...prev,
+        emailVerified: false
+      }));
+
+      alert('인증 코드가 전송되었습니다. 이메일을 확인해주세요.');
+    } catch (error) {
+      console.error('Email verification error:', error);
+      alert(error.message || '인증 코드를 발송하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   // 이메일 인증 코드 확인
-  const handleVerifyEmail = () => {
-    const email = userType === 'general' ? generalForm.email : businessForm.email;
-    const code = userType === 'general' ? generalForm.emailCode : businessForm.emailCode;
-    // TODO: 이메일 인증 코드 확인 API 호출
-    console.log('Verify email code:', { email, code });
-    if (userType === 'general') {
-      setGeneralForm(prev => ({ ...prev, emailVerified: true }));
-    } else {
-      setBusinessForm(prev => ({ ...prev, emailVerified: true }));
+  const handleVerifyEmail = async () => {
+    const targetForm = userType === 'general' ? generalForm : businessForm;
+    const setTargetForm = userType === 'general' ? setGeneralForm : setBusinessForm;
+    const verification = userType === 'general' ? generalVerification : businessVerification;
+
+    if (!targetForm.emailCode.trim()) {
+      alert('인증 코드를 입력해주세요.');
+      return;
     }
-    alert('이메일 인증이 완료되었습니다.');
+
+    if (!verification.verificationId) {
+      alert('먼저 인증 코드를 발송해주세요.');
+      return;
+    }
+
+    try {
+      const response = await verifyEmailCode({
+        email: targetForm.email.trim(),
+        verificationId: verification.verificationId,
+        code: targetForm.emailCode.trim()
+      });
+
+      setTargetForm(prev => ({
+        ...prev,
+        emailVerified: true
+      }));
+      resetVerificationState(userType);
+      alert(response.message || '이메일 인증이 완료되었습니다.');
+    } catch (error) {
+      alert(error.message || '인증 코드 확인에 실패했습니다.');
+    }
   };
 
   // 일반회원 가입 제출
-  const handleGeneralSubmit = (e) => {
+  const handleGeneralSubmit = async (e) => {
     e.preventDefault();
     if (!generalForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
@@ -112,20 +223,34 @@ function Signup() {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (!generalForm.zipcode || !generalForm.address) {
+      alert('주소를 검색하여 입력해주세요.');
+      return;
+    }
     const submitData = {
       email: generalForm.email,
       password: generalForm.password,
       name: generalForm.name,
       phone: generalForm.phone,
-      address: generalForm.address + ' ' + generalForm.addressDetail,
-      isSeller: 0  // 0: 일반, 1: 사업자
+      zipcode: generalForm.zipcode,
+      address: generalForm.address,
+      detailAddress: generalForm.detailAddress,
+      isSeller: 0
     };
-    // TODO: 회원가입 API 호출
-    console.log('General signup:', submitData);
+    try {
+      setIsSubmitting(true);
+      await registerUser(submitData);
+      alert('회원가입이 완료되었습니다.');
+      navigate('/');
+    } catch (error) {
+      alert(error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 사업자 가입 제출
-  const handleBusinessSubmit = (e) => {
+  const handleBusinessSubmit = async (e) => {
     e.preventDefault();
     if (!businessForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
@@ -135,17 +260,32 @@ function Signup() {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (!businessForm.zipcode || !businessForm.address) {
+      alert('주소를 검색하여 입력해주세요.');
+      return;
+    }
     const submitData = {
       email: businessForm.email,
       password: businessForm.password,
-      name: businessForm.managerName, // 담당자명을 name으로 사용
+      name: businessForm.managerName,
       phone: businessForm.phone,
-      address: businessForm.address + ' ' + businessForm.addressDetail,
-      isSeller: 1,  // 0: 일반, 1: 사업자
-      businessNumber: businessForm.businessNumber
+      zipcode: businessForm.zipcode,
+      address: businessForm.address,
+      detailAddress: businessForm.detailAddress,
+      isSeller: 1,
+      businessNumber: businessForm.businessNumber,
+      brand: businessForm.brand
     };
-    // TODO: 회원가입 API 호출
-    console.log('Business signup:', submitData);
+    try {
+      setIsSubmitting(true);
+      await registerUser(submitData);
+      alert('사업자 회원가입이 완료되었습니다.');
+      navigate('/');
+    } catch (error) {
+      alert(error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -192,9 +332,9 @@ function Signup() {
                     type="button"
                     onClick={handleSendEmailCode}
                     className="btn-verify"
-                    disabled={generalForm.emailVerified || !generalForm.email}
+                    disabled={generalForm.emailVerified || !generalForm.email || isSendingCode}
                   >
-                    {generalForm.emailVerified ? '인증완료' : '인증코드 전송'}
+                    {generalForm.emailVerified ? '인증완료' : isSendingCode ? '전송중...' : '인증코드 전송'}
                   </button>
                 </div>
               </div>
@@ -218,6 +358,11 @@ function Signup() {
                     </button>
                   </div>
                 </div>
+              )}
+              {!generalForm.emailVerified && generalVerification.verificationId && (
+                <p className="email-hint">
+                  인증 코드는 발급 후 5분간만 유효합니다.
+                </p>
               )}
               <div className="form-group">
                 <input
@@ -264,15 +409,14 @@ function Signup() {
                 />
               </div>
               <div className="form-group">
-                <div className="address-group">
+                <div className="zipcode-group">
                   <input
                     type="text"
-                    name="address"
-                    placeholder="주소 *"
-                    value={generalForm.address}
-                    onChange={handleGeneralChange}
-                    required
+                    name="zipcode"
+                    placeholder="우편번호 *"
+                    value={generalForm.zipcode}
                     readOnly
+                    required
                     className="form-input"
                   />
                   <button
@@ -287,14 +431,25 @@ function Signup() {
               <div className="form-group">
                 <input
                   type="text"
-                  name="addressDetail"
+                  name="address"
+                  placeholder="주소 *"
+                  value={generalForm.address}
+                  readOnly
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="detailAddress"
                   placeholder="상세 주소"
-                  value={generalForm.addressDetail}
+                  value={generalForm.detailAddress}
                   onChange={handleGeneralChange}
                   className="form-input"
                 />
               </div>
-              <button type="submit" className="btn-signup">
+              <button type="submit" className="btn-signup" disabled={isSubmitting}>
                 회원가입
               </button>
             </form>
@@ -321,9 +476,9 @@ function Signup() {
                     type="button"
                     onClick={handleSendEmailCode}
                     className="btn-verify"
-                    disabled={businessForm.emailVerified || !businessForm.email}
+                    disabled={businessForm.emailVerified || !businessForm.email || isSendingCode}
                   >
-                    {businessForm.emailVerified ? '인증완료' : '인증코드 전송'}
+                    {businessForm.emailVerified ? '인증완료' : isSendingCode ? '전송중...' : '인증코드 전송'}
                   </button>
                 </div>
               </div>
@@ -348,12 +503,17 @@ function Signup() {
                   </div>
                 </div>
               )}
+              {!businessForm.emailVerified && businessVerification.verificationId && (
+                <p className="email-hint">
+                  인증 코드는 발급 후 5분간만 유효합니다.
+                </p>
+              )}
               <div className="form-group">
                 <input
                   type="text"
-                  name="businessName"
+                  name="brand"
                   placeholder="상호명 *"
-                  value={businessForm.businessName}
+                  value={businessForm.brand}
                   onChange={handleBusinessChange}
                   required
                   className="form-input"
@@ -415,15 +575,14 @@ function Signup() {
                 />
               </div>
               <div className="form-group">
-                <div className="address-group">
+                <div className="zipcode-group">
                   <input
                     type="text"
-                    name="address"
-                    placeholder="주소 *"
-                    value={businessForm.address}
-                    onChange={handleBusinessChange}
-                    required
+                    name="zipcode"
+                    placeholder="우편번호 *"
+                    value={businessForm.zipcode}
                     readOnly
+                    required
                     className="form-input"
                   />
                   <button
@@ -438,14 +597,25 @@ function Signup() {
               <div className="form-group">
                 <input
                   type="text"
-                  name="addressDetail"
+                  name="address"
+                  placeholder="주소 *"
+                  value={businessForm.address}
+                  readOnly
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="detailAddress"
                   placeholder="상세 주소"
-                  value={businessForm.addressDetail}
+                  value={businessForm.detailAddress}
                   onChange={handleBusinessChange}
                   className="form-input"
                 />
               </div>
-              <button type="submit" className="btn-signup">
+              <button type="submit" className="btn-signup" disabled={isSubmitting}>
                 회원가입
               </button>
             </form>

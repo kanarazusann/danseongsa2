@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProductDetail.css';
+import { fetchSessionUser } from '../services/authService';
 
 function ProductDetail() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isWished, setIsWished] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
+  const [sessionUser, setSessionUser] = useState(null);
 
   // TODO: API 연동 필요
   // DB: Product + ProductImage + Category 조인
@@ -25,6 +27,18 @@ function ProductDetail() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchSessionUser();
+        setSessionUser(data.item);
+      } catch {
+        setSessionUser(null);
+      }
+    };
+    loadUser();
+  }, []);
 
   useEffect(() => {
     // 임시 데이터 (실제로는 API에서 가져옴)
@@ -109,9 +123,16 @@ function ProductDetail() {
   // 찜하기 토글
   // TODO: API 연동 필요
   // POST /api/wishlist 또는 DELETE /api/wishlist/:productId
-  const handleWishToggle = () => {
-    if (!localStorage.getItem('user')) {
+  const ensureLoggedIn = () => {
+    if (!sessionUser) {
       navigate('/login');
+      return false;
+    }
+    return true;
+  };
+
+  const handleWishToggle = () => {
+    if (!ensureLoggedIn()) {
       return;
     }
     setIsWished(prev => !prev);
@@ -123,8 +144,7 @@ function ProductDetail() {
   // POST /api/cart
   // Body: { productId, quantity, size }
   const handleAddToCart = () => {
-    if (!localStorage.getItem('user')) {
-      navigate('/login');
+    if (!ensureLoggedIn()) {
       return;
     }
 
@@ -139,8 +159,7 @@ function ProductDetail() {
 
   // 바로 구매
   const handleBuyNow = () => {
-    if (!localStorage.getItem('user')) {
-      navigate('/login');
+    if (!ensureLoggedIn()) {
       return;
     }
 

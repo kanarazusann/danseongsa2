@@ -114,13 +114,21 @@
   flex: 1;
 }
 
-/* 주소 검색 그룹 */
-.address-group {
+.email-hint {
+  margin-top: -5px;
+  margin-bottom: 15px;
+  font-size: 12px;
+  color: #999999;
+  line-height: 1.4;
+}
+
+/* 우편번호 입력 그룹 */
+.zipcode-group {
   display: flex;
   gap: 10px;
 }
 
-.address-group .form-input {
+.zipcode-group .form-input {
   flex: 1;
 }
 
@@ -199,7 +207,7 @@
   }
 
   .email-group,
-  .address-group {
+  .zipcode-group {
     flex-direction: column;
   }
 

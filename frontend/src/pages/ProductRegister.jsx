@@ -1,11 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import categoriesData from '../data/categories.json';
 import './ProductRegister.css';
+import { fetchSessionUser } from '../services/authService';
 
 function ProductRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchSessionUser();
+        setSessionUser(data.item);
+      } catch {
+        setSessionUser(null);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    loadUser();
+  }, []);
+
   
   // 카테고리 선택 상태
   const [selectedMainCategory, setSelectedMainCategory] = useState(null); // 대분류 (전체, 남성, 여성)
@@ -321,25 +340,26 @@ function ProductRegister() {
       return;
     }
 
-    // 로그인 및 판매자 권한 체크
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    if (!sessionChecked) {
+      alert('로그인 정보를 확인 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    if (!sessionUser) {
       alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
 
-    const user = JSON.parse(userData);
-    // isSeller는 0 또는 1 (0: 일반, 1: 사업자)
-    if (user.isSeller !== 1 && user.isSeller !== true) {
+    if (Number(sessionUser.isSeller) !== 1) {
       alert('판매자만 상품을 등록할 수 있습니다.');
       navigate('/sellerDashboard');
       return;
     }
 
-    // sellerId 확인
-    // 테스트용: userId가 없으면 기본값 1 사용 (실제로는 DB에 해당 사용자가 있어야 함)
-    const sellerId = user.userId || user.id || 1;
+
+    const sellerId = sessionUser.userId;
+
     if (!sellerId) {
       alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       navigate('/login');

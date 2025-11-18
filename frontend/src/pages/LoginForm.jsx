@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './LoginForm.css';
+import { login } from '../services/authService';
 
 function LoginForm() {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -15,32 +18,19 @@ function LoginForm() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // TODO: 실제 로그인 API 호출
-    // 임시: DB 더미 데이터와 일치하는 판매자 계정으로 로그인 처리
-    if (formData.email === 'seller@dansungsa.com' && formData.password === 'password123') {
-      const user = {
-        userId: 1,  // DB의 USERID와 일치
-        id: 1,      // 호환성을 위해 id도 추가
-        email: 'seller@dansungsa.com',
-        name: '단성사 판매자',
-        phone: '010-1234-5678',
-        address: '서울특별시 종로구 종로 123',
-        isSeller: 1,  // 판매자 권한 (0: 일반, 1: 사업자) - DB와 일치
-        businessNumber: '123-45-67890'
-      };
-      
-      localStorage.setItem('user', JSON.stringify(user));
-      alert('로그인 성공!');
-      window.location.href = '/sellerDashboard';
-      return;
+
+    try {
+      setIsSubmitting(true);
+      await login(formData);
+      alert('로그인이 완료되었습니다.');
+      navigate('/');
+    } catch (error) {
+      alert(error.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // 일반 로그인 처리 (임시)
-    console.log('Login attempt:', formData);
-    alert('로그인 기능은 아직 구현 중입니다. 테스트용: seller@dansungsa.com / password123');
   };
 
 //   const handleKakaoLogin = () => {
@@ -83,7 +73,7 @@ function LoginForm() {
                 className="form-input"
               />
             </div>
-            <button type="submit" className="btn-login">
+            <button type="submit" className="btn-login" disabled={isSubmitting}>
               로그인
             </button>
           </form>

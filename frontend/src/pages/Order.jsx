@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './Order.css';
+import { fetchSessionUser } from '../services/authService';
 
 function Order() {
   const navigate = useNavigate();
@@ -39,20 +40,25 @@ function Order() {
     deliveryMemo: ''
   });
 
-  // 사용자 정보 가져오기 (나중에 API로 교체)
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      // 기본 배송지 정보 설정 (나중에 API로 교체)
-      setDeliveryInfo(prev => ({
-        ...prev,
-        recipientName: user.name || '',
-        recipientPhone: user.phone || '',
-        address: user.address || ''
-      }));
-    }
-  }, []);
+    const loadUser = async () => {
+      try {
+        const { item } = await fetchSessionUser();
+        setDeliveryInfo(prev => ({
+          ...prev,
+          recipientName: item.name || '',
+          recipientPhone: item.phone || '',
+          address: item.address || '',
+          detailAddress: item.detailAddress || '',
+          postalCode: item.zipcode || ''
+        }));
+      } catch {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      }
+    };
+    loadUser();
+  }, [navigate]);
 
   // 입력 필드 변경 핸들러
   const handleInputChange = (e) => {
