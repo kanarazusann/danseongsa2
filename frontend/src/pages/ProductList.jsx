@@ -215,9 +215,12 @@ function ProductList() {
   const handleSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams);
-    // 검색 시 카테고리 제거 (독립적으로 작동)
+    // 검색 시 카테고리와 필터 제거 (독립적으로 작동)
     params.delete('category');
     params.delete('gender');
+    params.delete('color');
+    params.delete('size');
+    params.delete('season');
     
     if (searchInput.trim()) {
       params.set('search', searchInput.trim());
@@ -361,8 +364,11 @@ function ProductList() {
     const gender = selectedMainCategory === '전체' ? '전체' : selectedMainCategory === '남성' ? 'MEN' : 'WOMEN';
     
     const params = new URLSearchParams(searchParams);
-    // 카테고리 적용 시 검색어 제거 (독립적으로 작동)
+    // 카테고리 적용 시 검색어와 필터 제거 (독립적으로 작동)
     params.delete('search');
+    params.delete('color');
+    params.delete('size');
+    params.delete('season');
     
     params.set('gender', gender);
     
@@ -528,10 +534,21 @@ function ProductList() {
                   ☰ 카테고리
                 </button>
 
-                {/* 카테고리 드롭다운 메뉴 */}
+                {/* 카테고리 모달 */}
                 {isCategoryMenuOpen && (
-                  <div className="category-dropdown">
-                    <div className="category-levels">
+                  <div className="category-modal-overlay" onClick={toggleCategoryMenu}>
+                    <div className="category-modal-content" onClick={(e) => e.stopPropagation()}>
+                      <div className="category-modal-header">
+                        <h2>카테고리 선택</h2>
+                        <button 
+                          type="button"
+                          className="category-modal-close"
+                          onClick={toggleCategoryMenu}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="category-levels">
                       {/* 대분류 */}
                       <div className="category-level">
                         {Object.keys(categoryStructure).map(mainCat => (
@@ -601,6 +618,7 @@ function ProductList() {
                       >
                         적용
                       </button>
+                    </div>
                     </div>
                   </div>
                 )}

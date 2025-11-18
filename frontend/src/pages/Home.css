@@ -56,30 +56,94 @@
   background-color: #333333;
 }
 
-/* 카테고리 드롭다운 메뉴 */
-.category-dropdown {
-  position: absolute;
-  top: 100%;
+/* 카테고리 모달 */
+.category-modal-overlay {
+  position: fixed;
+  top: 0;
   left: 0;
-  margin-top: 10px;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.category-modal-content {
   background-color: #ffffff;
   border: 2px solid #000000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 600px;
-  max-height: 500px;
-  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  width: 90%;
+  max-width: 900px;
+  max-height: 80vh;
+  overflow: hidden;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 2px solid #000000;
+  background-color: #ffffff;
+}
+
+.category-modal-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+}
+
+.category-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #666666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+  line-height: 1;
+}
+
+.category-modal-close:hover {
+  color: #000000;
 }
 
 .category-levels {
   display: flex;
   min-height: 400px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .category-level {
   flex: 1;
   border-right: 1px solid #e0e0e0;
   padding: 20px;
+  overflow-y: auto;
+}
+
+/* 소분류가 나타날 때 대분류와 중분류는 고정 너비 */
+.category-levels:has(.sub-category-level) .category-level:not(.sub-category-level) {
+  flex: 0 0 160px;
+  max-width: 160px;
+}
+
+.category-level.sub-category-level {
+  flex: 1;
+  min-width: 400px;
+  max-width: none;
 }
 
 .category-level:last-child {
@@ -367,13 +431,9 @@
     width: 100%;
   }
 
-  .category-dropdown {
-    position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    min-width: 100%;
-    max-height: 70vh;
+  .category-modal-content {
+    width: 95%;
+    max-height: 90vh;
   }
 
   .category-levels {
