@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EditProfile.css';
+import { fetchSessionUser } from '../services/authService';
 
 function EditProfile() {
   const navigate = useNavigate();
@@ -26,33 +27,34 @@ function EditProfile() {
   // TODO: API 연동 필요
   // 사용자 정보 가져오기
   useEffect(() => {
-    // 임시 데이터 (실제로는 API에서 가져옴)
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      const defaultName = user.name || '홍길동';
-      const defaultPhone = user.phone || '010-1234-5678';
-      const defaultEmail = user.email || 'hong@example.com';
-      
-      setUserInfo({
-        name: defaultName,
-        phone: defaultPhone,
-        email: defaultEmail
-      });
-      setEditUserInfo({
-        name: defaultName,
-        phone: defaultPhone,
-        email: defaultEmail
-      });
-      setAddressData({
-        zipCode: user.zipCode || '03181',
-        address: user.address || '서울특별시 종로구 종로',
-        detailAddress: user.detailAddress || '단성사 5층'
-      });
-    } else {
-      // 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-      navigate('/login');
-    }
+    const loadUser = async () => {
+      try {
+        const { item } = await fetchSessionUser();
+        const defaultName = item.name || '홍길동';
+        const defaultPhone = item.phone || '010-1234-5678';
+        const defaultEmail = item.email || 'hong@example.com';
+
+        setUserInfo({
+          name: defaultName,
+          phone: defaultPhone,
+          email: defaultEmail
+        });
+        setEditUserInfo({
+          name: defaultName,
+          phone: defaultPhone,
+          email: defaultEmail
+        });
+        setAddressData({
+          zipCode: item.zipcode || '03181',
+          address: item.address || '서울특별시 종로구 종로',
+          detailAddress: item.detailAddress || '단성사 5층'
+        });
+      } catch (error) {
+        navigate('/login');
+      }
+    };
+
+    loadUser();
   }, [navigate]);
 
   // 이름 마스킹 (예: 홍길동 -> 홍*동)

@@ -44,8 +44,22 @@ public class ProductPostService {
     @Transactional
     public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles) {
         // 1. 판매자(User) 조회
-        User seller = userRepository.findById(sellerId)
-            .orElseThrow(() -> new RuntimeException("판매자를 찾을 수 없습니다. sellerId: " + sellerId));
+        System.out.println("판매자 조회 시도: sellerId = " + sellerId);
+        java.util.Optional<User> sellerOptional = userRepository.findById(sellerId);
+        
+        if (!sellerOptional.isPresent()) {
+            // DB에 있는 모든 사용자 ID 확인 (디버깅용)
+            List<User> allUsers = userRepository.findAll();
+            System.out.println("DB에 존재하는 모든 사용자 수: " + allUsers.size());
+            for (User u : allUsers) {
+                System.out.println("  - userId: " + u.getUserId() + ", email: " + u.getEmail());
+            }
+            throw new RuntimeException("판매자를 찾을 수 없습니다. sellerId: " + sellerId + 
+                " (DB에 존재하는 사용자 수: " + allUsers.size() + ")");
+        }
+        
+        User seller = sellerOptional.get();
+        System.out.println("판매자 조회 성공: " + seller.getEmail() + " (userId: " + seller.getUserId() + ")");
         
         // 2. 게시물 생성
         ProductPost productPost = new ProductPost();

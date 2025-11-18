@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyPage.css';
+import { fetchSessionUser, logout } from '../services/authService';
 
 function MyPage() {
   const navigate = useNavigate();
@@ -167,6 +168,18 @@ function MyPage() {
     return typeMap[type] || type;
   };
 
+  useEffect(() => {
+    const ensureLogin = async () => {
+      try {
+        await fetchSessionUser();
+      } catch {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      }
+    };
+    ensureLogin();
+  }, [navigate]);
+
   const getRefundStatusText = (status) => {
     const statusMap = {
       'REQUESTED': '신청완료',
@@ -177,22 +190,18 @@ function MyPage() {
   };
 
   // 회원탈퇴 처리
-  const handleDeleteAccount = () => {
-    // 나중에 API 호출로 교체
-    // 예: await deleteUserAccount();
-    
-    // localStorage에서 사용자 정보 삭제
-    localStorage.removeItem('user');
-    
-    // 홈으로 이동
+  const handleDeleteAccount = async () => {
+    // TODO: 실제 회원탈퇴 API 연동
+    try {
+      await logout();
+    } catch (error) {
+      console.error(error);
+    }
+
     navigate('/');
-    
-    // 모달 닫기
     setShowDeleteModal(false);
     setDeleteConfirmText('');
-    
-    // 실제로는 API 호출 후 성공 시 처리
-    alert('회원탈퇴가 완료되었습니다.');
+    alert('회원탈퇴가 완료되었습니다. (임시 처리)');
   };
 
   // 리뷰 수정 시작
