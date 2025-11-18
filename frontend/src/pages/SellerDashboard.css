@@ -433,6 +433,187 @@
   color: #ffffff;
 }
 
+/* 프로필 섹션 (사업자 정보 탭) */
+.profile-section {
+  max-width: 600px;
+}
+
+.profile-info {
+  margin-bottom: 30px;
+}
+
+.info-row {
+  display: flex;
+  padding: 20px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row label {
+  width: 120px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.info-value {
+  flex: 1;
+  color: #666666;
+}
+
+.profile-edit-form {
+  margin-bottom: 30px;
+}
+
+.profile-edit-form .info-row {
+  align-items: center;
+}
+
+.profile-edit-form .info-row label {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.form-input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333333;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+.form-input:disabled {
+  background-color: #f5f5f5;
+  color: #999999;
+  cursor: not-allowed;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.btn-delete-account {
+  padding: 12px 30px;
+  background-color: #ffffff;
+  color: #ff0000;
+  border: 1px solid #ff0000;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-delete-account:hover {
+  background-color: #ff0000;
+  color: #ffffff;
+}
+
+/* 회원탈퇴 모달 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #000000;
+}
+
+.modal-body {
+  margin-bottom: 25px;
+}
+
+.warning-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff0000;
+  margin-bottom: 15px;
+}
+
+.warning-detail {
+  font-size: 14px;
+  color: #666666;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #fff3e0;
+  border-radius: 4px;
+  border-left: 3px solid #ff9800;
+}
+
+.delete-confirm {
+  margin-top: 20px;
+}
+
+.delete-confirm label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.delete-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.delete-input:focus {
+  border-color: #000000;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-actions button:disabled:hover {
+  background-color: #ffffff;
+  color: #ff0000;
+}
+
 /* 빈 상태 */
 .empty-state {
   text-align: center;
@@ -505,6 +686,48 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .profile-section {
+    max-width: 100%;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-row label {
+    width: 100%;
+  }
+
+  .info-value {
+    width: 100%;
+  }
+
+  .form-input {
+    width: 100%;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+
+  .profile-actions button {
+    width: 100%;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions button {
+    width: 100%;
   }
 }
 

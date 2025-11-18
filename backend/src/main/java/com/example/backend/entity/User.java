@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
-@Table(name = "\"user\"")  // 실제 사용 중인 소문자 user 테이블 매핑
+@Table(name = "\"user\"")  // Oracle 예약어이므로 따옴표로 감싸기
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
