@@ -1,0 +1,151 @@
+.find-id-page {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background-color: #ffffff;
+}
+
+.find-id-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.find-id-box {
+  background-color: #ffffff;
+  padding: 50px 40px;
+  border: 1px solid #e0e0e0;
+}
+
+.find-id-title {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 3px;
+  color: #000000;
+}
+
+.find-id-subtitle {
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 40px;
+  color: #666666;
+  font-weight: 400;
+}
+
+.find-id-form {
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #000000;
+}
+
+.form-input::placeholder {
+  color: #999999;
+}
+
+.btn-find {
+  width: 100%;
+  padding: 14px;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px;
+}
+
+.btn-find:hover {
+  background-color: #333333;
+}
+
+.result-box {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 30px 0;
+}
+
+.result-text {
+  font-size: 14px;
+  color: #666666;
+  margin-bottom: 10px;
+}
+
+.result-email {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000000;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-login-link {
+  display: inline-block;
+  padding: 12px 30px;
+  background-color: #000000;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  margin-top: 20px;
+}
+
+.btn-login-link:hover {
+  background-color: #333333;
+}
+
+.find-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.find-links a {
+  color: #666666;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.find-links a:hover {
+  color: #000000;
+}
+
+.find-links span {
+  color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .find-id-box {
+    padding: 40px 30px;
+  }
+
+  .find-id-title {
+    font-size: 28px;
+  }
+}
+
