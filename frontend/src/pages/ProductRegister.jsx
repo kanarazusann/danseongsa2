@@ -79,19 +79,7 @@ function ProductRegister() {
       [name]: value
     }));
     
-    // gender가 변경되면 대분류 업데이트
-    if (name === 'gender') {
-      if (value === 'UNISEX') {
-        // 공용 선택 시 대분류를 "전체"로 자동 설정
-        setSelectedMainCategory('전체');
-        // 중분류와 소분류는 초기화
-        setSelectedSubCategory(null);
-        setSelectedItem(null);
-        setFormData(prev => ({ ...prev, categoryName: '' }));
-      }
-    }
   };
-
   // 대분류 선택 핸들러
   const handleMainCategorySelect = (mainCategory) => {
     setSelectedMainCategory(mainCategory);
@@ -276,11 +264,7 @@ function ProductRegister() {
       return false;
     }
     if (!formData.categoryName.trim()) {
-      alert('카테고리명을 입력해주세요.');
-      return false;
-    }
-    if (!formData.gender) {
-      alert('성별을 선택해주세요.');
+      alert('카테고리를 선택해주세요.');
       return false;
     }
     if (!formData.season) {
@@ -466,7 +450,7 @@ function ProductRegister() {
 
               <div className="form-group full-width">
                 <label className="form-label">
-                  카테고리명 <span className="required">*</span>
+                  카테고리 <span className="required">*</span>
                 </label>
                 <div className="category-selector-form">
                   <div className="category-levels-form">
@@ -547,26 +531,6 @@ function ProductRegister() {
                   )}
                 </div>
                 <p className="form-hint">대분류 → 중분류 → 소분류 순서로 선택하세요</p>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  성별 <span className="required">*</span>
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  required
-                >
-                  <option value="">선택하세요</option>
-                  {genderOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div className="form-group">
