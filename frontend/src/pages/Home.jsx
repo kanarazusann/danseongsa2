@@ -228,6 +228,7 @@ function Home() {
 
   return (
     <div className="home">
+    <h3>dddddddddddddddddddddddddddddddd</h3>
       {/* 메인 배너 (광고) */}
       <section className="main-banner">
         <div className="banner-content">
@@ -250,21 +251,10 @@ function Home() {
               ☰ 카테고리
             </button>
 
-            {/* 카테고리 모달 */}
+            {/* 카테고리 드롭다운 메뉴 */}
             {isCategoryMenuOpen && (
-              <div className="category-modal-overlay" onClick={toggleCategoryMenu}>
-                <div className="category-modal-content" onClick={(e) => e.stopPropagation()}>
-                  <div className="category-modal-header">
-                    <h2>카테고리 선택</h2>
-                    <button 
-                      type="button"
-                      className="category-modal-close"
-                      onClick={toggleCategoryMenu}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="category-levels">
+              <div className="category-dropdown">
+                <div className="category-levels">
                   {/* 대분류 */}
                   <div className="category-level">
                     {Object.keys(categoryStructure).map(mainCat => (
@@ -334,7 +324,6 @@ function Home() {
                   >
                     적용
                   </button>
-                </div>
                 </div>
               </div>
             )}

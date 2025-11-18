@@ -1,0 +1,554 @@
+{
+    "전체": {
+      "신발": [
+        {
+          "name": "스니커즈",
+          "image": "/image/KakaoTalk_20251118_194220951.jpg"
+        },
+        {
+          "name": "구두",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        },
+        {
+          "name": "샌들/슬리퍼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        },
+        {
+          "name": "부츠/워커",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        },
+        {
+          "name": "스포츠화",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        }
+      ],
+      "상의": [
+        {
+          "name": "맨투맨",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        },
+        {
+          "name": "후드",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        },
+        {
+          "name": "셔츠",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        },
+        {
+          "name": "긴소매",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        },
+        {
+          "name": "반소매",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        },
+        {
+          "name": "니트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        },
+        {
+          "name": "민소매",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS"
+        }
+      ],
+      "아우터": [
+        {
+          "name": "숏패딩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        },
+        {
+          "name": "롱패딩",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        },
+        {
+          "name": "무스탕",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        },
+        {
+          "name": "코트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        },
+        {
+          "name": "가디건",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        },
+        {
+          "name": "후드 집업",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        },
+        {
+          "name": "슈트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        },
+        {
+          "name": "재킷",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        }
+      ],
+      "바지": [
+        {
+          "name": "데님",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        },
+        {
+          "name": "트레이닝",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        },
+        {
+          "name": "코튼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        },
+        {
+          "name": "슬렉스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        },
+        {
+          "name": "숏팬츠",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        }
+      ],
+      "원피스/스커트": [
+        {
+          "name": "미니 원피스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI"
+        },
+        {
+          "name": "미디 원피스",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI"
+        },
+        {
+          "name": "맥시 원피스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI"
+        },
+        {
+          "name": "미니 스커트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI"
+        },
+        {
+          "name": "미디 스커트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI"
+        },
+        {
+          "name": "맥시 스커트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI"
+        }
+      ],
+      "가방": [
+        {
+          "name": "백팩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        },
+        {
+          "name": "크로스백",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        },
+        {
+          "name": "에코백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        },
+        {
+          "name": "파우치",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        },
+        {
+          "name": "클러치백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        },
+        {
+          "name": "토트백",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE"
+        },
+        {
+          "name": "숄더백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER"
+        }
+      ],
+      "패션소품": [
+        {
+          "name": "모자",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        },
+        {
+          "name": "머플러",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF"
+        },
+        {
+          "name": "악세사리",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        },
+        {
+          "name": "양말",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        },
+        {
+          "name": "선글라스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        },
+        {
+          "name": "시계",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        },
+        {
+          "name": "벨트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        }
+      ]
+    },
+    "남성": {
+      "신발": [
+        {
+          "name": "스니커즈",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS"
+        },
+        {
+          "name": "구두",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        },
+        {
+          "name": "샌들/슬리퍼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        },
+        {
+          "name": "부츠/워커",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        },
+        {
+          "name": "스포츠화",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        }
+      ],
+      "상의": [
+        {
+          "name": "맨투맨",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        },
+        {
+          "name": "후드",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        },
+        {
+          "name": "셔츠",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        },
+        {
+          "name": "긴소매",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        },
+        {
+          "name": "반소매",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        },
+        {
+          "name": "니트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        }
+      ],
+      "아우터": [
+        {
+          "name": "숏패딩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        },
+        {
+          "name": "롱패딩",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        },
+        {
+          "name": "무스탕",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        },
+        {
+          "name": "코트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        },
+        {
+          "name": "가디건",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        },
+        {
+          "name": "후드 집업",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        },
+        {
+          "name": "슈트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        },
+        {
+          "name": "재킷",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        }
+      ],
+      "바지": [
+        {
+          "name": "데님",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        },
+        {
+          "name": "트레이닝",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        },
+        {
+          "name": "코튼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        },
+        {
+          "name": "슬렉스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        },
+        {
+          "name": "숏팬츠",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        }
+      ],
+      "가방": [
+        {
+          "name": "백팩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        },
+        {
+          "name": "크로스백",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        },
+        {
+          "name": "에코백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        },
+        {
+          "name": "파우치",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        },
+        {
+          "name": "클러치백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        }
+      ],
+      "패션소품": [
+        {
+          "name": "모자",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        },
+        {
+          "name": "머플러",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF"
+        },
+        {
+          "name": "악세사리",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        },
+        {
+          "name": "양말",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        },
+        {
+          "name": "선글라스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        },
+        {
+          "name": "시계",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        },
+        {
+          "name": "벨트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        }
+      ]
+    },
+    "여성": {
+      "신발": [
+        {
+          "name": "스니커즈",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS"
+        },
+        {
+          "name": "구두",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        },
+        {
+          "name": "샌들/슬리퍼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        },
+        {
+          "name": "부츠/워커",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        },
+        {
+          "name": "스포츠화",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        }
+      ],
+      "상의": [
+        {
+          "name": "맨투맨",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        },
+        {
+          "name": "후드",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        },
+        {
+          "name": "셔츠",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        },
+        {
+          "name": "긴소매",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        },
+        {
+          "name": "반소매",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        },
+        {
+          "name": "니트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        },
+        {
+          "name": "민소매",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS"
+        }
+      ],
+      "아우터": [
+        {
+          "name": "숏패딩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        },
+        {
+          "name": "롱패딩",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        },
+        {
+          "name": "무스탕",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        },
+        {
+          "name": "코트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        },
+        {
+          "name": "가디건",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        },
+        {
+          "name": "후드 집업",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        },
+        {
+          "name": "슈트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        },
+        {
+          "name": "재킷",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        }
+      ],
+      "바지": [
+        {
+          "name": "데님",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        },
+        {
+          "name": "트레이닝",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        },
+        {
+          "name": "코튼",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        },
+        {
+          "name": "슬렉스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        },
+        {
+          "name": "숏팬츠",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        }
+      ],
+      "원피스/스커트": [
+        {
+          "name": "미니 원피스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI"
+        },
+        {
+          "name": "미디 원피스",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI"
+        },
+        {
+          "name": "맥시 원피스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI"
+        },
+        {
+          "name": "미니 스커트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI"
+        },
+        {
+          "name": "미디 스커트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI"
+        },
+        {
+          "name": "맥시 스커트",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI"
+        }
+      ],
+      "가방": [
+        {
+          "name": "백팩",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        },
+        {
+          "name": "크로스백",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        },
+        {
+          "name": "에코백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        },
+        {
+          "name": "파우치",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        },
+        {
+          "name": "클러치백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        },
+        {
+          "name": "토트백",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE"
+        },
+        {
+          "name": "숄더백",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER"
+        }
+      ],
+      "패션소품": [
+        {
+          "name": "모자",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        },
+        {
+          "name": "머플러",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF"
+        },
+        {
+          "name": "악세사리",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        },
+        {
+          "name": "양말",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        },
+        {
+          "name": "선글라스",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        },
+        {
+          "name": "시계",
+          "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        },
+        {
+          "name": "벨트",
+          "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        }
+      ]
+    }
+  }
+  
+  

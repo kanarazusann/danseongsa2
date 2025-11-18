@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import categoryStructure from '../data/categories.json';
 import './ProductList.css';
 
 function ProductList() {
@@ -54,9 +55,11 @@ function ProductList() {
     let filteredProducts = getMockProducts();
     
     if (category) {
-      // categoryName으로 필터링 (예: "신발 스니커즈")
+      // categoryName으로 필터링
+      // category 형식: "중분류 소분류" 또는 "중분류"
+      // DB의 categoryName 형식: "중분류 소분류" (예: "신발 스니커즈")
       filteredProducts = filteredProducts.filter(p => 
-        p.categoryName && p.categoryName.includes(category.split(' ')[0])
+        p.categoryName && p.categoryName === category
       );
     }
     
@@ -230,100 +233,9 @@ function ProductList() {
     setSearchParams(params);
   };
 
-  // 카테고리 이미지 가져오기
-  const getCategoryImage = (subCategory, itemName) => {
-    const imageMap = {
-      '신발': {
-        '스니커즈': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS',
-        '구두': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES',
-        '샌들/슬리퍼': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS',
-        '부츠/워커': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS',
-        '스포츠화': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS'
-      },
-      '상의': {
-        '맨투맨': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT',
-        '후드': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE',
-        '셔츠': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT',
-        '긴소매': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG',
-        '반소매': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT',
-        '니트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT',
-        '민소매': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS'
-      },
-      '아우터': {
-        '숏패딩': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT',
-        '롱패딩': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG',
-        '무스탕': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG',
-        '코트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT',
-        '가디건': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN',
-        '후드 집업': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE',
-        '슈트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT',
-        '재킷': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET'
-      },
-      '바지': {
-        '데님': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS',
-        '트레이닝': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK',
-        '코튼': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON',
-        '슬렉스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS',
-        '숏팬츠': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS'
-      },
-      '원피스/스커트': {
-        '미니 원피스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI',
-        '미디 원피스': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI',
-        '맥시 원피스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI',
-        '미니 스커트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI',
-        '미디 스커트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI',
-        '맥시 스커트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI'
-      },
-      '가방': {
-        '백팩': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK',
-        '크로스백': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS',
-        '에코백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO',
-        '파우치': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH',
-        '클러치백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH',
-        '토트백': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE',
-        '숄더백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER'
-      },
-      '패션소품': {
-        '모자': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT',
-        '머플러': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF',
-        '악세사리': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC',
-        '양말': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS',
-        '선글라스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES',
-        '시계': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH',
-        '벨트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT'
-      }
-    };
-    return imageMap[subCategory]?.[itemName] || 'https://via.placeholder.com/150x150/CCCCCC/000000?text=IMAGE';
-  };
+  // TODO: 카테고리 이미지는 이제 JSON 파일에서 직접 가져옴
+  // 소분류는 { name, image } 형태로 JSON에 저장됨
 
-  const categoryStructure = {
-    '전체': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트', '민소매'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '원피스/스커트': ['미니 원피스', '미디 원피스', '맥시 원피스', '미니 스커트', '미디 스커트', '맥시 스커트'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백', '토트백', '숄더백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    },
-    '남성': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    },
-    '여성': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트', '민소매'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '원피스/스커트': ['미니 원피스', '미디 원피스', '맥시 원피스', '미니 스커트', '미디 스커트', '맥시 스커트'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백', '토트백', '숄더백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    }
-  };
 
   // 카테고리 메뉴 토글
   const toggleCategoryMenu = () => {
@@ -373,9 +285,11 @@ function ProductList() {
     params.set('gender', gender);
     
     if (selectedSubCategory && selectedItem) {
-      const categoryName = `${selectedSubCategory}_${selectedItem}`;
+      // 소분류까지 선택된 경우: "중분류 소분류" 형식 (한 칸 띄어쓰기)
+      const categoryName = `${selectedSubCategory} ${selectedItem}`;
       params.set('category', categoryName);
     } else if (selectedSubCategory) {
+      // 중분류만 선택된 경우: 중분류만
       params.set('category', selectedSubCategory);
     } else {
       params.delete('category');
@@ -397,9 +311,16 @@ function ProductList() {
 
   // 필터 정보 표시
   const getFilterInfo = () => {
-    const info = [];
-    if (category) info.push(`카테고리: ${category}`);
-    return info.length > 0 ? info.join(' | ') : '전체 상품';
+    if (category) {
+      // category 형식: "중분류 소분류" 또는 "중분류"
+      return category;
+    }
+    if (gender) {
+      // gender가 있으면 표시
+      const genderText = gender === 'MEN' ? '남성' : gender === 'WOMEN' ? '여성' : '전체';
+      return genderText;
+    }
+    return '전체 상품';
   };
 
   if (loading) {
@@ -585,15 +506,15 @@ function ProductList() {
                           <div className="sub-category-grid">
                             {categoryStructure[selectedMainCategory][selectedSubCategory].map(item => (
                               <button
-                                key={item}
+                                key={item.name}
                                 type="button"
-                                className={`sub-category-item ${selectedItem === item ? 'active' : ''}`}
-                                onClick={() => handleCategoryItemClick(item)}
+                                className={`sub-category-item ${selectedItem === item.name ? 'active' : ''}`}
+                                onClick={() => handleCategoryItemClick(item.name)}
                               >
                                 <div className="sub-category-image">
-                                  <img src={getCategoryImage(selectedSubCategory, item)} alt={item} />
+                                  <img src={item.image} alt={item.name} />
                                 </div>
-                                <span className="sub-category-name">{item}</span>
+                                <span className="sub-category-name">{item.name}</span>
                               </button>
                             ))}
                           </div>
