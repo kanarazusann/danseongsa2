@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import categoriesData from '../data/categories.json';
 import './ProductRegister.css';
 
 function ProductRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  // 카테고리 선택 상태
+  const [selectedMainCategory, setSelectedMainCategory] = useState(null); // 대분류 (전체, 남성, 여성)
+  const [selectedSubCategory, setSelectedSubCategory] = useState(null); // 중분류 (신발, 상의 등)
+  const [selectedItem, setSelectedItem] = useState(null); // 소분류 (스니커즈, 맨투맨 등)
 
   // 게시물 기본 정보 (ProductPost)
   const [formData, setFormData] = useState({
@@ -28,7 +34,7 @@ function ProductRegister() {
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   // 옵션 리스트
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE'];
+  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270'];
   const genderOptions = [
     { value: 'MEN', label: '남성' },
     { value: 'WOMEN', label: '여성' },
@@ -72,6 +78,51 @@ function ProductRegister() {
       ...prev,
       [name]: value
     }));
+    
+    // gender가 변경되면 대분류 업데이트
+    if (name === 'gender') {
+      if (value === 'UNISEX') {
+        // 공용 선택 시 대분류를 "전체"로 자동 설정
+        setSelectedMainCategory('전체');
+        // 중분류와 소분류는 초기화
+        setSelectedSubCategory(null);
+        setSelectedItem(null);
+        setFormData(prev => ({ ...prev, categoryName: '' }));
+      }
+    }
+  };
+
+  // 대분류 선택 핸들러
+  const handleMainCategorySelect = (mainCategory) => {
+    setSelectedMainCategory(mainCategory);
+    setSelectedSubCategory(null);
+    setSelectedItem(null);
+    setFormData(prev => ({ ...prev, categoryName: '' }));
+    
+    // 대분류에 따라 성별 자동 설정
+    if (mainCategory === '남성') {
+      setFormData(prev => ({ ...prev, gender: 'MEN' }));
+    } else if (mainCategory === '여성') {
+      setFormData(prev => ({ ...prev, gender: 'WOMEN' }));
+    } else if (mainCategory === '전체') {
+      setFormData(prev => ({ ...prev, gender: 'UNISEX' }));
+    }
+  };
+
+  // 중분류 선택 핸들러
+  const handleSubCategorySelect = (subCategory) => {
+    setSelectedSubCategory(subCategory);
+    setSelectedItem(null);
+    setFormData(prev => ({ ...prev, categoryName: '' }));
+  };
+
+  // 소분류 선택 핸들러
+  const handleItemSelect = (item) => {
+    setSelectedItem(item);
+    // categoryName 자동 생성: "중분류 소분류" 형식 (예: "신발 스니커즈")
+    if (selectedSubCategory && item) {
+      setFormData(prev => ({ ...prev, categoryName: `${selectedSubCategory} ${item}` }));
+    }
   };
 
   // 상품 옵션 추가
@@ -303,7 +354,8 @@ function ProductRegister() {
     }
 
     // sellerId 확인
-    const sellerId = user.userId || user.id;
+    // 테스트용: userId가 없으면 기본값 1 사용 (실제로는 DB에 해당 사용자가 있어야 함)
+    const sellerId = user.userId || user.id || 1;
     if (!sellerId) {
       alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       navigate('/login');
@@ -412,20 +464,89 @@ function ProductRegister() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group full-width">
                 <label className="form-label">
                   카테고리명 <span className="required">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="categoryName"
-                  value={formData.categoryName}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  placeholder="예) 신발 스니커즈"
-                  required
-                />
-                <p className="form-hint">예: 상의 맨투맨, 하의 청바지, 신발 스니커즈</p>
+                <div className="category-selector-form">
+                  <div className="category-levels-form">
+                    {/* 대분류 선택 */}
+                    <div className="category-level-form">
+                      <div className="category-level-title">대분류</div>
+                      <div className="category-buttons">
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '전체' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('전체')}
+                        >
+                          전체
+                        </button>
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '남성' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('남성')}
+                        >
+                          남성
+                        </button>
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '여성' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('여성')}
+                        >
+                          여성
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 중분류 선택 */}
+                    {selectedMainCategory && (
+                      <div className="category-level-form">
+                        <div className="category-level-title">중분류</div>
+                        <div className="category-buttons">
+                          {Object.keys(categoriesData[selectedMainCategory] || {}).map(subCat => (
+                            <button
+                              key={subCat}
+                              type="button"
+                              className={`category-btn ${selectedSubCategory === subCat ? 'active' : ''}`}
+                              onClick={() => handleSubCategorySelect(subCat)}
+                            >
+                              {subCat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 소분류 선택 */}
+                    {selectedMainCategory && selectedSubCategory && (
+                      <div className="category-level-form sub-category-level-form">
+                        <div className="category-level-title">소분류</div>
+                        <div className="sub-category-buttons-form">
+                          {categoriesData[selectedMainCategory]?.[selectedSubCategory]?.map(item => (
+                            <button
+                              key={item.name}
+                              type="button"
+                              className={`sub-category-btn-form ${selectedItem === item.name ? 'active' : ''}`}
+                              onClick={() => handleItemSelect(item.name)}
+                            >
+                              {item.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 선택된 카테고리명 표시 */}
+                  {formData.categoryName && (
+                    <div className="selected-category-form">
+                      <span className="category-display-form">
+                        <strong>선택된 카테고리:</strong> {formData.categoryName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="form-hint">대분류 → 중분류 → 소분류 순서로 선택하세요</p>
               </div>
 
               <div className="form-group">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import categoriesData from '../data/categories.json';
 import './ProductEdit.css';
 
 function ProductEdit() {
@@ -7,6 +8,11 @@ function ProductEdit() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [loadingProduct, setLoadingProduct] = useState(true);
+  
+  // 카테고리 선택 상태
+  const [selectedMainCategory, setSelectedMainCategory] = useState(null); // 대분류 (전체, 남성, 여성)
+  const [selectedSubCategory, setSelectedSubCategory] = useState(null); // 중분류 (신발, 상의 등)
+  const [selectedItem, setSelectedItem] = useState(null); // 소분류 (스니커즈, 맨투맨 등)
 
   // 게시물 기본 정보 (ProductPost)
   const [formData, setFormData] = useState({
@@ -31,7 +37,7 @@ function ProductEdit() {
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   // 옵션 리스트
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '250', '255', '260', '265', '270', '275', '280'];
+  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270'];
   const genderOptions = [
     { value: 'MEN', label: '남성' },
     { value: 'WOMEN', label: '여성' },
@@ -126,6 +132,27 @@ function ProductEdit() {
           status: productPost.status || 'SELLING'
         });
 
+        // 카테고리명에서 대분류, 중분류, 소분류 파싱
+        if (productPost.categoryName) {
+          const categoryParts = productPost.categoryName.split(' ');
+          if (categoryParts.length >= 2) {
+            const subCategory = categoryParts[0]; // 중분류 (예: "신발")
+            const item = categoryParts.slice(1).join(' '); // 소분류 (예: "스니커즈")
+            
+            // gender에 따라 대분류 설정
+            let mainCategory = '전체';
+            if (productPost.gender === 'MEN') {
+              mainCategory = '남성';
+            } else if (productPost.gender === 'WOMEN') {
+              mainCategory = '여성';
+            }
+            
+            setSelectedMainCategory(mainCategory);
+            setSelectedSubCategory(subCategory);
+            setSelectedItem(item);
+          }
+        }
+
         // 상품 옵션 데이터 채우기
         if (productPost.products && productPost.products.length > 0) {
           const options = productPost.products.map(product => {
@@ -193,6 +220,51 @@ function ProductEdit() {
       ...prev,
       [name]: value
     }));
+    
+    // gender가 변경되면 대분류 업데이트
+    if (name === 'gender') {
+      if (value === 'UNISEX') {
+        // 공용 선택 시 대분류를 "전체"로 자동 설정
+        setSelectedMainCategory('전체');
+        // 중분류와 소분류는 초기화
+        setSelectedSubCategory(null);
+        setSelectedItem(null);
+        setFormData(prev => ({ ...prev, categoryName: '' }));
+      }
+    }
+  };
+
+  // 대분류 선택 핸들러
+  const handleMainCategorySelect = (mainCategory) => {
+    setSelectedMainCategory(mainCategory);
+    setSelectedSubCategory(null);
+    setSelectedItem(null);
+    setFormData(prev => ({ ...prev, categoryName: '' }));
+    
+    // 대분류에 따라 성별 자동 설정
+    if (mainCategory === '남성') {
+      setFormData(prev => ({ ...prev, gender: 'MEN' }));
+    } else if (mainCategory === '여성') {
+      setFormData(prev => ({ ...prev, gender: 'WOMEN' }));
+    } else if (mainCategory === '전체') {
+      setFormData(prev => ({ ...prev, gender: 'UNISEX' }));
+    }
+  };
+
+  // 중분류 선택 핸들러
+  const handleSubCategorySelect = (subCategory) => {
+    setSelectedSubCategory(subCategory);
+    setSelectedItem(null);
+    setFormData(prev => ({ ...prev, categoryName: '' }));
+  };
+
+  // 소분류 선택 핸들러
+  const handleItemSelect = (item) => {
+    setSelectedItem(item);
+    // categoryName 자동 생성: "중분류 소분류" 형식 (예: "신발 스니커즈")
+    if (selectedSubCategory && item) {
+      setFormData(prev => ({ ...prev, categoryName: `${selectedSubCategory} ${item}` }));
+    }
   };
 
   // 상품 옵션 추가
@@ -533,16 +605,71 @@ function ProductEdit() {
                 <label className="form-label">
                   카테고리명 <span className="required">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="categoryName"
-                  value={formData.categoryName}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  placeholder="예) 신발 스니커즈"
-                  required
-                />
-                <p className="form-hint">예: 상의 맨투맨, 하의 청바지, 신발 스니커즈</p>
+                <div className="category-selector">
+                  {/* 대분류 선택 */}
+                  <div className="category-level-select">
+                    <label className="category-label">대분류</label>
+                    <select
+                      value={selectedMainCategory || ''}
+                      onChange={(e) => handleMainCategorySelect(e.target.value)}
+                      className="form-input"
+                      required
+                    >
+                      <option value="">선택하세요</option>
+                      <option value="전체">전체</option>
+                      <option value="남성">남성</option>
+                      <option value="여성">여성</option>
+                    </select>
+                  </div>
+
+                  {/* 중분류 선택 */}
+                  {selectedMainCategory && (
+                    <div className="category-level-select">
+                      <label className="category-label">중분류</label>
+                      <select
+                        value={selectedSubCategory || ''}
+                        onChange={(e) => handleSubCategorySelect(e.target.value)}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">선택하세요</option>
+                        {Object.keys(categoriesData[selectedMainCategory] || {}).map(subCat => (
+                          <option key={subCat} value={subCat}>
+                            {subCat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* 소분류 선택 */}
+                  {selectedMainCategory && selectedSubCategory && (
+                    <div className="category-level-select">
+                      <label className="category-label">소분류</label>
+                      <select
+                        value={selectedItem || ''}
+                        onChange={(e) => handleItemSelect(e.target.value)}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">선택하세요</option>
+                        {categoriesData[selectedMainCategory]?.[selectedSubCategory]?.map(item => (
+                          <option key={item.name} value={item.name}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* 선택된 카테고리명 표시 */}
+                  {formData.categoryName && (
+                    <div className="selected-category">
+                      <span className="category-display">선택된 카테고리: {formData.categoryName}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="form-hint">대분류 → 중분류 → 소분류 순서로 선택하세요</p>
               </div>
 
               <div className="form-group">

@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
-@Table(name = "\"USER\"")  // Oracle 예약어이므로 따옴표로 감싸기
+@Table(name = "\"USER\"") 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
