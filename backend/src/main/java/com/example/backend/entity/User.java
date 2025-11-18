@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
-@Table(name = "\"USER\"")  // Oracle 예약어이므로 따옴표로 감싸기
+@Table(name = "\"user\"")  // 실제 사용 중인 소문자 user 테이블 매핑
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,14 +35,23 @@ public class User {
     @Column(name = "PHONE", length = 20)
     private String phone;
 
-    @Column(name = "ADDRESS", length = 500)
-    private String address;
-
     @Column(name = "ISSELLER", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0")
     private Integer isSeller = 0;  // 0: 일반, 1: 사업자
 
     @Column(name = "BUSINESSNUMBER", length = 20)
     private String businessNumber;
+
+    @Column(name = "BRAND", length = 100)
+    private String brand;
+
+    @Column(name = "ZIPCODE", length = 10)
+    private String zipcode;
+
+    @Column(name = "ADDRESS", length = 500)
+    private String address;
+
+    @Column(name = "DETAILADDRESS", length = 200)
+    private String detailAddress;
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)

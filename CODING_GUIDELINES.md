@@ -1139,9 +1139,12 @@ feat: 상품 조회 API 구현
 - password (String, not null)  //비밀번호
 - name (String, not null)  // 이름
 - phone (String)  // 전화번호
-- address (String) // 주소
 - isSeller (Boolean, default: false) // 사업자인지 일반회원인지 구분
 - businessNumber (String, nullable) // 사업자등록번호 
+- brand (String, nullable) // 상호명 (isSeller = 1 일 때 필수)
+- zipcode (String) // 다음 주소검색 API 우편번호
+- address (String) // 기본 주소
+- detailAddress (String) // 상세 주소
 - createdAt (Timestamp)  //회원가입날짜
 - updatedAt (Timestamp)  //회원정보수정날짜
 

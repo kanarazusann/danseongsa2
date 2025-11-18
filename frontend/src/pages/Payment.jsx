@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './Payment.css';
+import { fetchSessionUser } from '../services/authService';
 
 function Payment() {
   const navigate = useNavigate();
@@ -35,18 +36,24 @@ function Payment() {
     { accountId: 2, bankName: '신한은행', accountNumber: '987-654-321098', accountHolder: '홍길동', isDefault: false, balance: 300000 }
   ]);
 
-  // 사용자 정보 가져오기
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      // 기본 계좌 선택
-      const defaultAccount = accounts.find(acc => acc.isDefault);
-      if (defaultAccount) {
-        setSelectedAccountId(defaultAccount.accountId);
+    const ensureLogin = async () => {
+      try {
+        await fetchSessionUser();
+      } catch {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
       }
+    };
+    ensureLogin();
+  }, [navigate]);
+
+  useEffect(() => {
+    const defaultAccount = accounts.find(acc => acc.isDefault);
+    if (defaultAccount) {
+      setSelectedAccountId(defaultAccount.accountId);
     }
-  }, []);
+  }, [accounts]);
 
   // 카드 정보 입력 핸들러
   const handleCardInputChange = (e) => {

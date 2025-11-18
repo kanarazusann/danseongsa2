@@ -1,10 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProductRegister.css';
+import { fetchSessionUser } from '../services/authService';
 
 function ProductRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchSessionUser();
+        setSessionUser(data.item);
+      } catch {
+        setSessionUser(null);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    loadUser();
+  }, []);
 
   // 게시물 기본 정보 (ProductPost)
   const [formData, setFormData] = useState({
@@ -286,24 +303,24 @@ function ProductRegister() {
       return;
     }
 
-    // 로그인 및 판매자 권한 체크
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+    if (!sessionChecked) {
+      alert('로그인 정보를 확인 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    if (!sessionUser) {
       alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
 
-    const user = JSON.parse(userData);
-    // isSeller는 0 또는 1 (0: 일반, 1: 사업자)
-    if (user.isSeller !== 1 && user.isSeller !== true) {
+    if (Number(sessionUser.isSeller) !== 1) {
       alert('판매자만 상품을 등록할 수 있습니다.');
       navigate('/sellerDashboard');
       return;
     }
 
-    // sellerId 확인
-    const sellerId = user.userId || user.id;
+    const sellerId = sessionUser.userId;
     if (!sellerId) {
       alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       navigate('/login');
