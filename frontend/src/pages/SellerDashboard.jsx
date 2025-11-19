@@ -1,20 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
+import { fetchSessionUser } from '../services/authService';
 
 function SellerDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabParam || 'dashboard');
-  const [isEditingBusinessInfo, setIsEditingBusinessInfo] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editBusinessName, setEditBusinessName] = useState('');
-  const [editBusinessNumber, setEditBusinessNumber] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // 세션에서 가져온 사용자 정보
+  const [businessInfo, setBusinessInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    businessName: '',
+    businessNumber: '',
+    zipcode: '',
+    address: '',
+    detailAddress: ''
+  });
 
   // URL 파라미터가 변경되면 activeTab 업데이트
   useEffect(() => {
@@ -68,14 +75,29 @@ function SellerDashboard() {
     pendingOrders: 8
   };
 
-  // 사업자 정보 (임시 데이터, 나중에 API로 교체)
-  const businessInfo = {
-    name: '홍길동',
-    email: 'hong@example.com',
-    phone: '010-1234-5678',
-    businessName: '단성사',
-    businessNumber: '123-45-67890'
-  };
+  // 세션에서 사용자 정보 가져오기
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        const { item } = await fetchSessionUser();
+        setBusinessInfo({
+          name: item.name || '',
+          email: item.email || '',
+          phone: item.phone || '',
+          businessName: item.brand || '',
+          businessNumber: item.businessNumber || '',
+          zipcode: item.zipcode || '',
+          address: item.address || '',
+          detailAddress: item.detailAddress || ''
+        });
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      }
+    };
+    loadUserInfo();
+  }, [navigate]);
 
   const products = [
     {
@@ -153,45 +175,7 @@ function SellerDashboard() {
     }
   };
 
-  // 사업자 정보 수정 시작
-  const handleEditBusinessInfo = () => {
-    setIsEditingBusinessInfo(true);
-    setEditName(businessInfo.name);
-    setEditEmail(businessInfo.email);
-    setEditPhone(businessInfo.phone);
-    setEditBusinessName(businessInfo.businessName);
-    setEditBusinessNumber(businessInfo.businessNumber);
-  };
 
-  // 사업자 정보 수정 취소
-  const handleCancelEditBusinessInfo = () => {
-    setIsEditingBusinessInfo(false);
-    setEditName('');
-    setEditEmail('');
-    setEditPhone('');
-    setEditBusinessName('');
-    setEditBusinessNumber('');
-  };
-
-  // 사업자 정보 수정 저장
-  const handleSaveBusinessInfo = () => {
-    if (!editName.trim() || !editEmail.trim() || !editPhone.trim() || !editBusinessName.trim() || !editBusinessNumber.trim()) {
-      alert('모든 필드를 입력해주세요.');
-      return;
-    }
-
-    // TODO: API 연동 필요
-    // DB: User 테이블 업데이트
-    // UPDATE "USER" 
-    // SET name = ?, phone = ?, businessNumber = ?
-    // WHERE userId = ? AND isSeller = 1
-    // 주의: 상호명(businessName)은 현재 DB에 필드가 없으므로, 
-    // 필요시 DB 스키마에 추가하거나 name 필드를 상호명으로 사용
-
-    // 임시로 상태 업데이트 (실제로는 API 호출 후 응답으로 업데이트)
-    alert('사업자 정보가 수정되었습니다.');
-    setIsEditingBusinessInfo(false);
-  };
 
   // 회원탈퇴 처리
   const handleDeleteAccount = () => {
@@ -333,117 +317,56 @@ function SellerDashboard() {
           <div className="tab-content">
             <div className="profile-section">
               <h2>사업자 정보</h2>
-              {isEditingBusinessInfo ? (
-                <div className="profile-edit-form">
-                  <div className="info-row">
-                    <label>이름</label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                  <div className="info-row">
-                    <label>이메일</label>
-                    <input
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      className="form-input"
-                      disabled
-                    />
-                  </div>
-                  <div className="info-row">
-                    <label>전화번호</label>
-                    <input
-                      type="text"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      className="form-input"
-                      placeholder="010-1234-5678"
-                    />
-                  </div>
-                  <div className="info-row">
-                    <label>상호명</label>
-                    <input
-                      type="text"
-                      value={editBusinessName}
-                      onChange={(e) => setEditBusinessName(e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                  <div className="info-row">
-                    <label>사업자번호</label>
-                    <input
-                      type="text"
-                      value={editBusinessNumber}
-                      onChange={(e) => setEditBusinessNumber(e.target.value)}
-                      className="form-input"
-                      placeholder="123-45-67890"
-                    />
-                  </div>
-                  <div className="profile-actions">
-                    <button 
-                      className="btn-secondary"
-                      onClick={handleCancelEditBusinessInfo}
-                    >
-                      취소
-                    </button>
-                    <button 
-                      className="btn-primary"
-                      onClick={handleSaveBusinessInfo}
-                    >
-                      저장
-                    </button>
+              <div className="profile-info">
+                <div className="info-row">
+                  <label>이름</label>
+                  <div className="info-value">{businessInfo.name || '-'}</div>
+                </div>
+                <div className="info-row">
+                  <label>이메일</label>
+                  <div className="info-value">{businessInfo.email || '-'}</div>
+                </div>
+                <div className="info-row">
+                  <label>전화번호</label>
+                  <div className="info-value">{businessInfo.phone || '-'}</div>
+                </div>
+                <div className="info-row">
+                  <label>상호명</label>
+                  <div className="info-value">{businessInfo.businessName || '-'}</div>
+                </div>
+                <div className="info-row">
+                  <label>사업자번호</label>
+                  <div className="info-value">{businessInfo.businessNumber || '-'}</div>
+                </div>
+                <div className="info-row">
+                  <label>주소</label>
+                  <div className="info-value">
+                    {businessInfo.zipcode && `[${businessInfo.zipcode}] `}
+                    {businessInfo.address || '주소 정보가 없습니다.'}
+                    {businessInfo.detailAddress && ` ${businessInfo.detailAddress}`}
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className="profile-info">
-                    <div className="info-row">
-                      <label>이름</label>
-                      <div className="info-value">{businessInfo.name}</div>
-                    </div>
-                    <div className="info-row">
-                      <label>이메일</label>
-                      <div className="info-value">{businessInfo.email}</div>
-                    </div>
-                    <div className="info-row">
-                      <label>전화번호</label>
-                      <div className="info-value">{businessInfo.phone}</div>
-                    </div>
-                    <div className="info-row">
-                      <label>상호명</label>
-                      <div className="info-value">{businessInfo.businessName}</div>
-                    </div>
-                    <div className="info-row">
-                      <label>사업자번호</label>
-                      <div className="info-value">{businessInfo.businessNumber}</div>
-                    </div>
-                  </div>
-                  <div className="profile-actions">
-                    <button 
-                      className="btn-primary"
-                      onClick={handleEditBusinessInfo}
-                    >
-                      정보 수정
-                    </button>
-                    <button 
-                      className="btn-secondary"
-                      onClick={() => navigate('/change-password')}
-                    >
-                      비밀번호 변경
-                    </button>
-                    <button 
-                      className="btn-delete-account"
-                      onClick={() => setShowDeleteModal(true)}
-                    >
-                      회원탈퇴
-                    </button>
-                  </div>
-                </>
-              )}
+              </div>
+              <div className="profile-actions">
+                <button 
+                  className="btn-primary"
+                  onClick={() => navigate('/edit-seller-profile')}
+                >
+                  정보 수정
+                </button>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => navigate('/change-password')}
+                >
+                  비밀번호 변경
+                </button>
+                <button 
+                  className="btn-delete-account"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  회원탈퇴
+                </button>
+              </div>
             </div>
           </div>
         )}

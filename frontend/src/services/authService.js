@@ -192,3 +192,64 @@ export const fetchSessionUser = async () => {
   }
 };
 
+// 회원정보 수정 API 호출
+export const updateUserInfo = async (userId, userInfo) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify(userInfo)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.rt !== 'OK') {
+      throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+    }
+
+    // 세션 업데이트 후 로컬 스토리지도 업데이트
+    if (data.item) {
+      setStoredUser(data.item);
+      console.log('로컬 스토리지 업데이트 완료');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('회원정보 수정 API 호출 오류:', error);
+    throw error;
+  }
+};
+
+// 비밀번호 변경 API 호출
+export const changePassword = async (userId, newPassword) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}/change-password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({ newPassword })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.rt !== 'OK') {
+      throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+    }
+
+    // 세션 업데이트 후 로컬 스토리지도 업데이트
+    if (data.item) {
+      setStoredUser(data.item);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('비밀번호 변경 API 호출 오류:', error);
+    throw error;
+  }
+};
+
