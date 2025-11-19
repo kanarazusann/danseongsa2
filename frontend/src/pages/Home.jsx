@@ -16,6 +16,31 @@ function Home() {
   const [newProducts, setNewProducts] = useState([]);
   const [loadingPopular, setLoadingPopular] = useState(true);
   const [loadingNew, setLoadingNew] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // 배너 이미지 배열 (5개)
+  const bannerImages = [
+    { image: 'https://via.placeholder.com/1920x600/000000/FFFFFF?text=BANNER1', title: '첫 번째 배너', text: '첫 번째 배너 텍스트입니다', link: '/banner1' },
+    { image: '/bannerImage/패딩배너.png', title: '두 번째 배너', text: '두 번째 배너 텍스트입니다', link: '/banner2' },
+    { image: 'https://via.placeholder.com/1920x600/666666/FFFFFF?text=BANNER3', title: '세 번째 배너', text: '세 번째 배너 텍스트입니다', link: '/banner3' },
+    { image: 'https://via.placeholder.com/1920x600/999999/FFFFFF?text=BANNER4', title: '네 번째 배너', text: '네 번째 배너 텍스트입니다', link: '/banner4' },
+    { image: 'https://via.placeholder.com/1920x600/CCCCCC/000000?text=BANNER5', title: '다섯 번째 배너', text: '다섯 번째 배너 텍스트입니다', link: '/banner5' }
+  ];
+
+  // 이전 슬라이드
+  const goToPrevious = () => {
+    setCurrentSlide((prev) => (prev === 0 ? bannerImages.length - 1 : prev - 1));
+  };
+
+  // 다음 슬라이드
+  const goToNext = () => {
+    setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
+  };
+
+  // 특정 슬라이드로 이동
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
 
   // 인기 상품 목록 로드 (4개만)
   useEffect(() => {
@@ -163,12 +188,46 @@ function Home() {
 
   return (
     <div className="home">
-      {/* 메인 배너 (광고) */}
+      {/* 메인 배너 (광고) - 슬라이드 */}
       <section className="main-banner">
-        <div className="banner-content">
-          <h1>2024 F/W COLLECTION</h1>
-          <p>미니멀한 감성으로 완성하는 가을 스타일</p>
-          <Link to="/products" className="btn-primary">컬렉션 보기</Link>
+        <div className="banner-slider">
+          {/* 배너 이미지들 */}
+          <div 
+            className="banner-slides" 
+            style={{ transform: `translateX(-${currentSlide * 20}%)` }}
+          >
+            {bannerImages.map((banner, index) => (
+              <div key={index} className="banner-slide">
+                {index === 1 ? (
+                  <Link to="/banner2" style={{ display: 'block', width: '100%', height: '100%' }}>
+                    <img src={banner.image} alt={`배너 ${index + 1}`} style={{ cursor: 'pointer' }} />
+                  </Link>
+                ) : (
+                  <img src={banner.image} alt={`배너 ${index + 1}`} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* 좌우 화살표 버튼 */}
+          <button className="banner-arrow banner-arrow-left" onClick={goToPrevious}>
+            ‹
+          </button>
+          <button className="banner-arrow banner-arrow-right" onClick={goToNext}>
+            ›
+          </button>
+
+          {/* 인디케이터 점 */}
+          <div className="banner-indicators">
+            {bannerImages.map((_, index) => (
+              <button
+                key={index}
+                className={`banner-indicator ${currentSlide === index ? 'active' : ''}`}
+                onClick={() => goToSlide(index)}
+                aria-label={`배너 ${index + 1}로 이동`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 

@@ -1,34 +1,40 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import { findPassword } from '../services/findIdPwd';
 import './FindPassword.css';
 
 function FindPassword() {
-  const [formData, setFormData] = useState({
-    email: '',
-    name: '',
-    phone: ''
-  });
-  const [step, setStep] = useState(1); // 1: 정보 입력, 2: 비밀번호 재설정
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: 비밀번호 찾기 API 호출
-    console.log('Find Password attempt:', formData);
-    // 임시로 다음 단계로 이동
-    // setStep(2);
-  };
 
-  const handleResetPassword = (e) => {
-    e.preventDefault();
-    // TODO: 비밀번호 재설정 API 호출
-    console.log('Reset password');
+    // 입력값 검증
+    if (!name.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
+
+    if (!email.trim()) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const result = await findPassword(name.trim(), email.trim());
+      
+      if (result.success) {
+        // 비밀번호 재설정 페이지로 이동 (이메일을 쿼리 파라미터로 전달)
+        navigate(`/reset-password?email=${encodeURIComponent(result.email)}`);
+      } else {
+        alert(result.message);
+      }
+    } catch (err) {
+      alert('비밀번호 찾기 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -37,72 +43,36 @@ function FindPassword() {
         <div className="find-password-box">
           <h1 className="find-password-title">DANSUNGSA</h1>
           <p className="find-password-subtitle">비밀번호 찾기</p>
-
-          {step === 1 ? (
-            <form onSubmit={handleSubmit} className="find-password-form">
-              <div className="form-group">
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="이메일 *"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="이름 *"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="전화번호 *"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
-              <button type="submit" className="btn-find">
-                비밀번호 찾기
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleResetPassword} className="reset-password-form">
-              <div className="form-group">
-                <input
-                  type="password"
-                  name="newPassword"
-                  placeholder="새 비밀번호 *"
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <input
-                  type="password"
-                  name="newPasswordConfirm"
-                  placeholder="새 비밀번호 확인 *"
-                  required
-                  className="form-input"
-                />
-              </div>
-              <button type="submit" className="btn-reset">
-                비밀번호 재설정
-              </button>
-            </form>
-          )}
-
+          
+          <form className="find-password-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="이름"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            
+            <div className="form-group">
+              <input
+                type="email"
+                className="form-input"
+                placeholder="이메일"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            
+            <button
+              type="submit"
+              className="btn-find"
+            >
+              비밀번호 찾기
+            </button>
+          </form>
+          
           <div className="find-links">
             <Link to="/login">로그인</Link>
             <span>|</span>

@@ -62,6 +62,22 @@
   color: #999999;
 }
 
+.form-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  padding: 12px;
+  margin-bottom: 15px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  font-size: 13px;
+  text-align: center;
+  border-radius: 4px;
+}
+
 .btn-find {
   width: 100%;
   padding: 14px;
@@ -75,8 +91,13 @@
   margin-top: 10px;
 }
 
-.btn-find:hover {
+.btn-find:hover:not(:disabled) {
   background-color: #333333;
+}
+
+.btn-find:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .result-box {

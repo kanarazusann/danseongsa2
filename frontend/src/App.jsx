@@ -13,6 +13,7 @@ import LoginForm from './pages/LoginForm';
 import Signup from './pages/Signup';
 import FindId from './pages/FindId';
 import FindPassword from './pages/FindPassword';
+import ResetPassword from './pages/ResetPassword';
 import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
@@ -41,6 +42,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/find-id" element={<FindId />} />
           <Route path="/find-password" element={<FindPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/EditProfile" element={<EditProfile />} />

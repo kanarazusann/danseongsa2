@@ -150,5 +150,67 @@ public class UserController {
         }
         return result;
     }
+
+    @PostMapping("/auth/find-id")
+    public Map<String, Object> findId(@RequestBody UserDTO request) {
+        Map<String, Object> map = new HashMap<>();
+        
+        String email = userService.findByNameAndPhone(
+            request.getName().trim(), 
+            request.getPhone().trim()
+        );
+        
+        if (email != null) {
+            map.put("rt", "OK");
+            map.put("email", email);
+        } else {
+            map.put("rt", "FAIL");
+            map.put("message", "일치하는 회원 정보를 찾을 수 없습니다.");
+        }
+        
+        return map;
+    }
+
+    // 비밀번호 찾기 (이름과 이메일로 확인)
+    @PostMapping("/auth/find-password")
+    public Map<String, Object> findPassword(@RequestBody UserDTO request) {
+        Map<String, Object> map = new HashMap<>();
+        
+        User user = userService.findByNameAndEmail(
+            request.getName().trim(),
+            request.getEmail().trim()
+        );
+        
+        if (user != null) {
+            map.put("rt", "OK");
+            map.put("email", user.getEmail());
+        } else {
+            map.put("rt", "FAIL");
+            map.put("message", "일치하는 회원 정보를 찾을 수 없습니다.");
+        }
+        
+        return map;
+    }
+
+    // 비밀번호 재설정
+    @PostMapping("/auth/reset-password")
+    public Map<String, Object> resetPassword(@RequestBody UserDTO request) {
+        Map<String, Object> map = new HashMap<>();
+        
+        boolean success = userService.resetPassword(
+            request.getEmail().trim(),
+            request.getPassword()
+        );
+        
+        if (success) {
+            map.put("rt", "OK");
+            map.put("message", "비밀번호가 재설정되었습니다.");
+        } else {
+            map.put("rt", "FAIL");
+            map.put("message", "비밀번호 재설정에 실패했습니다.");
+        }
+        
+        return map;
+    }
 }
 
