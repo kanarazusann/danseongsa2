@@ -13,6 +13,22 @@
   color: #000000;
 }
 
+.cart-error {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ffb4b4;
+  background-color: #fff4f4;
+  color: #c10b0b;
+  font-size: 14px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 16px;
+  color: #666666;
+  padding: 60px 0;
+}
+
 /* 장바구니 비어있을 때 */
 .cart-empty {
   text-align: center;
@@ -113,6 +129,17 @@
   justify-content: center;
 }
 
+.product-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999999;
+  font-size: 13px;
+  border: 1px dashed #dddddd;
+}
+
 .cart-item-image img {
   width: 100%;
   height: 100%;
@@ -123,6 +150,16 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.cart-item-brand {
+  font-size: 13px;
+  color: #666666;
+}
+
+.cart-item-option {
+  font-size: 13px;
+  color: #333333;
 }
 
 .cart-item-name {
@@ -158,6 +195,7 @@
 .cart-item-quantity {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
 }
 
 .quantity-btn {
@@ -196,6 +234,11 @@
 .quantity-input[type='number'] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+.stock-info {
+  font-size: 12px;
+  color: #999999;
 }
 
 /* 합계 */

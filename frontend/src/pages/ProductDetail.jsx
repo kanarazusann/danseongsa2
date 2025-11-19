@@ -7,6 +7,7 @@ import {
   addWishlist,
   removeWishlist
 } from '../services/productService';
+import { addCartItem as addCartItemApi } from '../services/cartService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -50,6 +51,7 @@ function ProductDetail() {
   const [wishCount, setWishCount] = useState(0);
   const [isWished, setIsWished] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [cartProcessing, setCartProcessing] = useState(false);
 
   // 페이지 진입 시 스크롤 최상단
   useEffect(() => {
@@ -237,23 +239,27 @@ function ProductDetail() {
     setQuantity(prev => Math.min(maxQuantity, prev + 1));
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!ensureCustomerAvailable()) return;
     if (!ensureSelectionValid()) return;
+    if (!sessionUser || !selectedProduct) return;
 
-    const cartItem = {
-      postId: detail.postId,
-      productId: selectedProduct.productId,
-      postName: detail.postName,
-      imageUrl: resolveImageUrl(galleryImages[selectedImageIndex]?.imageUrl || detail.mainImageUrl),
-      color: selectedColor,
-      productSize: selectedProduct.productSize,
-      price: selectedProduct.price,
-      discountPrice: selectedProduct.discountPrice,
-      quantity
-    };
-
-    navigate('/cart', { state: { newItem: cartItem } });
+    setCartProcessing(true);
+    try {
+      await addCartItemApi({
+        userId: sessionUser.userId,
+        productId: selectedProduct.productId,
+        quantity
+      });
+      if (window.confirm('장바구니에 담았습니다. 장바구니로 이동할까요?')) {
+        navigate('/cart');
+      }
+    } catch (error) {
+      console.error('장바구니 담기 오류:', error);
+      alert(error.message || '장바구니 담기 중 오류가 발생했습니다.');
+    } finally {
+      setCartProcessing(false);
+    }
   };
 
   const handleBuyNow = () => {
@@ -507,9 +513,9 @@ function ProductDetail() {
               <button 
                 className={`btn-cart ${isSellerUser ? 'disabled-button' : ''}`}
                 onClick={handleAddToCart}
-                disabled={isSellerUser}
+                disabled={isSellerUser || cartProcessing}
               >
-                장바구니
+                {cartProcessing ? '담는 중...' : '장바구니'}
               </button>
               <button 
                 className={`btn-buy ${isSellerUser ? 'disabled-button' : ''}`}

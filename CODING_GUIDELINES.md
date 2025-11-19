@@ -386,6 +386,27 @@ function ProductDetail() {
 - **임시 데이터는 실제 DB 구조와 일치**하도록 작성
 - **TODO 주석으로 API 연동 필요 부분 명시**
 
+### Oracle 테이블/제약조건 규칙 (NEW)
+- **예약어 테이블은 반드시 큰따옴표로 감싸서 생성/참조** (예: `"USER"`, `"ORDER"`)
+- **FK/PK 정의 시도 동일한 표기를 사용**  
+  ```sql
+  CONSTRAINT FK_CART_USERID
+    FOREIGN KEY (USERID) REFERENCES "USER"(USERID)
+  ```
+- **FK 오류 발생 시 즉시 부모 테이블 존재 여부와 제약조건 대상 테이블을 확인**  
+  ```sql
+  SELECT constraint_name, r_owner, r_constraint_name
+    FROM user_constraints
+   WHERE table_name = 'CART' AND constraint_type = 'R';
+  ```
+- **만약 FK가 잘못된 부모를 가리키면 아래 예시처럼 드롭 후 재생성**
+  ```sql
+  ALTER TABLE CART DROP CONSTRAINT FK_CART_USERID;
+  ALTER TABLE CART ADD CONSTRAINT FK_CART_USERID
+    FOREIGN KEY (USERID) REFERENCES "USER"(USERID);
+  ```
+- **장바구니/주문 등 모든 FK는 위 규칙을 따라야 하며, 개발/운영 DB 스키마에 동일하게 반영**
+
 ---
 
 ## 1️⃣3️⃣ Git 커밋 규칙

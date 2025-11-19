@@ -1,104 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 import './OrderDetail.css';
+import { fetchSessionUser } from '../services/authService';
+import { getOrderDetail } from '../services/orderService';
 
 function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 주문 데이터 (나중에 API로 교체)
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState(location.state?.order || null);
+  const [loading, setLoading] = useState(!location.state?.order);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    // URL 파라미터나 location.state에서 주문 데이터 가져오기
-    if (location.state?.order) {
-      const orderFromMyPage = location.state.order;
-      
-      // MyPage에서 전달된 order 데이터를 OrderDetail 형식에 맞게 변환
-      const transformedOrder = {
-        orderId: orderFromMyPage.orderId,
-        orderNumber: orderFromMyPage.orderNumber || `ORD${orderFromMyPage.orderId}`,
-        orderDate: orderFromMyPage.orderDate,
-        status: orderFromMyPage.status?.toUpperCase() || orderFromMyPage.status,
-        deliveryInfo: orderFromMyPage.deliveryInfo || {
-          recipientName: '홍길동',
-          recipientPhone: '010-0000-0000',
-          postalCode: '00000',
-          address: '주소 정보 없음',
-          detailAddress: '',
-          deliveryMemo: ''
-        },
-        items: orderFromMyPage.items?.map((item, index) => ({
-          orderItemId: item.orderItemId || index + 1,
-          productId: item.productId || index + 1,
-          productName: item.productName || `상품 ${index + 1}`,
-          productImage: item.productImage || 'https://via.placeholder.com/300x400/CCCCCC/666666?text=PRODUCT',
-          price: item.price || 0,
-          discountPrice: item.discountPrice || null,
-          quantity: item.quantity || 1,
-          status: item.status || orderFromMyPage.status
-        })) || [],
-        paymentInfo: orderFromMyPage.paymentInfo || {
-          paymentMethod: 'CARD',
-          amount: orderFromMyPage.totalPrice || 0,
-          discountAmount: 0,
-          deliveryFee: 0,
-          finalPrice: orderFromMyPage.totalPrice || 0,
-          paidAt: orderFromMyPage.orderDate || new Date().toISOString()
-        }
-      };
-      
-      setOrder(transformedOrder);
-    } else {
-      // 임시 데이터 (나중에 API로 교체)
-      // 예: const orderData = await fetchOrderDetail(orderId);
-      const mockOrder = {
-        orderId: orderId || 1,
-        orderNumber: 'ORD20250114-001',
-        orderDate: '2025-01-14',
-        status: 'PAID',
-        deliveryInfo: {
-          recipientName: '홍길동',
-          recipientPhone: '010-1234-5678',
-          postalCode: '12345',
-          address: '서울시 강남구 테헤란로 123',
-          detailAddress: '101동 101호',
-          deliveryMemo: '문 앞'
-        },
-        items: [
-          {
-            orderItemId: 1,
-            productId: 1,
-            productName: '클래식 오버핏 코트',
-            productImage: 'https://via.placeholder.com/300x400/000000/FFFFFF?text=COAT',
-            price: 89000,
-            discountPrice: null,
-            quantity: 1,
-            status: 'CONFIRMED'
-          },
-          {
-            orderItemId: 2,
-            productId: 2,
-            productName: '베이직 티셔츠',
-            productImage: 'https://via.placeholder.com/300x400/FFFFFF/000000?text=T-SHIRT',
-            price: 29000,
-            discountPrice: null,
-            quantity: 2,
-            status: 'CONFIRMED'
-          }
-        ],
-        paymentInfo: {
-          paymentMethod: 'CARD',
-          amount: 178000,
-          discountAmount: 0,
-          deliveryFee: 0,
-          finalPrice: 178000,
-          paidAt: '2025-01-14 14:30:00'
-        }
-      };
-      setOrder(mockOrder);
+    const loadOrder = async () => {
+      if (location.state?.order) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { item: user } = await fetchSessionUser();
+        const response = await getOrderDetail(orderId, user.userId);
+        setOrder(response.item);
+      } catch (error) {
+        setErrorMessage(error.message || '주문 정보를 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (orderId) {
+      loadOrder();
     }
   }, [orderId, location.state]);
 
@@ -156,11 +90,24 @@ function OrderDetail() {
     });
   };
 
-  if (!order) {
+  if (loading) {
     return (
       <div className="order-detail-page">
         <div className="container">
           <div className="loading">로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="order-detail-page">
+        <div className="container">
+          <div className="order-error">
+            <p>{errorMessage || '주문 정보를 찾을 수 없습니다.'}</p>
+            <button className="btn-secondary" onClick={() => navigate('/mypage')}>목록으로</button>
+          </div>
         </div>
       </div>
     );
@@ -191,8 +138,8 @@ function OrderDetail() {
               </div>
               <div className="info-item">
                 <span className="info-label">주문상태</span>
-                <span className={`info-value status ${order.status.toLowerCase()}`}>
-                  {getStatusText(order.status)}
+                <span className={`info-value status ${(order.orderStatus || order.status || '').toLowerCase()}`}>
+                  {getStatusText(order.orderStatus || order.status)}
                 </span>
               </div>
             </div>
@@ -213,7 +160,7 @@ function OrderDetail() {
               <div className="info-item">
                 <span className="info-label">배송지</span>
                 <span className="info-value">
-                  [{order.deliveryInfo.postalCode}] {order.deliveryInfo.address} {order.deliveryInfo.detailAddress}
+                  [{order.deliveryInfo.zipcode || order.deliveryInfo.postalCode}] {order.deliveryInfo.address} {order.deliveryInfo.detailAddress}
                 </span>
               </div>
               {order.deliveryInfo.deliveryMemo && (
@@ -230,13 +177,17 @@ function OrderDetail() {
             <h2 className="section-title">주문 상품</h2>
             <div className="payment-items">
               {order.items.map((item) => {
-                const itemPrice = item.discountPrice || item.price;
-                const itemTotal = itemPrice * item.quantity;
+                const itemPrice = item.discountPrice || item.price || 0;
+                const itemTotal = itemPrice * (item.quantity || 1);
 
                 return (
                   <div key={item.orderItemId} className="payment-item">
                     <div className="payment-item-image">
-                      <img src={item.productImage} alt={item.productName} />
+                      {item.productImage ? (
+                        <img src={item.productImage} alt={item.productName} />
+                      ) : (
+                        <div className="product-image-placeholder">이미지 없음</div>
+                      )}
                     </div>
                     <div className="payment-item-info">
                       <div className="payment-item-name">{item.productName}</div>
@@ -252,13 +203,19 @@ function OrderDetail() {
                           )}
                         </div>
                         <div className="payment-item-quantity">수량: {item.quantity}개</div>
+                        {(item.color || item.productSize) && (
+                          <div className="payment-item-option">
+                            {item.color && <span>색상: {item.color}</span>}
+                            {item.productSize && <span> / 사이즈: {item.productSize}</span>}
+                          </div>
+                        )}
                         <div className="payment-item-status">상태: {getStatusText(item.status)}</div>
                       </div>
                     </div>
                     <div className="payment-item-total">
                       <span className="total-label">합계</span>
                       <span className="total-price">{itemTotal.toLocaleString()}원</span>
-                      {order.status?.toUpperCase() === 'DELIVERED' && (
+                      {(order.orderStatus || order.status)?.toUpperCase() === 'DELIVERED' && (
                         <button 
                           className="btn-review"
                           onClick={() => handleWriteReview(item)}
@@ -266,7 +223,7 @@ function OrderDetail() {
                           리뷰 작성
                         </button>
                       )}
-                      {order.status?.toUpperCase() === 'PAID' && (
+                      {(order.orderStatus || order.status)?.toUpperCase() === 'PAID' && (
                         <button 
                           className="btn-secondary"
                           onClick={() => handleRefundRequest(item.orderItemId)}
@@ -319,7 +276,7 @@ function OrderDetail() {
 
           {/* 주문 액션 버튼 */}
           <div className="order-detail-actions">
-            {order.status === 'CONFIRMED' && (
+            {(order.orderStatus || order.status) === 'CONFIRMED' && (
               <button onClick={handleCancelOrder} className="btn-danger">
                 주문 취소
               </button>

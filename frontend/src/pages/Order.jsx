@@ -1,64 +1,73 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './Order.css';
 import { fetchSessionUser } from '../services/authService';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const resolveImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+  return `${API_BASE_URL}/${url}`;
+};
+
 function Order() {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // 장바구니에서 전달받은 선택된 상품들 (나중에 실제 데이터로 교체)
-  const selectedItems = location.state?.selectedItems || [
-    {
-      cartId: 1,
-      productId: 1,
-      productName: '클래식 오버핏 코트',
-      productImage: 'https://via.placeholder.com/300x400/000000/FFFFFF?text=COAT',
-      price: 89000,
-      discountPrice: null,
-      quantity: 1
-    },
-    {
-      cartId: 2,
-      productId: 2,
-      productName: '베이직 티셔츠',
-      productImage: 'https://via.placeholder.com/300x400/FFFFFF/000000?text=T-SHIRT',
-      price: 29000,
-      discountPrice: null,
-      quantity: 2
-    }
-  ];
+  const selectedItems = location.state?.selectedItems
+    || location.state?.orderData?.items
+    || [];
+  const [sessionUser, setSessionUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const detailAddressRef = useRef(null);
 
   // 배송지 정보
-  const [deliveryInfo, setDeliveryInfo] = useState({
-    recipientName: '',
-    recipientPhone: '',
-    address: '',
-    detailAddress: '',
-    postalCode: '',
-    deliveryMemo: ''
-  });
+  const [deliveryInfo, setDeliveryInfo] = useState(() => (
+    location.state?.deliveryInfo || {
+      recipientName: '',
+      recipientPhone: '',
+      address: '',
+      detailAddress: '',
+      postalCode: '',
+      deliveryMemo: ''
+    }
+  ));
 
   useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.async = true;
+    document.body.appendChild(script);
+
     const loadUser = async () => {
       try {
         const { item } = await fetchSessionUser();
-        setDeliveryInfo(prev => ({
-          ...prev,
-          recipientName: item.name || '',
-          recipientPhone: item.phone || '',
-          address: item.address || '',
-          detailAddress: item.detailAddress || '',
-          postalCode: item.zipcode || ''
-        }));
+        setSessionUser(item);
+        if (!location.state?.deliveryInfo) {
+          setDeliveryInfo(prev => ({
+            ...prev,
+            recipientName: item.name || '',
+            recipientPhone: item.phone || '',
+            address: item.address || '',
+            detailAddress: item.detailAddress || '',
+            postalCode: item.zipcode || ''
+          }));
+        }
       } catch {
         alert('로그인이 필요합니다.');
         navigate('/login');
+      } finally {
+        setLoading(false);
       }
     };
     loadUser();
-  }, [navigate]);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [navigate, location.state]);
 
   // 입력 필드 변경 핸들러
   const handleInputChange = (e) => {
@@ -67,6 +76,26 @@ function Order() {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleAddressSearch = () => {
+    if (!window.daum || !window.daum.Postcode) {
+      alert('주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: (data) => {
+        const fullAddress = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+        setDeliveryInfo(prev => ({
+          ...prev,
+          postalCode: data.zonecode || '',
+          address: fullAddress || '',
+          detailAddress: ''
+        }));
+        setTimeout(() => detailAddressRef.current?.focus(), 0);
+      }
+    }).open();
   };
 
   // 주문 금액 계산
@@ -86,10 +115,20 @@ function Order() {
     };
   };
 
-  const { productTotal, deliveryFee, finalPrice } = calculateOrderAmount();
+  const { productTotal, deliveryFee, finalPrice } = useMemo(() => calculateOrderAmount(), [selectedItems]);
 
   // 주문하기 핸들러
   const handleOrder = () => {
+    if (!sessionUser) {
+      alert('로그인 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      alert('주문할 상품이 없습니다.');
+      return;
+    }
+
     // 유효성 검사
     if (!deliveryInfo.recipientName.trim()) {
       alert('받는 분 이름을 입력해주세요.');
@@ -108,21 +147,36 @@ function Order() {
       return;
     }
 
-    // 주문 데이터 생성
+    const cartItemIds = selectedItems
+      .map(item => item.cartId)
+      .filter((id) => typeof id === 'number' || typeof id === 'string');
+
+    if (cartItemIds.length === 0) {
+      alert('장바구니 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+      return;
+    }
+
+    const mappedItems = selectedItems.map((item, index) => ({
+      cartId: item.cartId,
+      productId: item.productId,
+      postId: item.postId,
+      productName: item.postName || item.productName || `상품 ${index + 1}`,
+      productImage: resolveImageUrl(item.imageUrl || item.productImage),
+      price: item.price || 0,
+      discountPrice: item.discountPrice,
+      quantity: item.quantity,
+      color: item.color,
+      productSize: item.productSize
+    }));
+
     const orderData = {
-      items: selectedItems,
-      deliveryInfo,
-      orderAmount: {
-        productTotal,
-        deliveryFee,
-        finalPrice
-      }
+      userId: sessionUser.userId,
+      cartItemIds,
+      items: mappedItems,
+      deliveryInfo: { ...deliveryInfo },
+      orderAmount: { productTotal, deliveryFee, finalPrice }
     };
 
-    // 나중에 API 호출로 교체
-    // 예: const order = await createOrder(orderData);
-    
-    // 결제 페이지로 이동 (주문 데이터 전달)
     navigate('/payment', { state: { orderData } });
   };
 
@@ -130,6 +184,16 @@ function Order() {
   const handleBackToCart = () => {
     navigate('/cart');
   };
+
+  if (loading) {
+    return (
+      <div className="order-page">
+        <div className="container">
+          <div className="loading">주문 정보를 불러오는 중입니다...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (selectedItems.length === 0) {
     return (
@@ -187,7 +251,9 @@ function Order() {
                     placeholder="우편번호"
                     required
                   />
-                  <button type="button" className="btn-secondary">주소 검색</button>
+                  <button type="button" className="btn-secondary" onClick={handleAddressSearch}>
+                    주소 검색
+                  </button>
                 </div>
               </div>
               <div className="form-row">
@@ -209,6 +275,7 @@ function Order() {
                   value={deliveryInfo.detailAddress}
                   onChange={handleInputChange}
                   placeholder="상세 주소를 입력하세요"
+                  ref={detailAddressRef}
                   required
                 />
               </div>
@@ -235,16 +302,22 @@ function Order() {
             <h2 className="section-title">주문 상품</h2>
             <div className="payment-items">
               {selectedItems.map((item, index) => {
-                const itemPrice = item.discountPrice || item.price;
-                const itemTotal = itemPrice * item.quantity;
+                const name = item.postName || item.productName || `상품 ${index + 1}`;
+                const imageUrl = resolveImageUrl(item.imageUrl || item.productImage);
+                const itemPrice = item.discountPrice || item.price || 0;
+                const itemTotal = itemPrice * (item.quantity || 1);
 
                 return (
                   <div key={item.cartId || item.productId || index} className="payment-item">
                     <div className="payment-item-image">
-                      <img src={item.productImage} alt={item.productName} />
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={name} />
+                      ) : (
+                        <div className="product-image-placeholder">이미지 없음</div>
+                      )}
                     </div>
                     <div className="payment-item-info">
-                      <div className="payment-item-name">{item.productName}</div>
+                      <div className="payment-item-name">{name}</div>
                       <div className="payment-item-details">
                         <div className="payment-item-price">
                           {item.discountPrice ? (
@@ -257,6 +330,12 @@ function Order() {
                           )}
                         </div>
                         <div className="payment-item-quantity">수량: {item.quantity}개</div>
+                        {(item.color || item.productSize) && (
+                          <div className="payment-item-option">
+                            {item.color && <span>색상: {item.color}</span>}
+                            {item.productSize && <span> / 사이즈: {item.productSize}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="payment-item-total">
@@ -301,7 +380,7 @@ function Order() {
               장바구니로 돌아가기
             </button>
             <button onClick={handleOrder} className="btn-order">
-              주문하기
+              결제하기
             </button>
           </div>
         </div>

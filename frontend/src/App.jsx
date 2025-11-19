@@ -7,6 +7,8 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Order from './pages/Order';
 import Payment from './pages/Payment';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFail from './pages/PaymentFail';
 import OrderDetail from './pages/OrderDetail';
 import RefundRequest from './pages/RefundRequest';
 import LoginForm from './pages/LoginForm';
@@ -36,6 +38,8 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/order" element={<Order />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/fail" element={<PaymentFail />} />
           <Route path="/order/:orderId" element={<OrderDetail />} />
           <Route path="/refund/request" element={<RefundRequest />} />
           <Route path="/login" element={<LoginForm />} />
