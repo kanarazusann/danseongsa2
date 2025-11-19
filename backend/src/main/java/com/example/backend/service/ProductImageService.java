@@ -20,8 +20,13 @@ public class ProductImageService {
     @Autowired
     private ImageService imageService;
     
-    // 상품 이미지 목록 저장
+    // 상품 이미지 목록 저장 (갤러리 이미지)
     public List<ProductImage> saveProductImages(ProductPost productPost, List<MultipartFile> imageFiles) throws IOException {
+        return saveProductImages(productPost, imageFiles, "GALLERY");
+    }
+    
+    // 상품 이미지 목록 저장 (이미지 타입 지정 가능)
+    public List<ProductImage> saveProductImages(ProductPost productPost, List<MultipartFile> imageFiles, String imageType) throws IOException {
         if (imageFiles == null || imageFiles.isEmpty()) {
             return new ArrayList<>();
         }
@@ -30,7 +35,7 @@ public class ProductImageService {
         for (int i = 0; i < imageFiles.size(); i++) {
             MultipartFile file = imageFiles.get(i);
             if (!file.isEmpty()) {
-                ProductImage productImage = createProductImage(productPost, file, i);
+                ProductImage productImage = createProductImage(productPost, file, i, imageType);
                 productImages.add(productImage);
             }
         }
@@ -43,13 +48,19 @@ public class ProductImageService {
     }
     
     // ProductImage 엔티티 생성
-    private ProductImage createProductImage(ProductPost productPost, MultipartFile file, int index) throws IOException {
+    private ProductImage createProductImage(ProductPost productPost, MultipartFile file, int index, String imageType) throws IOException {
         String fileName = imageService.saveImageFile(file);
         
         ProductImage productImage = new ProductImage();
         productImage.setProductPost(productPost);
         productImage.setImageUrl(fileName);
-        productImage.setIsMain(index == 0 ? 1 : 0);
+        String resolvedType = imageType != null ? imageType : "GALLERY";
+        productImage.setImageType(resolvedType);
+        if ("GALLERY".equalsIgnoreCase(resolvedType)) {
+            productImage.setIsMain(index == 0 ? 1 : 0);
+        } else {
+            productImage.setIsMain(0);
+        }
         return productImage;
     }
 }

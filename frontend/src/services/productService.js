@@ -10,9 +10,14 @@ const handleResponse = async (response) => {
 };
 
 // 상품 게시물 등록
-export const createProductPost = async (formData, productOptions, images, sellerId) => {
+export const createProductPost = async (formData, productOptions, images, descriptionImages, sellerId) => {
   try {
-    console.log('상품 등록 시작:', { sellerId, productOptionsCount: productOptions.length, imagesCount: images.length });
+    console.log('상품 등록 시작:', { 
+      sellerId, 
+      productOptionsCount: productOptions.length, 
+      galleryImagesCount: images.length,
+      descriptionImagesCount: descriptionImages?.length || 0
+    });
     
     // FormData 생성
     const submitData = new FormData();
@@ -41,12 +46,21 @@ export const createProductPost = async (formData, productOptions, images, seller
     }));
     submitData.append('products', JSON.stringify(productsData));
     
-    // 이미지 파일들
+    // 갤러리 이미지 파일들
     images.forEach((image) => {
       if (image.file) {
         submitData.append('images', image.file);
       }
     });
+
+    // 상품 설명 이미지 파일들
+    if (descriptionImages && descriptionImages.length > 0) {
+      descriptionImages.forEach((image) => {
+        if (image.file) {
+          submitData.append('descriptionImages', image.file);
+        }
+      });
+    }
 
     console.log('전송 데이터:', {
       postName: formData.postName,
@@ -56,7 +70,8 @@ export const createProductPost = async (formData, productOptions, images, seller
       status: formData.status,
       sellerId: sellerId,
       productsCount: productsData.length,
-      imagesCount: images.length
+      imagesCount: images.length,
+      descriptionImagesCount: descriptionImages?.length || 0
     });
 
     // API 호출
@@ -98,6 +113,26 @@ export const getProductPostById = async (postId) => {
     return handleResponse(response);
   } catch (error) {
     console.error('상품 조회 오류:', error);
+    throw error;
+  }
+};
+
+// 상품 게시물 상세 조회 (조회수 증가 포함)
+export const getProductPostDetail = async (postId, userId) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('postId', postId);
+    if (userId) {
+      params.append('userId', userId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/productposts/detail?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('상품 상세 조회 오류:', error);
     throw error;
   }
 };
@@ -158,6 +193,42 @@ export const getFilteredProductPosts = async (filters) => {
     return handleResponse(response);
   } catch (error) {
     console.error('필터링된 상품 조회 오류:', error);
+    throw error;
+  }
+};
+
+// 찜 추가
+export const addWishlist = async (userId, postId) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('userId', userId);
+    params.append('postId', postId);
+
+    const response = await fetch(`${API_BASE_URL}/wishlist?${params.toString()}`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('찜 추가 오류:', error);
+    throw error;
+  }
+};
+
+// 찜 삭제
+export const removeWishlist = async (userId, postId) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('userId', userId);
+    params.append('postId', postId);
+
+    const response = await fetch(`${API_BASE_URL}/wishlist?${params.toString()}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('찜 삭제 오류:', error);
     throw error;
   }
 };

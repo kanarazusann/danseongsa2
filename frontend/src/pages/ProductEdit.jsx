@@ -28,16 +28,19 @@ function ProductEdit() {
   // 상품 옵션 리스트 (Product) - 색상, 사이즈별로 개별 등록
   const [productOptions, setProductOptions] = useState([]);
 
-  // 상품 이미지 (여러 개)
+  // 상품 이미지 (갤러리)
   const [images, setImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [existingImages, setExistingImages] = useState([]); // 기존 이미지 URL 저장
+  // 상품 설명 이미지
+  const [descriptionImages, setDescriptionImages] = useState([]);
   
   // 드래그 앤 드롭을 위한 상태
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   // 옵션 리스트
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270', '280'];
+  const apparelSizes = ['S', 'M', 'L', 'XL', 'FREE'];
+  const shoeSizes = ['230', '240', '250', '260', '270', '280'];
   const genderOptions = [
     { value: 'MEN', label: '남성' },
     { value: 'WOMEN', label: '여성' },
@@ -64,6 +67,20 @@ function ProductEdit() {
   const materialOptions = [
     'cotton', 'polyester', 'wool', 'denim', 'leather', 'silk', 'linen', 'nylon', 'cashmere'
   ];
+
+  const categoryName = formData.categoryName || '';
+  const isShoesCategory = categoryName.startsWith('신발');
+  const isBagOrAccessory = categoryName.startsWith('가방') || categoryName.startsWith('패션소품');
+  const getSizeOptionsForCategory = () => {
+    if (isBagOrAccessory) {
+      return [];
+    }
+    if (isShoesCategory) {
+      return shoeSizes;
+    }
+    return apparelSizes;
+  };
+  const sizeOptionsForCategory = getSizeOptionsForCategory();
 
   // 페이지 로드 시 상단으로 스크롤
   useEffect(() => {
@@ -111,6 +128,10 @@ function ProductEdit() {
             { imageId: 2, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+2', isMain: false },
             { imageId: 3, imageUrl: 'https://via.placeholder.com/800x1000/000000/FFFFFF?text=COAT+3', isMain: false },
             { imageId: 4, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+4', isMain: false },
+          ],
+          descriptionImages: [
+            { imageId: 101, imageUrl: 'https://via.placeholder.com/900x600/000000/FFFFFF?text=DESC+1' },
+            { imageId: 102, imageUrl: 'https://via.placeholder.com/900x600/FFFFFF/000000?text=DESC+2' }
           ],
           products: [
             { productId: 1, color: 'black', productSize: 'S', price: 89000, discountPrice: 69000, stock: 10, status: 'SELLING' },
@@ -188,6 +209,17 @@ function ProductEdit() {
           setImages(existingImagesList);
           setPreviewUrls(productPost.images.map(img => img.imageUrl));
           setExistingImages(productPost.images.map(img => img.imageUrl));
+        }
+
+        // 상품 설명 이미지 설정
+        if (productPost.descriptionImages && productPost.descriptionImages.length > 0) {
+          const existingDescription = productPost.descriptionImages.map(img => ({
+            imageId: img.imageId,
+            preview: img.imageUrl,
+            isExisting: true,
+            file: null
+          }));
+          setDescriptionImages(existingDescription);
         }
 
       } catch (error) {
@@ -336,6 +368,38 @@ function ProductEdit() {
     setPreviewUrls(newPreviews);
   };
 
+  // 상품 설명 이미지 업로드
+  const handleDescriptionImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+
+    if (files.length + descriptionImages.length > 10) {
+      alert('상품 설명 이미지는 최대 10개까지 등록할 수 있습니다.');
+      return;
+    }
+
+    files.forEach(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} 파일 크기가 5MB를 초과합니다.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newImage = {
+          file,
+          preview: reader.result,
+          isExisting: false
+        };
+        setDescriptionImages(prev => [...prev, newImage]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDescriptionImageRemove = (index) => {
+    setDescriptionImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   // 대표 이미지 설정 핸들러
   const handleSetMainImage = (index) => {
     const newImages = images.map((img, i) => ({
@@ -403,7 +467,7 @@ function ProductEdit() {
 
 
   // 폼 유효성 검사
-  const validateForm = () => {
+  const validateForm = (optionsToCheck) => {
     if (!formData.postName.trim()) {
       alert('게시물명을 입력해주세요.');
       return false;
@@ -424,20 +488,29 @@ function ProductEdit() {
       alert('상품 이미지를 최소 1개 이상 등록해주세요.');
       return false;
     }
-    if (productOptions.length === 0) {
+    if (descriptionImages.length === 0) {
+      alert('상품 설명 이미지를 최소 1개 이상 등록해주세요.');
+      return false;
+    }
+    if (optionsToCheck.length === 0) {
       alert('상품 옵션을 최소 1개 이상 추가해주세요.');
       return false;
     }
-    // 각 상품 옵션 검증
-    for (let i = 0; i < productOptions.length; i++) {
-      const option = productOptions[i];
+    for (let i = 0; i < optionsToCheck.length; i++) {
+      const option = optionsToCheck[i];
       if (!option.color) {
         alert(`${i + 1}번째 상품 옵션의 색상을 선택해주세요.`);
         return false;
       }
-      if (!option.productSize) {
-        alert(`${i + 1}번째 상품 옵션의 사이즈를 선택해주세요.`);
-        return false;
+      if (sizeOptionsForCategory.length > 0) {
+        if (!option.productSize) {
+          alert(`${i + 1}번째 상품 옵션의 사이즈를 선택해주세요.`);
+          return false;
+        }
+        if (!sizeOptionsForCategory.includes(option.productSize)) {
+          alert(`${i + 1}번째 상품 옵션의 사이즈는 허용된 값만 선택할 수 있습니다.`);
+          return false;
+        }
       }
       if (!option.price || parseInt(option.price) <= 0) {
         alert(`${i + 1}번째 상품 옵션의 가격을 올바르게 입력해주세요.`);
@@ -462,7 +535,12 @@ function ProductEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const normalizedOptions = productOptions.map(option => ({
+      ...option,
+      productSize: sizeOptionsForCategory.length > 0 ? option.productSize : 'FREE'
+    }));
+
+    if (!validateForm(normalizedOptions)) {
       return;
     }
 
@@ -484,7 +562,7 @@ function ProductEdit() {
       submitData.append('status', formData.status);
       
       // 상품 옵션 정보 (Product) - JSON으로 전송
-      const productsData = productOptions.map(option => ({
+      const productsData = normalizedOptions.map(option => ({
         productId: option.productId, // 기존 상품은 ID 유지, 새 상품은 null
         color: option.color,
         productSize: option.productSize,
@@ -507,6 +585,19 @@ function ProductEdit() {
         .forEach((image, index) => {
           submitData.append('images', image.file);
           submitData.append(`imageIsMain_${index}`, image.isMain);
+        });
+      
+      // 기존 상품 설명 이미지 유지
+      const keptExistingDescriptionImages = descriptionImages
+        .filter(img => img.isExisting)
+        .map(img => img.imageId);
+      submitData.append('keptDescriptionImageIds', JSON.stringify(keptExistingDescriptionImages));
+
+      // 새로 추가된 설명 이미지 파일들
+      descriptionImages
+        .filter(img => !img.isExisting && img.file)
+        .forEach((image) => {
+          submitData.append('descriptionImages', image.file);
         });
       
       // 대표 이미지 인덱스
@@ -554,6 +645,48 @@ function ProductEdit() {
         <div className="container">
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <p>상품 데이터를 불러오는 중...</p>
+          </div>
+
+          {/* 상품 설명 이미지 섹션 */}
+          <div className="form-section">
+            <h2 className="section-title">상품 설명 이미지</h2>
+            <div className="form-group">
+              <label className="form-label">
+                설명 이미지 <span className="required">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleDescriptionImagesChange}
+                className="form-input-file"
+                id="description-image-upload"
+              />
+              <label htmlFor="description-image-upload" className="file-upload-label">
+                설명 이미지 추가 (최대 10개, 각 5MB 이하)
+              </label>
+              <p className="form-hint">
+                상품 설명 영역에 노출될 상세 이미지입니다.
+              </p>
+            </div>
+
+            {descriptionImages.length > 0 && (
+              <div className="description-image-preview-list">
+                {descriptionImages.map((image, index) => (
+                  <div key={`desc-${index}`} className="description-image-item">
+                    <img src={image.preview} alt={`설명 이미지 ${index + 1}`} />
+                    {image.isExisting && <span className="existing-label">기존</span>}
+                    <button
+                      type="button"
+                      className="btn-description-image-remove"
+                      onClick={() => handleDescriptionImageRemove(index)}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -781,19 +914,23 @@ function ProductEdit() {
                           </select>
                         </td>
                         <td>
-                          <select
-                            value={option.productSize}
-                            onChange={(e) => handleProductOptionChange(option.id, 'productSize', e.target.value)}
-                            className="form-input-small"
-                            required
-                          >
-                            <option value="">선택</option>
-                            {sizeOptions.map(size => (
-                              <option key={size} value={size}>
-                                {size}
-                              </option>
-                            ))}
-                          </select>
+                          {sizeOptionsForCategory.length > 0 ? (
+                            <select
+                              value={option.productSize}
+                              onChange={(e) => handleProductOptionChange(option.id, 'productSize', e.target.value)}
+                              className="form-input-small"
+                              required
+                            >
+                              <option value="">선택</option>
+                              {sizeOptionsForCategory.map(size => (
+                                <option key={size} value={size}>
+                                  {size}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="size-na-text">선택 없음</span>
+                          )}
                         </td>
                         <td>
                           <input

@@ -1367,7 +1367,8 @@ feat: 상품 조회 API 구현
 - imageId (PK, int)  // 이미지id(seq) ⚠️ Long 대신 int 사용
 - postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 게시물에 속한 이미지
 - imageUrl (String, not null)  //이미지경로
-- isMain (Boolean, default: false) // 대표이미지 여부
+- isMain (Integer, default: 0) // 대표이미지 여부 (0: 일반, 1: 대표)
+- imageType (String) // 이미지 타입 (GALLERY: 갤러리 이미지, DESCRIPTION: 상품 설명 이미지)
 - createdAt (Timestamp)  // 이미지 만들어진 날짜
 
  장바구니(Cart)

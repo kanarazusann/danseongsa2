@@ -34,6 +34,9 @@ public class ProductImage {
     @Column(name = "ISMAIN", nullable = false)
     private Integer isMain = 0;  // 0: 일반, 1: 대표
 
+    @Column(name = "IMAGETYPE", length = 20)
+    private String imageType;  // 'GALLERY': 갤러리 이미지, 'DESCRIPTION': 상품 설명 이미지
+
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)
     private Timestamp createdAt;

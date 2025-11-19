@@ -39,10 +39,13 @@ public class ProductPostService {
     
     @Autowired
     private ProductDAO productDAO;
+
+    @Autowired
+    private WishlistService wishlistService;
     
     // 게시물 생성
     @Transactional
-    public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles) throws IOException {
+    public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles, List<MultipartFile> descriptionImages) throws IOException {
         User seller = getUserById(sellerId);
         System.out.println("판매자 정보 - userId: " + seller.getUserId() + ", brand: " + seller.getBrand());
         ProductPost productPost = createProductPostEntity(dto, seller);
@@ -50,7 +53,8 @@ public class ProductPostService {
         ProductPost savedPost = productPostDAO.save(productPost);
         
         productService.createProducts(savedPost, dto.getProducts());
-        productImageService.saveProductImages(savedPost, imageFiles);
+        productImageService.saveProductImages(savedPost, imageFiles, "GALLERY");
+        productImageService.saveProductImages(savedPost, descriptionImages, "DESCRIPTION");
         
         return savedPost;
     }
@@ -59,6 +63,123 @@ public class ProductPostService {
     private User getUserById(int sellerId) {
         return userDAO.findById(sellerId)
                 .orElseThrow(() -> new IllegalArgumentException("판매자를 찾을 수 없습니다. sellerId: " + sellerId));
+    }
+
+    // 게시물의 갤러리 이미지 목록만 추출
+    private List<ProductImage> getGalleryImages(int postId) {
+        return productImageDAO.findByPostId(postId).stream()
+                .filter(img -> img.getImageType() == null || "GALLERY".equalsIgnoreCase(img.getImageType()))
+                .collect(Collectors.toList());
+    }
+
+    // 상품 상세 정보 조회 + 조회수 증가
+    @Transactional
+    public Map<String, Object> getProductDetail(int postId, Integer userId) {
+        ProductPost post = productPostDAO.findById(postId);
+        if (post == null) {
+            throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
+        }
+
+        // 조회수 증가
+        post.setViewCount((post.getViewCount() != null ? post.getViewCount() : 0) + 1);
+        productPostDAO.save(post);
+
+        List<ProductImage> allImages = productImageDAO.findByPostId(postId);
+        List<Map<String, Object>> galleryImages = allImages.stream()
+                .filter(img -> img.getImageType() == null || "GALLERY".equalsIgnoreCase(img.getImageType()))
+                .map(img -> {
+                    Map<String, Object> imageMap = new HashMap<>();
+                    imageMap.put("imageId", img.getImageId());
+                    imageMap.put("imageUrl", img.getImageUrl());
+                    imageMap.put("isMain", img.getIsMain());
+                    return imageMap;
+                })
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> descriptionImages = allImages.stream()
+                .filter(img -> "DESCRIPTION".equalsIgnoreCase(img.getImageType()))
+                .map(img -> {
+                    Map<String, Object> imageMap = new HashMap<>();
+                    imageMap.put("imageId", img.getImageId());
+                    imageMap.put("imageUrl", img.getImageUrl());
+                    return imageMap;
+                })
+                .collect(Collectors.toList());
+
+        List<Product> products = productDAO.findByPostId(postId);
+
+        Integer minPrice = null;
+        Integer minDiscountPrice = null;
+        Integer minEffectivePrice = null;
+        for (Product product : products) {
+            Integer price = product.getPrice();
+            Integer discountPrice = product.getDiscountPrice();
+            Integer effectivePrice = discountPrice != null ? discountPrice : price;
+            if (effectivePrice == null) {
+                continue;
+            }
+            if (minEffectivePrice == null || effectivePrice < minEffectivePrice) {
+                minEffectivePrice = effectivePrice;
+                minPrice = price;
+                minDiscountPrice = discountPrice;
+            }
+        }
+
+        List<Map<String, Object>> productOptions = products.stream()
+                .map(product -> {
+                    Map<String, Object> option = new HashMap<>();
+                    option.put("productId", product.getProductId());
+                    option.put("color", product.getColor());
+                    option.put("productSize", product.getProductSize());
+                    option.put("price", product.getPrice());
+                    option.put("discountPrice", product.getDiscountPrice());
+                    option.put("stock", product.getStock());
+                    option.put("status", product.getStatus());
+                    return option;
+                })
+                .collect(Collectors.toList());
+
+        List<String> colors = products.stream()
+                .map(Product::getColor)
+                .filter(color -> color != null && !color.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+
+        String mainImageUrl = galleryImages.stream()
+                .filter(img -> {
+                    Object isMain = img.get("isMain");
+                    return isMain != null && ((Integer) isMain) == 1;
+                })
+                .map(img -> (String) img.get("imageUrl"))
+                .findFirst()
+                .orElseGet(() -> galleryImages.stream()
+                        .map(img -> (String) img.get("imageUrl"))
+                        .findFirst()
+                        .orElse(null));
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("postId", post.getPostId());
+        detail.put("postName", post.getPostName());
+        detail.put("brand", post.getBrand());
+        detail.put("categoryName", post.getCategoryName());
+        detail.put("material", post.getMaterial());
+        detail.put("gender", post.getGender());
+        detail.put("season", post.getSeason());
+        detail.put("description", post.getDescription());
+        detail.put("status", post.getStatus());
+        detail.put("viewCount", post.getViewCount());
+        detail.put("wishCount", post.getWishCount());
+        detail.put("sellerId", post.getSellerId());
+        detail.put("minPrice", minPrice);
+        detail.put("minDiscountPrice", minDiscountPrice);
+        detail.put("galleryImages", galleryImages);
+        detail.put("descriptionImages", descriptionImages);
+        detail.put("mainImageUrl", mainImageUrl);
+        detail.put("products", productOptions);
+        detail.put("colors", colors);
+        detail.put("isWished", userId != null && wishlistService.isWished(userId, postId));
+
+        return detail;
     }
     
     // ProductPost 엔티티 생성
@@ -119,7 +240,7 @@ public class ProductPostService {
             
             // 대표 이미지 조회 (ISMAIN = 1인 이미지, 없으면 첫 번째 이미지)
             String mainImageUrl = null;
-            List<ProductImage> images = productImageDAO.findByPostId(post.getPostId());
+            List<ProductImage> images = getGalleryImages(post.getPostId());
             if (images != null && !images.isEmpty()) {
                 ProductImage mainImage = images.stream()
                     .filter(img -> img.getIsMain() != null && img.getIsMain() == 1)
@@ -172,7 +293,7 @@ public class ProductPostService {
             
             // 대표 이미지 조회 (ISMAIN = 1인 이미지, 없으면 첫 번째 이미지)
             String mainImageUrl = null;
-            List<ProductImage> images = productImageDAO.findByPostId(post.getPostId());
+            List<ProductImage> images = getGalleryImages(post.getPostId());
             if (images != null && !images.isEmpty()) {
                 ProductImage mainImage = images.stream()
                     .filter(img -> img.getIsMain() != null && img.getIsMain() == 1)
@@ -261,7 +382,7 @@ public class ProductPostService {
                 
                 // 대표 이미지 조회
                 String mainImageUrl = null;
-                List<ProductImage> images = productImageDAO.findByPostId(post.getPostId());
+                List<ProductImage> images = getGalleryImages(post.getPostId());
                 if (images != null && !images.isEmpty()) {
                     ProductImage mainImage = images.stream()
                         .filter(img -> img.getIsMain() != null && img.getIsMain() == 1)

@@ -6,9 +6,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.backend.service.ProductPostService;
 import com.example.backend.dto.ProductPostDTO;
 import com.example.backend.dto.ProductDTO;
-import com.example.backend.entity.ProductPost;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.backend.entity.ProductPost;
 import java.util.*;
 
 @RestController
@@ -31,7 +31,8 @@ public class ProductPostController {
             @RequestParam("status") String status,
             @RequestParam("products") String productsJson,  // JSON 문자열
             @RequestParam("sellerId") int sellerId,  // 실제 로그인한 판매자 ID
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
         
         Map<String, Object> map = new HashMap<>();
         
@@ -56,7 +57,7 @@ public class ProductPostController {
             dto.setProducts(products);
             
             // 실제 로그인한 판매자 ID 사용
-            ProductPost savedPost = productPostService.createProductPost(dto, sellerId, images);
+            ProductPost savedPost = productPostService.createProductPost(dto, sellerId, images, descriptionImages);
             
             // 순환 참조 방지를 위해 필요한 필드만 Map으로 구성
             Map<String, Object> item = new HashMap<>();
@@ -205,21 +206,18 @@ public class ProductPostController {
     
     // 게시물 ID로 게시물 조회 API
     @GetMapping("/productposts/detail")
-    public Map<String, Object> getProductPost(@RequestParam("postId") int postId) {
+    public Map<String, Object> getProductPost(
+            @RequestParam("postId") int postId,
+            @RequestParam(value = "userId", required = false) Integer userId) {
         Map<String, Object> map = new HashMap<>();
         
         try {
-            ProductPost productPost = productPostService.findById(postId);
-            if (productPost != null) {
-                map.put("rt", "OK");
-                map.put("item", productPost);
-            } else {
-                map.put("rt", "FAIL");
-                map.put("message", "게시물을 찾을 수 없습니다.");
-            }
+            Map<String, Object> detail = productPostService.getProductDetail(postId, userId);
+            map.put("rt", "OK");
+            map.put("item", detail);
         } catch (Exception e) {
             map.put("rt", "FAIL");
-            map.put("message", "오류가 발생했습니다: " + e.getMessage());
+            map.put("message", "게시물 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return map;

@@ -1,33 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProductDetail.css';
 import { fetchSessionUser } from '../services/authService';
+import {
+  getProductPostDetail,
+  addWishlist,
+  removeWishlist
+} from '../services/productService';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const reviewSamples = [
+  {
+    reviewId: 1,
+    userName: '김**',
+    rating: 5,
+    content: '정말 만족스러운 상품입니다. 품질도 좋고 디자인도 깔끔해요!',
+    createdAt: '2025-01-12',
+    images: [
+      'https://via.placeholder.com/300x300/000000/FFFFFF?text=Review+1',
+      'https://via.placeholder.com/300x300/FFFFFF/000000?text=Review+2'
+    ]
+  },
+  {
+    reviewId: 2,
+    userName: '이**',
+    rating: 4,
+    content: '가격 대비 괜찮은 것 같아요. 사이즈는 생각보다 크게 나왔네요.',
+    createdAt: '2025-01-11',
+    images: [
+      'https://via.placeholder.com/300x300/CCCCCC/000000?text=Review+3'
+    ]
+  }
+];
 
 function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [isWished, setIsWished] = useState(false);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [sessionUser, setSessionUser] = useState(null);
 
-  // TODO: API 연동 필요
-  // DB: Product + ProductImage + Category 조인
-  // SELECT p.*, c.brand, c.material, c.color, c.size, c.gender, c.season, c.categoryName,
-  //        pi.imageUrl, pi.isMain
-  // FROM Product p
-  // LEFT JOIN Category c ON p.categoryId = c.categoryId
-  // LEFT JOIN ProductImage pi ON p.productId = pi.productId
-  // WHERE p.productId = ? AND p.status = 'SELLING'
-  
-  // 페이지 로드 시 스크롤을 맨 위로 이동
+  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [descriptionImages, setDescriptionImages] = useState([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [wishCount, setWishCount] = useState(0);
+  const [isWished, setIsWished] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 페이지 진입 시 스크롤 최상단
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // 세션 사용자 로드
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -35,153 +64,215 @@ function ProductDetail() {
         setSessionUser(data.item);
       } catch {
         setSessionUser(null);
+      } finally {
+        setSessionChecked(true);
       }
     };
     loadUser();
   }, []);
 
-  useEffect(() => {
-    // 임시 데이터 (실제로는 API에서 가져옴)
-    const fetchProduct = async () => {
+  const resolveImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
+
+  const loadDetail = useCallback(async () => {
       setLoading(true);
-      
-      // 임시 상품 데이터
-      const mockProduct = {
-        productId: parseInt(id),
-        productName: '클래식 오버핏 코트',
-        brand: 'DANSUNGSA',
-        price: 89000,
-        discountPrice: null,
-        viewCount: 1250,
-        status: 'SELLING',
-        categoryName: '아우터 코트',
-        gender: 'UNISEX',
-        color: 'black',
-        size: 'L',
-        material: 'wool',
-        season: 'FALL',
-        description: '미니멀한 디자인으로 완성된 클래식 오버핏 코트입니다. 고급스러운 소재와 완벽한 핏으로 어떤 스타일에도 잘 어울립니다.',
-        images: [
-          { imageId: 1, imageUrl: 'https://via.placeholder.com/800x1000/000000/FFFFFF?text=COAT+1', isMain: true },
-          { imageId: 2, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+2', isMain: false },
-          { imageId: 3, imageUrl: 'https://via.placeholder.com/800x1000/000000/FFFFFF?text=COAT+3', isMain: false },
-          { imageId: 4, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+4', isMain: false },
-        ],
-        availableSizes: ['S', 'M', 'L', 'XL'],
-        sellerId: 1,
-        sellerName: '단성사 스토어',
-        createdAt: '2025-01-10',
-        reviews: [
-          { 
-            reviewId: 1, 
-            userId: 1, 
-            userName: '김**', 
-            rating: 5, 
-            content: '정말 만족스러운 상품입니다. 품질도 좋고 디자인도 깔끔해요!', 
-            createdAt: '2025-01-12',
-            images: [
-              'https://via.placeholder.com/300x300/000000/FFFFFF?text=Review+1',
-              'https://via.placeholder.com/300x300/FFFFFF/000000?text=Review+2'
-            ]
-          },
-          { 
-            reviewId: 2, 
-            userId: 2, 
-            userName: '이**', 
-            rating: 4, 
-            content: '가격 대비 괜찮은 것 같아요. 사이즈는 생각보다 크게 나왔네요.', 
-            createdAt: '2025-01-11',
-            images: [
-              'https://via.placeholder.com/300x300/CCCCCC/000000?text=Review+3'
-            ]
-          },
-        ]
-      };
+    try {
+      const response = await getProductPostDetail(id, sessionUser?.userId);
+      const item = response.item;
+      setDetail(item);
 
-      // 조회수 증가 (실제로는 API 호출)
-      // await fetch(`/api/products/${id}/view`, { method: 'POST' });
+      const galleries = item.galleryImages || [];
+      setGalleryImages(galleries);
+      setDescriptionImages(item.descriptionImages || []);
 
-      setProduct(mockProduct);
+      const mainIndex = Math.max(
+        galleries.findIndex(img => img.isMain === 1),
+        0
+      );
+      setSelectedImageIndex(mainIndex >= 0 ? mainIndex : 0);
+
+      setWishCount(item.wishCount || 0);
+      setIsWished(item.isWished || false);
+
+      const defaultColor = item.colors && item.colors.length > 0 ? item.colors[0] : '';
+      setSelectedColor(defaultColor);
+      setSelectedSize('');
+      setQuantity(1);
+    } catch (error) {
+      console.error('상품 상세 조회 오류:', error);
+    } finally {
       setLoading(false);
-    };
-
-    fetchProduct();
-  }, [id]);
-
-  // 수량 증가
-  const handleQuantityIncrease = () => {
-    setQuantity(prev => prev + 1);
-  };
-
-  // 수량 감소
-  const handleQuantityDecrease = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
     }
-  };
+  }, [id, sessionUser?.userId]);
 
-  // 찜하기 토글
-  // TODO: API 연동 필요
-  // POST /api/wishlist 또는 DELETE /api/wishlist/:productId
-  const ensureLoggedIn = () => {
+  useEffect(() => {
+    if (!sessionChecked) return;
+    loadDetail();
+  }, [sessionChecked, loadDetail]);
+
+  const colors = detail?.colors || [];
+  const categoryName = detail?.categoryName || '';
+  const isShoesCategory = categoryName.startsWith('신발');
+  const isBagOrAccessory = categoryName.startsWith('가방') || categoryName.startsWith('패션소품');
+  const isSellerUser = sessionUser && Number(sessionUser.isSeller) === 1;
+
+  const colorProducts = useMemo(() => {
+    if (!detail || !selectedColor) return [];
+    return (detail.products || []).filter(product => product.color === selectedColor);
+  }, [detail, selectedColor]);
+
+  const sizeOptions = useMemo(() => {
+    if (!detail || !selectedColor || isBagOrAccessory) return [];
+    const rawSizes = colorProducts.map(product => product.productSize).filter(Boolean);
+    const uniqueSizes = [...new Set(rawSizes)];
+    if (isShoesCategory) {
+      return uniqueSizes.filter(size => /^\d+$/.test(size));
+    }
+    return uniqueSizes;
+  }, [detail, selectedColor, colorProducts, isBagOrAccessory, isShoesCategory]);
+
+  useEffect(() => {
+    if (sizeOptions.length > 0) {
+      if (!selectedSize || !sizeOptions.includes(selectedSize)) {
+        setSelectedSize(sizeOptions[0]);
+      }
+    } else {
+      setSelectedSize('');
+    }
+  }, [sizeOptions]);
+
+  const selectedProduct = useMemo(() => {
+    if (!detail || !selectedColor) return null;
+    if (sizeOptions.length === 0) {
+      return colorProducts[0] || null;
+    }
+    if (!selectedSize) return null;
+    return colorProducts.find(product => product.productSize === selectedSize) || null;
+  }, [detail, selectedColor, selectedSize, sizeOptions, colorProducts]);
+
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedProduct]);
+
+  const basePrice = selectedProduct ? selectedProduct.price : detail?.minPrice;
+  const baseDiscountPrice = selectedProduct ? selectedProduct.discountPrice : detail?.minDiscountPrice;
+  const effectivePrice = baseDiscountPrice ?? basePrice ?? 0;
+  const hasDiscount = baseDiscountPrice != null;
+  const discountRate = hasDiscount && basePrice
+    ? Math.round((1 - (baseDiscountPrice / basePrice)) * 100)
+    : 0;
+
+  const maxQuantity = selectedProduct ? selectedProduct.stock || 1 : 1;
+
+  const ensureCustomerAvailable = () => {
     if (!sessionUser) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
+      return false;
+    }
+    if (isSellerUser) {
+      alert('판매자 계정은 해당 기능을 사용할 수 없습니다.');
       return false;
     }
     return true;
   };
 
-  const handleWishToggle = () => {
-    if (!ensureLoggedIn()) {
-      return;
+  const ensureSelectionValid = () => {
+    if (colors.length > 0 && !selectedColor) {
+      alert('색상을 선택해주세요.');
+      return false;
     }
-    setIsWished(prev => !prev);
-    // TODO: API 호출
+    if (sizeOptions.length > 0 && !selectedSize) {
+      alert('사이즈를 선택해주세요.');
+      return false;
+    }
+    if (!selectedProduct) {
+      alert('선택한 옵션의 상품 정보를 찾을 수 없습니다.');
+      return false;
+    }
+    return true;
   };
 
-  // 장바구니 추가
-  // TODO: API 연동 필요
-  // POST /api/cart
-  // Body: { productId, quantity, size }
-  const handleAddToCart = () => {
-    if (!ensureLoggedIn()) {
+  const handleWishToggle = async () => {
+    if (!sessionUser) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+    if (isSellerUser) {
       return;
     }
 
-    if (!selectedSize) {
-      alert('사이즈를 선택해주세요.');
-      return;
-    }
+    const prevWished = isWished;
+    const prevCount = wishCount;
+    const optimisticCount = prevWished ? Math.max(0, prevCount - 1) : prevCount + 1;
+    setIsWished(!prevWished);
+    setWishCount(optimisticCount);
 
-    // TODO: API 호출
-    alert('장바구니에 추가되었습니다.');
-  };
-
-  // 바로 구매
-  const handleBuyNow = () => {
-    if (!ensureLoggedIn()) {
-      return;
-    }
-
-    if (!selectedSize) {
-      alert('사이즈를 선택해주세요.');
-      return;
-    }
-
-    // 주문 페이지로 이동
-    navigate('/order', {
-      state: {
-        selectedItems: [{
-          productId: product.productId,
-          productName: product.productName,
-          productImage: product.images[0].imageUrl,
-          price: product.price,
-          discountPrice: product.discountPrice,
-          quantity: quantity,
-          size: selectedSize
-        }]
+    try {
+      if (prevWished) {
+        const response = await removeWishlist(sessionUser.userId, detail.postId);
+        setWishCount(response.wishCount ?? optimisticCount);
+        setDetail(prev => prev ? { ...prev, wishCount: response.wishCount ?? optimisticCount } : prev);
+      } else {
+        const response = await addWishlist(sessionUser.userId, detail.postId);
+        setWishCount(response.wishCount ?? optimisticCount);
+        setDetail(prev => prev ? { ...prev, wishCount: response.wishCount ?? optimisticCount } : prev);
       }
-    });
+    } catch (error) {
+      console.error('찜 처리 중 오류:', error);
+      alert('찜 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleQuantityDecrease = () => {
+    setQuantity(prev => Math.max(1, prev - 1));
+  };
+
+  const handleQuantityIncrease = () => {
+    setQuantity(prev => Math.min(maxQuantity, prev + 1));
+  };
+
+  const handleAddToCart = () => {
+    if (!ensureCustomerAvailable()) return;
+    if (!ensureSelectionValid()) return;
+
+    const cartItem = {
+      postId: detail.postId,
+      productId: selectedProduct.productId,
+      postName: detail.postName,
+      imageUrl: resolveImageUrl(galleryImages[selectedImageIndex]?.imageUrl || detail.mainImageUrl),
+      color: selectedColor,
+      productSize: selectedProduct.productSize,
+      price: selectedProduct.price,
+      discountPrice: selectedProduct.discountPrice,
+      quantity
+    };
+
+    navigate('/cart', { state: { newItem: cartItem } });
+  };
+
+  const handleBuyNow = () => {
+    if (!ensureCustomerAvailable()) return;
+    if (!ensureSelectionValid()) return;
+
+    const orderItem = {
+      postId: detail.postId,
+      productId: selectedProduct.productId,
+      postName: detail.postName,
+      imageUrl: resolveImageUrl(galleryImages[selectedImageIndex]?.imageUrl || detail.mainImageUrl),
+      color: selectedColor,
+      productSize: selectedProduct.productSize,
+      price: selectedProduct.price,
+      discountPrice: selectedProduct.discountPrice,
+      quantity
+    };
+
+    navigate('/order', { state: { selectedItems: [orderItem] } });
   };
 
   if (loading) {
@@ -194,7 +285,7 @@ function ProductDetail() {
     );
   }
 
-  if (!product) {
+  if (!detail) {
     return (
       <div className="product-detail">
         <div className="container">
@@ -206,76 +297,90 @@ function ProductDetail() {
     );
   }
 
-  const displayPrice = product.discountPrice || product.price;
-  const hasDiscount = product.discountPrice !== null && product.discountPrice !== undefined;
-  const discountRate = hasDiscount 
-    ? Math.round((1 - product.discountPrice / product.price) * 100)
-    : 0;
+  const genderText = detail.gender === 'MEN'
+    ? '남성'
+    : detail.gender === 'WOMEN'
+      ? '여성'
+      : '공용';
 
-  const genderText = product.gender === 'MEN' ? '남성' : product.gender === 'WOMEN' ? '여성' : '공용';
   const seasonText = {
-    'SPRING': '봄',
-    'SUMMER': '여름',
-    'FALL': '가을',
-    'WINTER': '겨울',
-    'ALL_SEASON': '사계절'
-  }[product.season] || product.season;
+    SPRING: '봄',
+    SUMMER: '여름',
+    FALL: '가을',
+    WINTER: '겨울',
+    ALL_SEASON: '사계절'
+  }[detail.season] || detail.season;
 
-  const colorText = {
-    'black': '블랙',
-    'white': '화이트',
-    'navy': '네이비',
-    'gray': '그레이',
-    'red': '레드'
-  }[product.color] || product.color;
+  const getColorLabel = (color) => {
+    const map = {
+      black: '블랙',
+      white: '화이트',
+      navy: '네이비',
+      gray: '그레이',
+      red: '레드',
+      green: '그린',
+      beige: '베이지',
+      brown: '브라운',
+      blue: '블루'
+    };
+    return map[color?.toLowerCase()] || color;
+  };
+
+  const mainImageUrl = resolveImageUrl(
+    galleryImages[selectedImageIndex]?.imageUrl ||
+    detail.mainImageUrl ||
+    galleryImages[0]?.imageUrl ||
+    ''
+  );
 
   return (
     <div className="product-detail">
       <div className="container">
         <div className="product-detail-content">
-          {/* 상품 이미지 섹션 */}
+          {/* 상품 이미지 영역 */}
           <div className="product-images">
             <div className="main-image">
-              <img 
-                src={product.images[selectedImageIndex]?.imageUrl || product.images[0]?.imageUrl} 
-                alt={product.productName}
-              />
+              {mainImageUrl ? (
+                <img src={mainImageUrl} alt={detail.postName} />
+              ) : (
+                <div className="image-placeholder">이미지가 없습니다.</div>
+              )}
             </div>
+            {galleryImages.length > 0 && (
             <div className="thumbnail-images">
-              {product.images.map((image, index) => (
+                {galleryImages.map((image, index) => (
                 <button
-                  key={image.imageId}
+                    key={image.imageId || `${image.imageUrl}-${index}`}
                   className={`thumbnail ${selectedImageIndex === index ? 'active' : ''}`}
                   onClick={() => setSelectedImageIndex(index)}
                 >
-                  <img src={image.imageUrl} alt={`${product.productName} ${index + 1}`} />
+                    <img src={resolveImageUrl(image.imageUrl)} alt={`${detail.postName} ${index + 1}`} />
                 </button>
               ))}
             </div>
+            )}
           </div>
 
-          {/* 상품 정보 섹션 */}
+          {/* 상품 정보 */}
           <div className="product-info">
             <div className="product-header">
-              <p className="product-brand">{product.brand}</p>
-              <h1 className="product-name">{product.productName}</h1>
+              <p className="product-brand">{detail.brand || '브랜드 미지정'}</p>
+              <h1 className="product-name">{detail.postName}</h1>
               <div className="product-meta">
-                <span className="view-count">조회수 {product.viewCount.toLocaleString()}</span>
-                <span className="category-name">{product.categoryName}</span>
+                <span className="view-count">조회수 {detail.viewCount?.toLocaleString() || 0}</span>
+                <span className="category-name">{detail.categoryName}</span>
               </div>
             </div>
 
             <div className="product-price-section">
               {hasDiscount && (
-                <div className="discount-badge">
-                  {discountRate}% 할인
-                </div>
+                <div className="discount-badge">{discountRate}% 할인</div>
               )}
               <div className="price-wrapper">
-                {hasDiscount && (
-                  <span className="original-price">{product.price.toLocaleString()}원</span>
+                {hasDiscount && basePrice && (
+                  <span className="original-price">{basePrice.toLocaleString()}원</span>
                 )}
-                <span className="final-price">{displayPrice.toLocaleString()}원</span>
+                <span className="final-price">{(effectivePrice || 0).toLocaleString()}원</span>
               </div>
             </div>
 
@@ -285,12 +390,8 @@ function ProductDetail() {
                 <span className="detail-value">{genderText}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">컬러</span>
-                <span className="detail-value">{colorText}</span>
-              </div>
-              <div className="detail-row">
                 <span className="detail-label">소재</span>
-                <span className="detail-value">{product.material}</span>
+                <span className="detail-value">{detail.material || '-'}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">계절</span>
@@ -298,14 +399,35 @@ function ProductDetail() {
               </div>
             </div>
 
-            {/* 사이즈 선택 */}
+            {colors.length > 0 && (
+              <div className="color-selection">
+                <div className="color-label">컬러</div>
+                <div className="color-options">
+                  {colors.map(color => (
+                    <button
+                      key={color}
+                      className={`color-option ${selectedColor === color ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setSelectedSize('');
+                      }}
+                    >
+                      {getColorLabel(color)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!isBagOrAccessory && (
             <div className="size-selection">
               <div className="size-label">
                 <span>사이즈</span>
-                <span className="size-guide-link">사이즈 가이드</span>
+                  {sizeOptions.length > 0 && <span className="size-guide-link">사이즈 가이드</span>}
               </div>
+                {sizeOptions.length > 0 ? (
               <div className="size-options">
-                {product.availableSizes.map(size => (
+                    {sizeOptions.map(size => (
                   <button
                     key={size}
                     className={`size-option ${selectedSize === size ? 'selected' : ''}`}
@@ -315,9 +437,21 @@ function ProductDetail() {
                   </button>
                 ))}
               </div>
-            </div>
+                ) : (
+                  <p className="size-empty-text">해당 상품은 사이즈 선택이 필요하지 않습니다.</p>
+                )}
+              </div>
+            )}
 
-            {/* 수량 선택 */}
+            {isBagOrAccessory && (
+              <div className="size-selection">
+                <div className="size-label">
+                  <span>사이즈</span>
+                </div>
+                <p className="size-empty-text">가방/패션소품은 사이즈 선택 없이 구매할 수 있습니다.</p>
+            </div>
+            )}
+
             <div className="quantity-selection">
               <span className="quantity-label">수량</span>
               <div className="quantity-controls">
@@ -333,7 +467,7 @@ function ProductDetail() {
                   value={quantity}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 1;
-                    setQuantity(Math.max(1, val));
+                    setQuantity(Math.min(Math.max(1, val), maxQuantity));
                   }}
                   min="1"
                   className="quantity-input"
@@ -341,122 +475,119 @@ function ProductDetail() {
                 <button 
                   className="quantity-btn"
                   onClick={handleQuantityIncrease}
+                  disabled={quantity >= maxQuantity}
                 >
                   +
                 </button>
               </div>
+              {selectedProduct && (
+                <span className="stock-info">재고 {selectedProduct.stock}개</span>
+              )}
             </div>
 
-            {/* 총 금액 */}
             <div className="total-price-section">
               <span className="total-label">총 상품금액</span>
               <span className="total-price">
-                {(displayPrice * quantity).toLocaleString()}원
+                {(effectivePrice * quantity).toLocaleString()}원
               </span>
             </div>
 
-            {/* 액션 버튼 */}
             <div className="product-actions">
+              <div className="wish-wrapper">
               <button 
-                className={`btn-wish ${isWished ? 'active' : ''}`}
+                className={`btn-wish ${isWished ? 'active' : ''} ${isSellerUser ? 'disabled-button' : ''}`}
                 onClick={handleWishToggle}
+                  disabled={isSellerUser}
                 title="찜하기"
               >
                 {isWished ? '❤️' : '🤍'}
               </button>
+                <span className="wish-count">찜 {wishCount.toLocaleString()}</span>
+              </div>
               <button 
-                className="btn-cart"
+                className={`btn-cart ${isSellerUser ? 'disabled-button' : ''}`}
                 onClick={handleAddToCart}
+                disabled={isSellerUser}
               >
                 장바구니
               </button>
               <button 
-                className="btn-buy"
+                className={`btn-buy ${isSellerUser ? 'disabled-button' : ''}`}
                 onClick={handleBuyNow}
+                disabled={isSellerUser}
               >
                 바로 구매
               </button>
             </div>
 
-            {/* 판매자 정보 */}
             <div className="seller-info">
-              <span className="seller-label">판매자</span>
+              <span className="seller-label">브랜드</span>
               <button 
                 className="seller-name-link"
-                onClick={() => navigate(`/seller?sellerId=${product.sellerId || 1}`)}
+                onClick={() => navigate(`/seller?sellerId=${detail.sellerId}`)}
               >
-                {product.sellerName}
+                {detail.brand || '브랜드 정보 없음'}
               </button>
             </div>
           </div>
         </div>
 
-        {/* 상품 설명 섹션 */}
         <div className="product-description">
           <h2 className="section-title">상품 설명</h2>
           <div className="description-content">
-            <p>{product.description}</p>
-            {/* TODO: 상세 이미지 추가 */}
-            <div className="detail-images">
-              {product.images.map((image, index) => (
-                <img 
-                  key={image.imageId} 
-                  src={image.imageUrl} 
-                  alt={`${product.productName} 상세 ${index + 1}`}
-                />
-              ))}
-            </div>
+            <p>{detail.description || '상품 설명이 등록되지 않았습니다.'}</p>
+            {descriptionImages.length > 0 && (
+              <div className="description-image-grid">
+                {descriptionImages.map((image, index) => (
+                  <img
+                    key={image.imageId || `${image.imageUrl}-${index}`}
+                    src={resolveImageUrl(image.imageUrl)}
+                    alt={`${detail.postName} 설명 이미지 ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 리뷰 섹션 */}
         <div className="product-reviews">
           <div className="reviews-header">
             <h2 className="section-title">리뷰</h2>
             <div className="reviews-summary">
               <span className="average-rating">
-                평점: {product.reviews.length > 0 
-                  ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length).toFixed(1)
-                  : '0.0'}
+                평점: {(reviewSamples.reduce((sum, r) => sum + r.rating, 0) / reviewSamples.length).toFixed(1)}
               </span>
-              <span className="reviews-count">({product.reviews.length}개)</span>
+              <span className="reviews-count">({reviewSamples.length}개)</span>
             </div>
           </div>
-
-          {product.reviews.length === 0 ? (
-            <div className="no-reviews">
-              <p>아직 리뷰가 없습니다.</p>
-            </div>
-          ) : (
-            <div className="reviews-list">
-              {product.reviews.map(review => (
-                <div key={review.reviewId} className="review-item">
-                  <div className="review-header">
-                    <div className="review-user">
-                      <span className="user-name">{review.userName}</span>
-                      <div className="review-rating">
-                        {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                      </div>
+          <div className="reviews-list">
+            {reviewSamples.map(review => (
+              <div key={review.reviewId} className="review-item">
+                <div className="review-header">
+                  <div className="review-user">
+                    <span className="user-name">{review.userName}</span>
+                    <div className="review-rating">
+                      {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                     </div>
-                    <span className="review-date">{review.createdAt}</span>
                   </div>
-                  {review.images && review.images.length > 0 && (
-                    <div className="review-images">
-                      {review.images.map((imageUrl, index) => (
-                        <img 
-                          key={index}
-                          src={imageUrl} 
-                          alt={`${review.userName} 리뷰 이미지 ${index + 1}`}
-                          className="review-image"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <p className="review-content">{review.content}</p>
+                  <span className="review-date">{review.createdAt}</span>
                 </div>
-              ))}
-            </div>
-          )}
+                {review.images && review.images.length > 0 && (
+                  <div className="review-images">
+                    {review.images.map((imageUrl, index) => (
+                      <img
+                        key={`${review.reviewId}-${index}`}
+                        src={imageUrl}
+                        alt={`${review.userName} 리뷰 ${index + 1}`}
+                        className="review-image"
+                      />
+                    ))}
+                  </div>
+                )}
+                <p className="review-content">{review.content}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
