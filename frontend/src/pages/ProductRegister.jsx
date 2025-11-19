@@ -53,7 +53,7 @@ function ProductRegister() {
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   // 옵션 리스트
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270'];
+  const sizeOptions = ['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270', '280'];
   const genderOptions = [
     { value: 'MEN', label: '남성' },
     { value: 'WOMEN', label: '여성' },

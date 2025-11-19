@@ -115,6 +115,79 @@
   user-select: none;
 }
 
+/* 선택한 필터 표시 */
+.selected-filters {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.selected-filters .filter-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 12px;
+  letter-spacing: 0.3px;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #000000;
+  transition: all 0.2s;
+}
+
+.filter-tag:hover {
+  background-color: #eeeeee;
+  border-color: #cccccc;
+}
+
+.filter-tag-label {
+  font-weight: 600;
+  color: #666666;
+  margin-right: 2px;
+}
+
+.filter-tag-value {
+  font-weight: 500;
+  color: #000000;
+}
+
+.filter-tag-remove {
+  background: none;
+  border: none;
+  color: #999999;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  border-radius: 50%;
+}
+
+.filter-tag-remove:hover {
+  color: #000000;
+  background-color: #e0e0e0;
+}
+
 /* 메인 콘텐츠 */
 .list-main {
   flex: 1;
