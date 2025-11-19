@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ChangePassword.css';
+import { fetchSessionUser, changePassword, setSession } from '../services/authService';
 
 function ChangePassword() {
   const navigate = useNavigate();
@@ -19,24 +20,28 @@ function ChangePassword() {
   const [newPasswordError, setNewPasswordError] = useState('');
 
   // 비밀번호 확인
-  const handleVerifyPassword = () => {
+  const handleVerifyPassword = async () => {
     if (!passwordVerification.trim()) {
       alert('비밀번호를 입력해주세요.');
       return;
     }
 
-    // TODO: API 호출로 비밀번호 확인
-    // 예: const isValid = await verifyPassword(passwordVerification);
-    // 임시로 항상 성공으로 처리 (실제로는 API에서 확인)
-    const isValid = true; // 실제로는 API 응답으로 확인
-
-    if (isValid) {
-      setIsPasswordVerified(true);
-      setPasswordVerification('');
-      setPasswordError('');
-      alert('비밀번호가 확인되었습니다.');
-    } else {
-      setPasswordError('비밀번호가 일치하지 않습니다.');
+    try {
+      // 세션에서 사용자 정보 가져오기
+      const { item } = await fetchSessionUser();
+      
+      // 세션의 비밀번호와 입력한 비밀번호 비교
+      if (item.password === passwordVerification) {
+        setIsPasswordVerified(true);
+        setPasswordVerification('');
+        alert('비밀번호가 확인되었습니다.');
+      } else {
+        alert('비밀번호가 일치하지 않습니다.');
+        setPasswordVerification('');
+      }
+    } catch (error) {
+      console.error('비밀번호 확인 중 오류:', error);
+      alert('비밀번호 확인 중 오류가 발생했습니다.');
       setPasswordVerification('');
     }
   };
@@ -136,32 +141,26 @@ function ChangePassword() {
     }
 
     try {
-      // TODO: 실제 API 연동 필요
-      // const response = await fetch('http://localhost:8080/api/users/change-password', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   },
-      //   body: JSON.stringify({
-      //     newPassword: passwordData.newPassword
-      //   })
-      // });
+      const { item } = await fetchSessionUser();
+      const userId = item.userId;
 
-      // const data = await response.json();
-      // if (data.rt === 'OK') {
-      //   alert('비밀번호가 성공적으로 변경되었습니다.');
-      //   navigate('/mypage');
-      // } else {
-      //   setPasswordError(data.msg || '비밀번호 변경에 실패했습니다.');
-      // }
+      const result = await changePassword(userId, passwordData.newPassword);
 
-      // 임시 성공 처리
-      alert('비밀번호가 성공적으로 변경되었습니다.');
-      navigate('/mypage');
+      if (result.rt === 'OK') {
+        await setSession(result.item);
+        alert('비밀번호가 성공적으로 변경되었습니다.');
+        // 판매자일 경우 판매자 대시보드로, 일반 회원일 경우 마이페이지로 이동
+        if (result.item.isSeller === 1) {
+          navigate('/sellerDashboard?tab=business');
+        } else {
+          navigate('/mypage');
+        }
+      } else {
+        setPasswordError(result.message || '비밀번호 변경에 실패했습니다.');
+      }
     } catch (error) {
       console.error('비밀번호 변경 중 오류 발생:', error);
-      setPasswordError('비밀번호 변경 중 오류가 발생했습니다.');
+      setPasswordError(error.message || '비밀번호 변경 중 오류가 발생했습니다.');
     }
   };
 
@@ -183,10 +182,7 @@ function ChangePassword() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={passwordVerification}
-                    onChange={(e) => {
-                      setPasswordVerification(e.target.value);
-                      setPasswordError('');
-                    }}
+                    onChange={(e) => setPasswordVerification(e.target.value)}
                     className="form-input password-input"
                     placeholder="비밀번호를 입력하세요"
                     onKeyPress={(e) => {
@@ -204,11 +200,6 @@ function ChangePassword() {
                   </button>
                 </div>
               </div>
-              {passwordError && (
-                <div className="password-error" style={{ color: '#e74c3c', fontSize: '14px', marginBottom: '15px' }}>
-                  {passwordError}
-                </div>
-              )}
               <button
                 type="button"
                 className="btn-verify-password"

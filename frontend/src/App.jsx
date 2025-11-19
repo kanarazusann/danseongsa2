@@ -18,6 +18,7 @@ import FindPassword from './pages/FindPassword';
 import ResetPassword from './pages/ResetPassword';
 import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
+import EditSellerProfile from './pages/EditSellerProfile';
 import ChangePassword from './pages/ChangePassword';
 import SellerDashboard from './pages/SellerDashboard';
 import SellerPage from './pages/SellerPage';
@@ -50,6 +51,7 @@ function App() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/EditProfile" element={<EditProfile />} />
+          <Route path="/edit-seller-profile" element={<EditSellerProfile />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/sellerDashboard" element={<SellerDashboard />} />
           <Route path="/seller" element={<SellerPage />} />

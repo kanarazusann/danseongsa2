@@ -23,13 +23,15 @@ function MyPage() {
   const selectRef = useRef(null);
   const addSelectRef = useRef(null);
 
-  // 임시 데이터 (나중에 API로 교체)
-  const userInfo = {
-    name: '홍길동',
-    email: 'hong@example.com',
-    phone: '010-1234-5678',
-    address: '서울시 강남구 테헤란로 123'
-  };
+  // 세션에서 가져온 사용자 정보
+  const [userInfo, setUserInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    zipcode: '',
+    detailAddress: ''
+  });
 
   const orders = [
     {
@@ -169,15 +171,29 @@ function MyPage() {
   };
 
   useEffect(() => {
-    const ensureLogin = async () => {
+    const loadUserInfo = async () => {
       try {
-        await fetchSessionUser();
-      } catch {
+        const { item } = await fetchSessionUser();
+        // 주소 정보를 하나로 합치기
+        const fullAddress = item.address 
+          ? (item.detailAddress ? `${item.address} ${item.detailAddress}` : item.address)
+          : '';
+        
+        setUserInfo({
+          name: item.name || '',
+          email: item.email || '',
+          phone: item.phone || '',
+          address: fullAddress,
+          zipcode: item.zipcode || '',
+          detailAddress: item.detailAddress || ''
+        });
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
         alert('로그인이 필요합니다.');
         navigate('/login');
       }
     };
-    ensureLogin();
+    loadUserInfo();
   }, [navigate]);
 
   const getRefundStatusText = (status) => {
@@ -473,7 +489,10 @@ function MyPage() {
                 </div>
                 <div className="info-row">
                   <label>주소</label>
-                  <div className="info-value">{userInfo.address}</div>
+                  <div className="info-value">
+                    {userInfo.zipcode && `[${userInfo.zipcode}] `}
+                    {userInfo.address || '주소 정보가 없습니다.'}
+                  </div>
                 </div>
               </div>
               <div className="profile-actions">

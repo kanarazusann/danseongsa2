@@ -66,10 +66,12 @@ public class UserService {
         Map<String, Object> item = new HashMap<>();
         item.put("userId", user.getUserId());
         item.put("email", user.getEmail());
+        item.put("password", user.getPassword()); // 비밀번호 확인을 위해 세션에 포함
         item.put("name", user.getName());
         item.put("phone", user.getPhone());
         item.put("isSeller", user.getIsSeller());
         item.put("brand", user.getBrand());
+        item.put("businessNumber", user.getBusinessNumber());
         item.put("zipcode", user.getZipcode());
         item.put("address", user.getAddress());
         item.put("detailAddress", user.getDetailAddress());
@@ -140,5 +142,33 @@ public class UserService {
             return true;
         }
         return false;
+    }
+
+    // 회원정보 수정
+    @Transactional
+    public User updateUser(int userId, UserDTO request) {
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        // 수정 가능한 필드 업데이트
+        if (request.getName() != null) user.setName(request.getName().trim());
+        if (request.getPhone() != null) user.setPhone(request.getPhone().trim());
+        if (request.getZipcode() != null) user.setZipcode(request.getZipcode().trim());
+        if (request.getAddress() != null) user.setAddress(request.getAddress().trim());
+        if (request.getDetailAddress() != null) user.setDetailAddress(request.getDetailAddress().trim());
+        if (request.getBrand() != null) user.setBrand(request.getBrand().trim());
+        if (request.getBusinessNumber() != null) user.setBusinessNumber(request.getBusinessNumber().trim());
+
+        return userDAO.save(user);
+    }
+
+    // 비밀번호 변경
+    @Transactional
+    public User changePassword(int userId, String newPassword) {
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        
+        user.setPassword(newPassword);
+        return userDAO.save(user);
     }
 }

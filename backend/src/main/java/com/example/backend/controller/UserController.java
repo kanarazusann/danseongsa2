@@ -151,6 +151,7 @@ public class UserController {
         return result;
     }
 
+    // ID 찾기
     @PostMapping("/auth/find-id")
     public Map<String, Object> findId(@RequestBody UserDTO request) {
         Map<String, Object> map = new HashMap<>();
@@ -211,6 +212,62 @@ public class UserController {
         }
         
         return map;
+    }
+
+    // 회원정보 수정 API
+    @PutMapping("/api/users/{userId}")
+    public Map<String, Object> updateUser(
+            @PathVariable("userId") int userId,
+            @RequestBody UserDTO request,
+            HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            User updatedUser = userService.updateUser(userId, request);
+            Map<String, Object> userInfo = userService.buildUserResponse(updatedUser);
+            session.setAttribute(SESSION_USER_KEY, userInfo);
+            
+            result.put("rt", "OK");
+            result.put("item", userInfo);
+        } catch (IllegalArgumentException e) {
+            result.put("rt", "FAIL");
+            result.put("message", e.getMessage());
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "회원정보 수정 중 오류가 발생했습니다.");
+        }
+        return result;
+    }
+
+    // 비밀번호 변경 API
+    @PutMapping("/api/users/{userId}/change-password")
+    public Map<String, Object> changePassword(
+            @PathVariable("userId") int userId,
+            @RequestBody Map<String, String> request,
+            HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String newPassword = request.get("newPassword");
+            if (newPassword == null || newPassword.trim().isEmpty()) {
+                result.put("rt", "FAIL");
+                result.put("message", "새 비밀번호를 입력해주세요.");
+                return result;
+            }
+
+            User updatedUser = userService.changePassword(userId, newPassword.trim());
+            Map<String, Object> userInfo = userService.buildUserResponse(updatedUser);
+            session.setAttribute(SESSION_USER_KEY, userInfo);
+            
+            result.put("rt", "OK");
+            result.put("item", userInfo);
+            result.put("message", "비밀번호가 성공적으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            result.put("rt", "FAIL");
+            result.put("message", e.getMessage());
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "비밀번호 변경 중 오류가 발생했습니다.");
+        }
+        return result;
     }
 }
 
