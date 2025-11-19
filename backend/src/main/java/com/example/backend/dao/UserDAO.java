@@ -38,5 +38,13 @@ public class UserDAO {
     public List<User> findAll() {
         return userRepository.findAll();
     }
+    // 아이디 찾기
+    public Optional<User> findByNameAndPhone(String name, String phone) {
+        return userRepository.findByNameAndPhone(name, phone);
+    }
+    // 비밀번호 찾기
+    public Optional<User> findByNameAndEmail(String name, String email) {
+        return userRepository.findByNameAndEmail(name, email);
+    }
 }
 

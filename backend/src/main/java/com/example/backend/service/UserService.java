@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -116,5 +117,28 @@ public class UserService {
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
         return dto;
+    }
+    public String findByNameAndPhone(String name, String phone) {
+        Optional<User> user = userDAO.findByNameAndPhone(name, phone);
+        return user.map(User::getEmail).orElse(null);
+    }
+    
+    // 이름과 이메일로 유저 확인 (비밀번호 찾기용)
+    public User findByNameAndEmail(String name, String email) {
+        Optional<User> user = userDAO.findByNameAndEmail(name, email);
+        return user.orElse(null);
+    }
+    
+    // 비밀번호 재설정
+    @Transactional
+    public boolean resetPassword(String email, String newPassword) {
+        Optional<User> userOpt = userDAO.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setPassword(newPassword);
+            userDAO.save(user);
+            return true;
+        }
+        return false;
     }
 }
