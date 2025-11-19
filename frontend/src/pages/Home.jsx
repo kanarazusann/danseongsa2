@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import categoryStructure from '../data/categories.json';
 import './Home.css';
 
 function Home() {
@@ -45,106 +46,10 @@ function Home() {
   ];
 
   // TODO: API 연동 필요
-  // 카테고리 구조 (3단계)
-  // DB: Category 테이블에서 gender, categoryName으로 필터링
-  // 대분류: gender (ALL, MEN, WOMEN)
-  // 중분류: categoryName의 첫 단어 (신발, 상의, 아우터, 바지, 가방, 패션소품 등)
-  // 소분류: categoryName 전체 (신발 스니커즈, 상의 맨투맨, 아우터 숏패딩 등)
-  // 소분류는 { name, image } 형태로 저장
-  const getCategoryImage = (subCategory, itemName) => {
-    // 임시 이미지 URL (실제로는 DB의 Category 테이블에서 가져옴)
-    const imageMap = {
-      '신발': {
-        '스니커즈': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS',
-        '구두': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES',
-        '샌들/슬리퍼': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS',
-        '부츠/워커': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS',
-        '스포츠화': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS'
-      },
-      '상의': {
-        '맨투맨': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT',
-        '후드': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE',
-        '셔츠': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT',
-        '긴소매': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG',
-        '반소매': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT',
-        '니트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT',
-        '민소매': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS'
-      },
-      '아우터': {
-        '숏패딩': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT',
-        '롱패딩': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG',
-        '무스탕': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG',
-        '코트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT',
-        '가디건': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN',
-        '후드 집업': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE',
-        '슈트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT',
-        '재킷': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET'
-      },
-      '바지': {
-        '데님': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS',
-        '트레이닝': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK',
-        '코튼': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON',
-        '슬렉스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS',
-        '숏팬츠': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS'
-      },
-      '원피스/스커트': {
-        '미니 원피스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI',
-        '미디 원피스': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI',
-        '맥시 원피스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI',
-        '미니 스커트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI',
-        '미디 스커트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI',
-        '맥시 스커트': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI'
-      },
-      '가방': {
-        '백팩': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK',
-        '크로스백': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS',
-        '에코백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO',
-        '파우치': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH',
-        '클러치백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH',
-        '토트백': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE',
-        '숄더백': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER'
-      },
-      '패션소품': {
-        '모자': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT',
-        '머플러': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF',
-        '악세사리': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC',
-        '양말': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS',
-        '선글라스': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES',
-        '시계': 'https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH',
-        '벨트': 'https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT'
-      }
-    };
-    return imageMap[subCategory]?.[itemName] || 'https://via.placeholder.com/150x150/CCCCCC/000000?text=IMAGE';
-  };
-
-  const categoryStructure = {
-    '전체': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트', '민소매'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '원피스/스커트': ['미니 원피스', '미디 원피스', '맥시 원피스', '미니 스커트', '미디 스커트', '맥시 스커트'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백', '토트백', '숄더백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    },
-    '남성': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    },
-    '여성': {
-      '신발': ['스니커즈', '구두', '샌들/슬리퍼', '부츠/워커', '스포츠화'],
-      '상의': ['맨투맨', '후드', '셔츠', '긴소매', '반소매', '니트', '민소매'],
-      '아우터': ['숏패딩', '롱패딩', '무스탕', '코트', '가디건', '후드 집업', '슈트', '재킷'],
-      '바지': ['데님', '트레이닝', '코튼', '슬렉스', '숏팬츠'],
-      '원피스/스커트': ['미니 원피스', '미디 원피스', '맥시 원피스', '미니 스커트', '미디 스커트', '맥시 스커트'],
-      '가방': ['백팩', '크로스백', '에코백', '파우치', '클러치백', '토트백', '숄더백'],
-      '패션소품': ['모자', '머플러', '악세사리', '양말', '선글라스', '시계', '벨트']
-    }
-  };
+  // 카테고리 구조는 categories.json에서 가져옴
+  // 대분류: 전체, 남성, 여성
+  // 중분류: 신발, 상의, 아우터, 바지, 원피스/스커트, 가방, 패션소품
+  // 소분류: { name, image } 형태로 저장됨
 
   // 검색 처리
   // TODO: Product 테이블의 productName으로 검색
@@ -185,9 +90,9 @@ function Home() {
     setSelectedItem(null);
   };
 
-  // 소분류 선택 (이제 바로 이동하지 않고 선택만 함)
-  const handleCategoryItemClick = (item) => {
-    setSelectedItem(item);
+  // 소분류 선택
+  const handleCategoryItemClick = (itemName) => {
+    setSelectedItem(itemName);
   };
 
   // 카테고리 적용 버튼 클릭
@@ -203,8 +108,8 @@ function Home() {
     
     // category 값 설정
     if (selectedSubCategory && selectedItem) {
-      // 소분류까지 선택된 경우: "중분류_소분류" 형식
-      const categoryName = `${selectedSubCategory}_${selectedItem}`;
+      // 소분류까지 선택된 경우: "중분류 소분류" 형식 (띄어쓰기)
+      const categoryName = `${selectedSubCategory} ${selectedItem}`;
       params.append('category', categoryName);
     } else if (selectedSubCategory) {
       // 중분류만 선택된 경우: 중분류만
@@ -228,7 +133,6 @@ function Home() {
 
   return (
     <div className="home">
-    <h3>dddddddddddddddddddddddddddddddd</h3>
       {/* 메인 배너 (광고) */}
       <section className="main-banner">
         <div className="banner-content">
@@ -251,79 +155,91 @@ function Home() {
               ☰ 카테고리
             </button>
 
-            {/* 카테고리 드롭다운 메뉴 */}
+            {/* 카테고리 모달 */}
             {isCategoryMenuOpen && (
-              <div className="category-dropdown">
-                <div className="category-levels">
-                  {/* 대분류 */}
-                  <div className="category-level">
-                    {Object.keys(categoryStructure).map(mainCat => (
-                      <button
-                        key={mainCat}
-                        type="button"
-                        className={`category-item ${selectedMainCategory === mainCat ? 'active' : ''}`}
-                        onClick={() => handleMainCategorySelect(mainCat)}
-                      >
-                        {mainCat}
-                      </button>
-                    ))}
+              <div className="category-modal-overlay" onClick={toggleCategoryMenu}>
+                <div className="category-modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="category-modal-header">
+                    <h2>카테고리 선택</h2>
+                    <button 
+                      type="button"
+                      className="category-modal-close"
+                      onClick={toggleCategoryMenu}
+                    >
+                      ✕
+                    </button>
                   </div>
-
-                  {/* 중분류 */}
-                  {selectedMainCategory && (
+                  <div className="category-levels">
+                    {/* 대분류 */}
                     <div className="category-level">
-                      {Object.keys(categoryStructure[selectedMainCategory]).map(subCat => (
+                      {Object.keys(categoryStructure).map(mainCat => (
                         <button
-                          key={subCat}
+                          key={mainCat}
                           type="button"
-                          className={`category-item ${selectedSubCategory === subCat ? 'active' : ''}`}
-                          onClick={() => handleSubCategorySelect(subCat)}
+                          className={`category-item ${selectedMainCategory === mainCat ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect(mainCat)}
                         >
-                          {subCat}
+                          {mainCat}
                         </button>
                       ))}
                     </div>
-                  )}
 
-                  {/* 소분류 */}
-                  {selectedMainCategory && selectedSubCategory && (
-                    <div className="category-level sub-category-level">
-                      <div className="sub-category-grid">
-                        {categoryStructure[selectedMainCategory][selectedSubCategory].map(item => (
+                    {/* 중분류 */}
+                    {selectedMainCategory && (
+                      <div className="category-level">
+                        {Object.keys(categoryStructure[selectedMainCategory]).map(subCat => (
                           <button
-                            key={item}
+                            key={subCat}
                             type="button"
-                            className={`sub-category-item ${selectedItem === item ? 'active' : ''}`}
-                            onClick={() => handleCategoryItemClick(item)}
+                            className={`category-item ${selectedSubCategory === subCat ? 'active' : ''}`}
+                            onClick={() => handleSubCategorySelect(subCat)}
                           >
-                            <div className="sub-category-image">
-                              <img src={getCategoryImage(selectedSubCategory, item)} alt={item} />
-                            </div>
-                            <span className="sub-category-name">{item}</span>
+                            {subCat}
                           </button>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* 적용/초기화 버튼 */}
-                <div className="category-actions">
-                  <button
-                    type="button"
-                    className="btn-category-reset"
-                    onClick={handleResetCategory}
-                  >
-                    초기화
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-category-apply"
-                    onClick={handleApplyCategory}
-                    disabled={!selectedMainCategory}
-                  >
-                    적용
-                  </button>
+                    )}
+
+                    {/* 소분류 */}
+                    {selectedMainCategory && selectedSubCategory && (
+                      <div className="category-level sub-category-level">
+                        <div className="sub-category-grid">
+                          {categoryStructure[selectedMainCategory][selectedSubCategory].map(item => (
+                            <button
+                              key={item.name}
+                              type="button"
+                              className={`sub-category-item ${selectedItem === item.name ? 'active' : ''}`}
+                              onClick={() => handleCategoryItemClick(item.name)}
+                            >
+                              <div className="sub-category-image">
+                                <img src={item.image} alt={item.name} />
+                              </div>
+                              <span className="sub-category-name">{item.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 적용/초기화 버튼 */}
+                  <div className="category-actions">
+                    <button
+                      type="button"
+                      className="btn-category-reset"
+                      onClick={handleResetCategory}
+                    >
+                      초기화
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-category-apply"
+                      onClick={handleApplyCategory}
+                      disabled={!selectedMainCategory}
+                    >
+                      적용
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
