@@ -3,195 +3,195 @@
     "신발": [
       {
         "name": "스니커즈",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS"
+        "image": "/categoryImage/man-sneakers.png"
       },
       {
         "name": "구두",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        "image": "/categoryImage/man-dress_shoes.png"
       },
       {
         "name": "샌들/슬리퍼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        "image": "/categoryImage/man-sandals.png"
       },
       {
         "name": "부츠/워커",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        "image": "/categoryImage/man-boots.png"
       },
       {
         "name": "스포츠화",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        "image": "/categoryImage/unisex-sport.png"
       }
     ],
     "상의": [
       {
         "name": "맨투맨",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        "image": "/categoryImage/man-T-shirt.png"
       },
       {
         "name": "후드",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        "image": "/categoryImage/man-hoodie.png"
       },
       {
         "name": "셔츠",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        "image": "/categoryImage/man-shirt.png"
       },
       {
         "name": "긴소매",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        "image": "/categoryImage/man-longsleeve.png"
       },
       {
         "name": "반소매",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        "image": "/categoryImage/man-short.png"
       },
       {
         "name": "니트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        "image": "/categoryImage/man-knit.png"
       },
       {
         "name": "민소매",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS"
+        "image": "/categoryImage/woman-sleeve.png"
       }
     ],
     "아우터": [
       {
         "name": "숏패딩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        "image": "/categoryImage/unisex-puffer.png"
       },
       {
         "name": "롱패딩",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        "image": "/categoryImage/man-longpuffer.png"
       },
       {
         "name": "무스탕",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        "image": "/categoryImage/man-mouton.png"
       },
       {
         "name": "코트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        "image": "/categoryImage/man-coat.png"
       },
       {
         "name": "가디건",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        "image": "/categoryImage/man-cardigan.png"
       },
       {
         "name": "후드 집업",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        "image": "/categoryImage/man-hoodzipup.png"
       },
       {
         "name": "슈트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        "image": "/categoryImage/man-dress.png"
       },
       {
         "name": "재킷",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        "image": "/categoryImage/man-jacket.png"
       }
     ],
     "바지": [
       {
         "name": "데님",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        "image": "/categoryImage/man-denim.png"
       },
       {
         "name": "트레이닝",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        "image": "/categoryImage/man-trainning.png"
       },
       {
         "name": "코튼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        "image": "/categoryImage/man-cotton.png"
       },
       {
         "name": "슬렉스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        "image": "/categoryImage/man-slacks.png"
       },
       {
         "name": "숏팬츠",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        "image": "/categoryImage/man-short.png"
       }
     ],
     "원피스/스커트": [
       {
         "name": "미니 원피스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI"
+        "image": "/categoryImage/woman-shortdress.png"
       },
       {
         "name": "미디 원피스",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI"
+        "image": "/categoryImage/woman-middress.png"
       },
       {
         "name": "맥시 원피스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI"
+        "image": "/categoryImage/woman-long dress.png"
       },
       {
         "name": "미니 스커트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI"
+        "image": "/categoryImage/woman-shortskrit.png"
       },
       {
         "name": "미디 스커트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI"
+        "image": "/categoryImage/woman-mid.png"
       },
       {
         "name": "맥시 스커트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI"
+        "image": "/categoryImage/woman-long_skirt.png"
       }
     ],
     "가방": [
       {
         "name": "백팩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        "image": "/categoryImage/man-backpack.png"
       },
       {
         "name": "크로스백",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        "image": "/categoryImage/man-cross.png"
       },
       {
         "name": "에코백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        "image": "/categoryImage/man-echo.png"
       },
       {
         "name": "파우치",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        "image": "/categoryImage/man-pouch.png"
       },
       {
         "name": "클러치백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        "image": "/categoryImage/man-clutch.png"
       },
       {
         "name": "토트백",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE"
+        "image": "/categoryImage/woman-tote.png"
       },
       {
         "name": "숄더백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER"
+        "image": "/categoryImage/woman-shoulder.png"
       }
     ],
     "패션소품": [
       {
         "name": "모자",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        "image": "/categoryImage/unisex-cap.png"
       },
       {
         "name": "머플러",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF"
+        "image": "/categoryImage/man-neck.png"
       },
       {
         "name": "악세사리",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        "image": "/categoryImage/man-accessory.png"
       },
       {
         "name": "양말",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        "image": "/categoryImage/man-socks.png"
       },
       {
         "name": "선글라스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        "image": "/categoryImage/man-sunglasses.png"
       },
       {
         "name": "시계",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        "image": "/categoryImage/man-watch.png"
       },
       {
         "name": "벨트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        "image": "/categoryImage/man-belt.png"
       }
     ]
   },
@@ -199,157 +199,157 @@
     "신발": [
       {
         "name": "스니커즈",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS"
+        "image": "/categoryImage/man-sneakers.png"
       },
       {
         "name": "구두",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        "image": "/categoryImage/man-dress_shoes.png"
       },
       {
         "name": "샌들/슬리퍼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        "image": "/categoryImage/man-sandals.png"
       },
       {
         "name": "부츠/워커",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        "image": "/categoryImage/man-boots.png"
       },
       {
         "name": "스포츠화",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        "image": "/categoryImage/unisex-sport.png"
       }
     ],
     "상의": [
       {
         "name": "맨투맨",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        "image": "/categoryImage/man-T-shirt.png"
       },
       {
         "name": "후드",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        "image": "/categoryImage/man-hoodie.png"
       },
       {
         "name": "셔츠",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        "image": "/categoryImage/man-shirt.png"
       },
       {
         "name": "긴소매",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        "image": "/categoryImage/man-longsleeve.png"
       },
       {
         "name": "반소매",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        "image": "/categoryImage/man-short.png"
       },
       {
         "name": "니트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        "image": "/categoryImage/man-knit.png"
       }
     ],
     "아우터": [
       {
         "name": "숏패딩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        "image": "/categoryImage/unisex-puffer.png"
       },
       {
         "name": "롱패딩",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        "image": "/categoryImage/man-longpuffer.png"
       },
       {
         "name": "무스탕",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        "image": "/categoryImage/man-mouton.png"
       },
       {
         "name": "코트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        "image": "/categoryImage/man-coat.png"
       },
       {
         "name": "가디건",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        "image": "/categoryImage/man-cardigan.png"
       },
       {
         "name": "후드 집업",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        "image": "/categoryImage/man-hoodzipup.png"
       },
       {
         "name": "슈트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        "image": "/categoryImage/man-dress.png"
       },
       {
         "name": "재킷",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        "image": "/categoryImage/man-jacket.png"
       }
     ],
     "바지": [
       {
         "name": "데님",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        "image": "/categoryImage/man-denim.png"
       },
       {
         "name": "트레이닝",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        "image": "/categoryImage/man-trainning.png"
       },
       {
         "name": "코튼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        "image": "/categoryImage/man-cotton.png"
       },
       {
         "name": "슬렉스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        "image": "/categoryImage/man-slacks.png"
       },
       {
         "name": "숏팬츠",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        "image": "/categoryImage/man-short.png"
       }
     ],
     "가방": [
       {
         "name": "백팩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        "image": "/categoryImage/man-backpack.png"
       },
       {
         "name": "크로스백",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        "image": "/categoryImage/man-cross.png"
       },
       {
         "name": "에코백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        "image": "/categoryImage/man-echo.png"
       },
       {
         "name": "파우치",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        "image": "/categoryImage/man-pouch.png"
       },
       {
         "name": "클러치백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        "image": "/categoryImage/man-clutch.png"
       }
     ],
     "패션소품": [
       {
         "name": "모자",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        "image": "/categoryImage/unisex-cap.png"
       },
       {
         "name": "머플러",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SCARF"
+        "image": "/categoryImage/man-neck.png"
       },
       {
         "name": "악세사리",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        "image": "/categoryImage/man-accessory.png"
       },
       {
         "name": "양말",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        "image": "/categoryImage/man-socks.png"
       },
       {
         "name": "선글라스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        "image": "/categoryImage/man-sunglasses.png"
       },
       {
         "name": "시계",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        "image": "/categoryImage/man-watch.png"
       },
       {
         "name": "벨트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        "image": "/categoryImage/man-belt.png"
       }
     ]
   },
@@ -357,171 +357,171 @@
     "신발": [
       {
         "name": "스니커즈",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SNEAKERS"
+        "image": "/categoryImage/man-sneakers.png"
       },
       {
         "name": "구두",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHOES"
+        "image": "/categoryImage/woman-dress-shoes.png"
       },
       {
         "name": "샌들/슬리퍼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SANDALS"
+        "image": "/categoryImage/woman-sandals.png"
       },
       {
         "name": "부츠/워커",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BOOTS"
+        "image": "/categoryImage/wonman-boots.png"
       },
       {
         "name": "스포츠화",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SPORTS"
+        "image": "/categoryImage/unisex-sport.png"
       }
     ],
     "상의": [
       {
         "name": "맨투맨",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TSHIRT"
+        "image": "/categoryImage/woman-T-shirt.png"
       },
       {
         "name": "후드",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=HOODIE"
+        "image": "/categoryImage/woman-hoodie.png"
       },
       {
         "name": "셔츠",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHIRT"
+        "image": "/categoryImage/woman-shirts.png"
       },
       {
         "name": "긴소매",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=LONG"
+        "image": "/categoryImage/woman-longsleeve.png"
       },
       {
         "name": "반소매",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SHORT"
+        "image": "/categoryImage/woman-short.png"
       },
       {
         "name": "니트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=KNIT"
+        "image": "/categoryImage/woman-knit.png"
       },
       {
         "name": "민소매",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLEEVELESS"
+        "image": "/categoryImage/woman-sleeve.png"
       }
     ],
     "아우터": [
       {
         "name": "숏패딩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORT"
+        "image": "/categoryImage/unisex-puffer.png"
       },
       {
         "name": "롱패딩",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=LONG"
+        "image": "/categoryImage/woman-long_puffer.png"
       },
       {
         "name": "무스탕",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MUSTANG"
+        "image": "/categoryImage/woman-mouton.png"
       },
       {
         "name": "코트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=COAT"
+        "image": "/categoryImage/wonman-coat.png"
       },
       {
         "name": "가디건",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CARDIGAN"
+        "image": "/categoryImage/woman-cardigan.png"
       },
       {
         "name": "후드 집업",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HOODIE"
+        "image": "/categoryImage/wonman-hoodzipup.png"
       },
       {
         "name": "슈트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SUIT"
+        "image": "/categoryImage/woman-middress.png"
       },
       {
         "name": "재킷",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=JACKET"
+        "image": "/categoryImage/woman-jacket.png"
       }
     ],
     "바지": [
       {
         "name": "데님",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=JEANS"
+        "image": "/categoryImage/woman-denim.png"
       },
       {
         "name": "트레이닝",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TRACK"
+        "image": "/categoryImage/wonman-training.png"
       },
       {
         "name": "코튼",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=COTTON"
+        "image": "/categoryImage/woman-cotton.png"
       },
       {
         "name": "슬렉스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=SLACKS"
+        "image": "/categoryImage/woman-slacks.png"
       },
       {
         "name": "숏팬츠",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHORTS"
+        "image": "/categoryImage/woman-short.png"
       }
     ],
     "원피스/스커트": [
       {
         "name": "미니 원피스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MINI"
+        "image": "/categoryImage/woman-shortdress.png"
       },
       {
         "name": "미디 원피스",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MIDI"
+        "image": "/categoryImage/woman-middress.png"
       },
       {
         "name": "맥시 원피스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MAXI"
+        "image": "/categoryImage/woman-long dress.png"
       },
       {
         "name": "미니 스커트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MINI"
+        "image": "/categoryImage/woman-shortskrit.png"
       },
       {
         "name": "미디 스커트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=MIDI"
+        "image": "/categoryImage/woman-mid.png"
       },
       {
         "name": "맥시 스커트",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=MAXI"
+        "image": "/categoryImage/woman-long_skirt.png"
       }
     ],
     "가방": [
       {
         "name": "백팩",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=BACKPACK"
+        "image": "/categoryImage/woman-backpack.png"
       },
       {
         "name": "크로스백",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=CROSS"
+        "image": "/categoryImage/woman_cross.png"
       },
       {
         "name": "에코백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=ECO"
+        "image": "/categoryImage/woman-echo.png"
       },
       {
         "name": "파우치",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=POUCH"
+        "image": "/categoryImage/woman-pouch.png"
       },
       {
         "name": "클러치백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=CLUTCH"
+        "image": "/categoryImage/woman-clutch.png"
       },
       {
         "name": "토트백",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=TOTE"
+        "image": "/categoryImage/woman-tote.png"
       },
       {
         "name": "숄더백",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SHOULDER"
+        "image": "/categoryImage/woman-shoulder.png"
       }
     ],
     "패션소품": [
       {
         "name": "모자",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=HAT"
+        "image": "/categoryImage/unisex-cap.png"
       },
       {
         "name": "머플러",
@@ -529,23 +529,23 @@
       },
       {
         "name": "악세사리",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=ACC"
+        "image": "/categoryImage/woman-accessory.png"
       },
       {
         "name": "양말",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=SOCKS"
+        "image": "/categoryImage/woman-socks.png"
       },
       {
         "name": "선글라스",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=GLASSES"
+        "image": "/categoryImage/woman-sunglasses.png"
       },
       {
         "name": "시계",
-        "image": "https://via.placeholder.com/150x150/000000/FFFFFF?text=WATCH"
+        "image": "/categoryImage/woman-watch.png"
       },
       {
         "name": "벨트",
-        "image": "https://via.placeholder.com/150x150/FFFFFF/000000?text=BELT"
+        "image": "/categoryImage/woman-belt.png"
       }
     ]
   }
