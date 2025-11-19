@@ -8,12 +8,16 @@ function Header() {
   const location = useLocation();
   const [user, setUser] = useState(null);
 
+  // 세션에서 사용자 정보 로드
   useEffect(() => {
     const loadSession = async () => {
       try {
+        console.log('Header: 세션 로드 시작');
         const data = await fetchSessionUser();
+        console.log('Header: 세션 로드 성공:', data.item);
         setUser(data.item);
-      } catch {
+      } catch (error) {
+        console.log('Header: 세션 로드 실패:', error);
         setUser(null);
       }
     };
@@ -21,6 +25,7 @@ function Header() {
     loadSession();
   }, [location.pathname]);
 
+  // 로그인/로그아웃 버튼 클릭 처리
   const handleAuthClick = async (e) => {
     e.preventDefault();
     if (user) {

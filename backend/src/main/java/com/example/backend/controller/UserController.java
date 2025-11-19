@@ -1,8 +1,6 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.UserDTO;
-import com.example.backend.dto.UserLoginRequest;
-import com.example.backend.dto.UserSignupRequest;
 import com.example.backend.entity.User;
 import com.example.backend.service.UserService;
 import jakarta.servlet.http.HttpSession;
@@ -22,8 +20,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // 회원가입 API
     @PostMapping("/auth/signup")
-    public Map<String, Object> signup(@RequestBody UserSignupRequest request) {
+    public Map<String, Object> signup(@RequestBody UserDTO request) {
         Map<String, Object> result = new HashMap<>();
         try {
             User savedUser = userService.registerUser(request);
@@ -42,27 +41,44 @@ public class UserController {
         return result;
     }
 
-    @PostMapping("/auth/login")
-    public Map<String, Object> login(@RequestBody UserLoginRequest request, HttpSession session) {
+    // 이메일과 비밀번호로 유저 확인 API
+    @PostMapping("/api/users/verify-credentials")
+    public Map<String, Object> verifyCredentials(@RequestBody UserDTO request) {
         Map<String, Object> result = new HashMap<>();
         try {
-            User user = userService.authenticate(request);
-            Map<String, Object> sessionUser = userService.buildUserResponse(user);
-            session.setAttribute(SESSION_USER_KEY, sessionUser);
-
-            result.put("rt", "OK");
-            result.put("item", sessionUser);
-            result.put("message", "로그인이 완료되었습니다.");
-        } catch (IllegalArgumentException e) {
-            result.put("rt", "FAIL");
-            result.put("message", e.getMessage());
+            User user = userService.findByEmailAndPassword(request.getEmail(), request.getPassword());
+            if (user != null) {
+                Map<String, Object> userInfo = userService.buildUserResponse(user);
+                result.put("rt", "OK");
+                result.put("item", userInfo);
+                result.put("message", "인증 성공");
+            } else {
+                result.put("rt", "FAIL");
+                result.put("message", "이메일 또는 비밀번호가 일치하지 않습니다.");
+            }
         } catch (Exception e) {
             result.put("rt", "FAIL");
-            result.put("message", "로그인 중 오류가 발생했습니다: " + e.getMessage());
+            result.put("message", "인증 확인 중 오류가 발생했습니다: " + e.getMessage());
         }
         return result;
     }
 
+    // 세션 설정 API
+    @PostMapping("/auth/set-session")
+    public Map<String, Object> setSession(@RequestBody Map<String, Object> userInfo, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            session.setAttribute(SESSION_USER_KEY, userInfo);
+            result.put("rt", "OK");
+            result.put("message", "세션이 설정되었습니다.");
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "세션 설정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return result;
+    }
+
+    // 로그아웃 API
     @PostMapping("/auth/logout")
     public Map<String, Object> logout(HttpSession session) {
         Map<String, Object> result = new HashMap<>();
@@ -72,22 +88,39 @@ public class UserController {
         return result;
     }
 
-    @GetMapping("/auth/session")
-    public Map<String, Object> sessionInfo(HttpSession session) {
+    // 유저 존재 여부 확인 API
+    @GetMapping("/api/users/{userId}/exists")
+    public Map<String, Object> checkUserExists(@PathVariable("userId") int userId) {
         Map<String, Object> result = new HashMap<>();
-        Object sessionUser = session.getAttribute(SESSION_USER_KEY);
-        if (sessionUser != null) {
+        try {
+            boolean exists = userService.userExists(userId);
             result.put("rt", "OK");
-            result.put("item", sessionUser);
-        } else {
+            result.put("exists", exists);
+        } catch (Exception e) {
             result.put("rt", "FAIL");
-            result.put("message", "로그인 정보가 없습니다.");
+            result.put("message", "유저 확인 중 오류가 발생했습니다: " + e.getMessage());
         }
         return result;
     }
 
+    // 이메일 존재 여부 확인 API
+    @GetMapping("/api/users/email/{email}/exists")
+    public Map<String, Object> checkEmailExists(@PathVariable("email") String email) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            boolean exists = userService.emailExists(email);
+            result.put("rt", "OK");
+            result.put("exists", exists);
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "이메일 확인 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return result;
+    }
+
+    // 유저 ID로 유저 정보 조회 API
     @GetMapping("/api/users/{userId}")
-    public Map<String, Object> getUserById(@PathVariable int userId) {
+    public Map<String, Object> getUserById(@PathVariable("userId") int userId) {
         Map<String, Object> result = new HashMap<>();
         try {
             UserDTO userDTO = userService.getUserById(userId);
@@ -103,6 +136,7 @@ public class UserController {
         return result;
     }
 
+    // 모든 유저 목록 조회 API
     @GetMapping("/api/users")
     public Map<String, Object> getAllUsers() {
         Map<String, Object> result = new HashMap<>();

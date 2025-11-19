@@ -2,13 +2,10 @@ package com.example.backend.service;
 
 import com.example.backend.dao.UserDAO;
 import com.example.backend.dto.UserDTO;
-import com.example.backend.dto.UserLoginRequest;
-import com.example.backend.dto.UserSignupRequest;
 import com.example.backend.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,16 +18,11 @@ public class UserService {
     @Autowired
     private UserDAO userDAO;
 
+    // 회원가입 처리
     @Transactional
-    public User registerUser(UserSignupRequest request) {
-        validateSignupRequest(request);
-
-        if (userDAO.existsByEmail(request.getEmail().trim())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
-        }
-
+    public User registerUser(UserDTO request) {
         User user = new User();
-        user.setEmail(request.getEmail().trim());
+        user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
         user.setPassword(request.getPassword());
         user.setName(request.getName());
         user.setPhone(request.getPhone());
@@ -52,21 +44,23 @@ public class UserService {
         return userDAO.save(user);
     }
 
-    public User authenticate(UserLoginRequest request) {
-        if (!StringUtils.hasText(request.getEmail()) || !StringUtils.hasText(request.getPassword())) {
-            throw new IllegalArgumentException("이메일과 비밀번호를 입력해주세요.");
+    // 이메일과 비밀번호로 유저 조회
+    public User findByEmailAndPassword(String email, String password) {
+        User user = userDAO.findByEmail(email != null ? email.trim() : "")
+                .orElse(null);
+        
+        if (user == null) {
+            return null;
         }
-
-        User user = userDAO.findByEmail(request.getEmail().trim())
-                .orElseThrow(() -> new IllegalArgumentException("등록된 이메일이 없습니다."));
-
-        if (!user.getPassword().equals(request.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        
+        if (!user.getPassword().equals(password)) {
+            return null;
         }
-
+        
         return user;
     }
 
+    // User 엔티티를 Map 형태로 변환
     public Map<String, Object> buildUserResponse(User user) {
         Map<String, Object> item = new HashMap<>();
         item.put("userId", user.getUserId());
@@ -81,12 +75,14 @@ public class UserService {
         return item;
     }
 
+    // 유저 ID로 유저 정보 조회
     public UserDTO getUserById(int userId) {
         User user = userDAO.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         return convertToDTO(user);
     }
 
+    // 모든 유저 목록 조회
     public List<UserDTO> getAllUsers() {
         List<User> users = userDAO.findAll();
         return users.stream()
@@ -94,6 +90,17 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    // 유저 존재 여부 확인
+    public boolean userExists(int userId) {
+        return userDAO.findById(userId).isPresent();
+    }
+
+    // 이메일 존재 여부 확인
+    public boolean emailExists(String email) {
+        return userDAO.existsByEmail(email != null ? email.trim() : "");
+    }
+
+    // User 엔티티를 UserDTO로 변환
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setUserId(user.getUserId());
@@ -109,33 +116,5 @@ public class UserService {
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
         return dto;
-    }
-
-    private void validateSignupRequest(UserSignupRequest request) {
-        if (!StringUtils.hasText(request.getEmail())) {
-            throw new IllegalArgumentException("이메일을 입력해주세요.");
-        }
-        if (!StringUtils.hasText(request.getPassword())) {
-            throw new IllegalArgumentException("비밀번호를 입력해주세요.");
-        }
-        if (!StringUtils.hasText(request.getName())) {
-            throw new IllegalArgumentException("이름을 입력해주세요.");
-        }
-        if (!StringUtils.hasText(request.getPhone())) {
-            throw new IllegalArgumentException("전화번호를 입력해주세요.");
-        }
-        if (!StringUtils.hasText(request.getZipcode()) || !StringUtils.hasText(request.getAddress())) {
-            throw new IllegalArgumentException("주소를 검색해 입력해주세요.");
-        }
-
-        int isSeller = request.getIsSeller() != null ? request.getIsSeller() : 0;
-        if (isSeller == 1) {
-            if (!StringUtils.hasText(request.getBrand())) {
-                throw new IllegalArgumentException("상호명(brand)을 입력해주세요.");
-            }
-            if (!StringUtils.hasText(request.getBusinessNumber())) {
-                throw new IllegalArgumentException("사업자등록번호를 입력해주세요.");
-            }
-        }
     }
 }

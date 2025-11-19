@@ -11,6 +11,7 @@ function LoginForm() {
     password: ''
   });
 
+  // 폼 입력값 변경 처리
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -18,15 +19,29 @@ function LoginForm() {
     });
   };
 
+  // 로그인 폼 제출 처리
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 입력 검증
+    if (!formData.email || !formData.email.trim()) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+    if (!formData.password || !formData.password.trim()) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      await login(formData);
+      const result = await login(formData);
+      console.log('로그인 성공:', result);
       alert('로그인이 완료되었습니다.');
-      navigate('/');
+      // 페이지 새로고침하여 Header가 세션을 다시 로드하도록 함
+      window.location.href = '/';
     } catch (error) {
+      console.error('로그인 오류:', error);
       alert(error.message || '로그인에 실패했습니다.');
     } finally {
       setIsSubmitting(false);

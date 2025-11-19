@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+// API 응답 처리
 const handleResponse = async (response) => {
   const data = await response.json();
   if (!response.ok || data.rt !== 'OK') {
@@ -8,6 +9,7 @@ const handleResponse = async (response) => {
   return data;
 };
 
+// 이메일 인증 코드 발송 API 호출
 export const requestEmailVerificationCode = async (email) => {
   const response = await fetch(`${API_BASE_URL}/auth/email/send-code`, {
     method: 'POST',
@@ -22,6 +24,7 @@ export const requestEmailVerificationCode = async (email) => {
   return data.item; // { verificationId, expiresAt }
 };
 
+// 이메일 인증 코드 확인 API 호출
 export const verifyEmailCode = async ({ email, verificationId, code }) => {
   const response = await fetch(`${API_BASE_URL}/auth/email/verify-code`, {
     method: 'POST',

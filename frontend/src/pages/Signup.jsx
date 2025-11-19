@@ -64,7 +64,7 @@ function Signup() {
     };
   }, []);
 
-  // 다음 주소 API 호출
+  // 다음 주소 검색 API 호출
   const handleAddressSearch = () => {
     if (!window.daum || !window.daum.Postcode) {
       alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
@@ -134,6 +134,7 @@ function Signup() {
     }));
   };
 
+  // 이메일 인증 상태 초기화
   const resetVerificationState = (type, options = { keepCode: true }) => {
     if (type === 'general') {
       setGeneralVerification({ verificationId: '', expiresAt: null });
@@ -148,6 +149,7 @@ function Signup() {
     }
   };
 
+  // 이메일 인증 코드 발송
   const handleSendEmailCode = async () => {
     const targetForm = userType === 'general' ? generalForm : businessForm;
     const setTargetForm = userType === 'general' ? setGeneralForm : setBusinessForm;
@@ -215,12 +217,30 @@ function Signup() {
   // 일반회원 가입 제출
   const handleGeneralSubmit = async (e) => {
     e.preventDefault();
+    
+    // 입력 검증
+    if (!generalForm.email || !generalForm.email.trim()) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
     if (!generalForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
       return;
     }
+    if (!generalForm.password || !generalForm.password.trim()) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
     if (generalForm.password !== generalForm.passwordConfirm) {
       alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!generalForm.name || !generalForm.name.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
+    if (!generalForm.phone || !generalForm.phone.trim()) {
+      alert('전화번호를 입력해주세요.');
       return;
     }
     if (!generalForm.zipcode || !generalForm.address) {
@@ -239,10 +259,13 @@ function Signup() {
     };
     try {
       setIsSubmitting(true);
-      await registerUser(submitData);
+      console.log('회원가입 요청 시작:', submitData);
+      const result = await registerUser(submitData);
+      console.log('회원가입 성공:', result);
       alert('회원가입이 완료되었습니다.');
       navigate('/');
     } catch (error) {
+      console.error('회원가입 오류:', error);
       alert(error.message || '회원가입에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
@@ -252,16 +275,42 @@ function Signup() {
   // 사업자 가입 제출
   const handleBusinessSubmit = async (e) => {
     e.preventDefault();
+    
+    // 입력 검증
+    if (!businessForm.email || !businessForm.email.trim()) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
     if (!businessForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
+      return;
+    }
+    if (!businessForm.password || !businessForm.password.trim()) {
+      alert('비밀번호를 입력해주세요.');
       return;
     }
     if (businessForm.password !== businessForm.passwordConfirm) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
+    if (!businessForm.managerName || !businessForm.managerName.trim()) {
+      alert('담당자 이름을 입력해주세요.');
+      return;
+    }
+    if (!businessForm.phone || !businessForm.phone.trim()) {
+      alert('전화번호를 입력해주세요.');
+      return;
+    }
     if (!businessForm.zipcode || !businessForm.address) {
       alert('주소를 검색하여 입력해주세요.');
+      return;
+    }
+    if (!businessForm.brand || !businessForm.brand.trim()) {
+      alert('상호명을 입력해주세요.');
+      return;
+    }
+    if (!businessForm.businessNumber || !businessForm.businessNumber.trim()) {
+      alert('사업자등록번호를 입력해주세요.');
       return;
     }
     const submitData = {
@@ -278,10 +327,13 @@ function Signup() {
     };
     try {
       setIsSubmitting(true);
-      await registerUser(submitData);
-      alert('사업자 회원가입이 완료되었습니다.');
+      console.log('사업자 회원가입 요청 시작:', submitData);
+      const result = await registerUser(submitData);
+      console.log('사업자 회원가입 성공:', result);
+      alert('회원가입이 완료되었습니다.');
       navigate('/');
     } catch (error) {
+      console.error('사업자 회원가입 오류:', error);
       alert(error.message || '회원가입에 실패했습니다.');
     } finally {
       setIsSubmitting(false);

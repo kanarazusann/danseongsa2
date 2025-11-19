@@ -15,6 +15,12 @@
 - **기능 구현 후 순차적으로 다음 지시사항** 확인
 - **에러 발생 시 즉시 수정**
 
+### 3. 핵심 개발 원칙 (⚠️ 매우 중요)
+- **기능을 하나하나 쪼개서 아주 간단하게 함수형식으로 구현**
+- **필요할 때 함수를 불러와서 조합하여 사용**
+- **입력 검증은 프론트엔드에서 처리** (백엔드는 검증 로직 포함하지 않음)
+- **의존성을 최대한 낮추기** (각 Service는 단일 책임만 수행)
+
 ---
 
 # 🎯 React 코딩 가이드라인
@@ -264,20 +270,23 @@ try {
 }
 ```
 
-### 유효성 검사
-- **폼 입력값은 반드시 검증**
+### 유효성 검사 (⚠️ 중요)
+- **폼 입력값은 반드시 프론트엔드에서 검증**
 - **검증 실패 시 명확한 메시지 표시**
 - **검증 함수는 재사용 가능하게 분리**
+- **백엔드로 전송하기 전에 모든 입력값 검증 완료**
 
 ---
 
 ## 8️⃣ 주석 및 문서화 규칙
 
-### 주석 작성 규칙
+### 주석 작성 규칙 (⚠️ 중요)
+- **모든 기능(함수, 컴포넌트)마다 어떤 일을 수행하는지 간단하게 주석 추가**
 - **복잡한 로직은 주석으로 설명**
 - **TODO 주석은 반드시 작성** (백엔드 연동 전)
 - **함수의 목적과 파라미터 설명** (복잡한 경우)
 - **한국어 주석 사용** (프로젝트 특성상)
+- **이모티콘 사용하지 않음** (텍스트만 사용)
 
 ```jsx
 // ✅ 좋은 예
@@ -572,6 +581,10 @@ public class ProductService {
 - **비즈니스 로직만 포함** (데이터 접근은 DAO에 위임)
 - **트랜잭션 처리는 @Transactional** 사용 (필요시)
 - **예외는 상위로 전파** (Controller에서 처리)
+- **기능을 하나하나 쪼개서 아주 간단하게 함수형식으로 구현**
+- **필요할 때 함수를 불러와서 조합하여 사용**
+- **의존성을 최대한 낮추기** (각 Service는 단일 책임만 수행)
+- **입력 검증은 하지 않음** (프론트엔드에서 처리)
 
 ---
 
@@ -1010,11 +1023,35 @@ public class ProductDTO {
 
 ## 1️⃣2️⃣ 주석 및 문서화 규칙
 
-### 주석 작성 규칙
+### 주석 작성 규칙 (⚠️ 중요)
+- **모든 기능(메서드, 함수)마다 어떤 일을 수행하는지 간단하게 주석 추가**
 - **복잡한 로직은 주석으로 설명**
 - **메서드의 목적과 파라미터 설명** (복잡한 경우)
 - **한국어 주석 사용** (프로젝트 특성상)
 - **TODO 주석으로 향후 작업 명시**
+- **이모티콘 사용하지 않음** (텍스트만 사용)
+
+```java
+// 유저 ID로 유저 정보 조회
+public UserDTO getUserById(int userId) {
+    User user = userDAO.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+    return convertToDTO(user);
+}
+
+// 모든 유저 목록 조회
+public List<UserDTO> getAllUsers() {
+    List<User> users = userDAO.findAll();
+    return users.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+}
+
+// 이메일 존재 여부 확인
+public boolean emailExists(String email) {
+    return userDAO.existsByEmail(email != null ? email.trim() : "");
+}
+```
 
 ```java
 // TODO: 페이지네이션 추가 필요
@@ -1033,6 +1070,155 @@ public class ProductDTO {
 - **DRY (Don't Repeat Yourself)**: 중복 코드 제거
 - **단일 책임 원칙**: 각 레이어는 하나의 책임만
 - **의존성 역전**: 상위 레이어가 하위 레이어에 의존
+- **의존성 최소화**: 각 Service는 최소한의 의존성만 가져야 함
+
+### 기능 분리 원칙 (⚠️ 중요)
+- **기능을 하나하나 쪼개서 아주 간단하게 함수형식으로 구현**
+- **각 함수는 하나의 작은 작업만 수행**
+- **필요할 때 함수를 불러와서 조합하여 사용**
+- **복잡한 로직은 여러 작은 함수로 분리**
+
+```java
+// ✅ 좋은 예: 기능을 작은 함수로 분리
+@Service
+public class ProductPostService {
+    
+    @Autowired
+    private ProductPostDAO productPostDAO;
+    
+    @Autowired
+    private ProductService productService;  // 다른 Service 조합
+    
+    @Autowired
+    private ProductImageService productImageService;  // 다른 Service 조합
+    
+    @Transactional
+    public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles) {
+        User seller = getUserById(sellerId);  // 작은 함수 호출
+        ProductPost productPost = createProductPostEntity(dto, seller);  // 작은 함수 호출
+        ProductPost savedPost = productPostDAO.save(productPost);
+        
+        productService.createProducts(savedPost, dto.getProducts());  // 다른 Service 함수 호출
+        productImageService.saveProductImages(savedPost, imageFiles);  // 다른 Service 함수 호출
+        
+        return savedPost;
+    }
+    
+    private User getUserById(int sellerId) {  // 작은 함수
+        return userDAO.findById(sellerId)
+                .orElseThrow(() -> new IllegalArgumentException("판매자를 찾을 수 없습니다."));
+    }
+    
+    private ProductPost createProductPostEntity(ProductPostDTO dto, User seller) {  // 작은 함수
+        ProductPost productPost = new ProductPost();
+        productPost.setSeller(seller);
+        productPost.setCategoryName(dto.getCategoryName());
+        // ... 간단한 설정만
+        return productPost;
+    }
+}
+
+// ❌ 나쁜 예: 모든 로직이 하나의 큰 함수에
+@Service
+public class ProductPostService {
+    @Transactional
+    public ProductPost createProductPost(...) {
+        // 100줄 이상의 복잡한 로직
+        // 검증, 변환, 저장, 이미지 처리 등 모든 것이 섞여있음
+    }
+}
+```
+
+### 입력 검증 원칙 (⚠️ 중요)
+- **입력 검증은 프론트엔드에서 처리**
+- **백엔드 Service는 검증 로직을 포함하지 않음**
+- **백엔드는 존재 여부 확인 등 최소한의 검증만 수행**
+
+```java
+// ✅ 좋은 예: 검증 없이 간단하게
+@Service
+public class UserService {
+    @Transactional
+    public User registerUser(UserDTO request) {
+        // 검증 없이 바로 저장
+        User user = new User();
+        user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
+        user.setPassword(request.getPassword());
+        // ...
+        return userDAO.save(user);
+    }
+    
+    // 존재 여부 확인만 제공
+    public boolean emailExists(String email) {
+        return userDAO.existsByEmail(email != null ? email.trim() : "");
+    }
+}
+
+// ❌ 나쁜 예: 백엔드에서 검증
+@Service
+public class UserService {
+    @Transactional
+    public User registerUser(UserDTO request) {
+        // 백엔드에서 검증 (프론트엔드로 이동해야 함)
+        if (!StringUtils.hasText(request.getEmail())) {
+            throw new IllegalArgumentException("이메일을 입력해주세요.");
+        }
+        // ...
+    }
+}
+```
+
+### 의존성 최소화 원칙 (⚠️ 중요)
+- **각 Service는 최소한의 의존성만 가져야 함**
+- **기능별로 별도의 Service로 분리**
+- **Service 간 의존성은 최소화**
+
+```java
+// ✅ 좋은 예: 기능별로 분리된 Service
+@Service
+public class ImageService {  // 이미지 저장만 담당
+    public String saveImageFile(MultipartFile file) { ... }
+}
+
+@Service
+public class ProductService {  // 상품 생성만 담당
+    public List<Product> createProducts(...) { ... }
+}
+
+@Service
+public class ProductImageService {  // 상품 이미지 저장만 담당
+    @Autowired
+    private ImageService imageService;  // 필요한 Service만 주입
+    
+    public List<ProductImage> saveProductImages(...) { ... }
+}
+
+@Service
+public class ProductPostService {  // 게시물 생성만 담당
+    @Autowired
+    private ProductService productService;  // 필요한 Service만 주입
+    @Autowired
+    private ProductImageService productImageService;  // 필요한 Service만 주입
+    
+    public ProductPost createProductPost(...) {
+        // 작은 함수들을 조합하여 사용
+    }
+}
+
+// ❌ 나쁜 예: 모든 기능이 하나의 Service에
+@Service
+public class ProductPostService {
+    @Autowired
+    private ProductPostDAO productPostDAO;
+    @Autowired
+    private ProductDAO productDAO;
+    @Autowired
+    private ProductImageDAO productImageDAO;
+    @Autowired
+    private UserDAO userDAO;
+    // 너무 많은 의존성...
+}
+```
 
 ### 리팩토링 규칙
 - **기능 동작 확인 후 리팩토링**

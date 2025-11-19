@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 public class UserDTO {
     private int userId;
     private String email;
+    private String password;  // 로그인/회원가입 시에만 사용
     private String name;
     private String phone;
     private Integer isSeller;

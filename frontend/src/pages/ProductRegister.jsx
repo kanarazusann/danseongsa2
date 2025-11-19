@@ -25,7 +25,6 @@ function ProductRegister() {
     loadUser();
   }, []);
 
-  
   // 카테고리 선택 상태
   const [selectedMainCategory, setSelectedMainCategory] = useState(null); // 대분류 (전체, 남성, 여성)
   const [selectedSubCategory, setSelectedSubCategory] = useState(null); // 중분류 (신발, 상의 등)
@@ -81,7 +80,7 @@ function ProductRegister() {
     'cotton', 'polyester', 'wool', 'denim', 'leather', 'silk', 'linen', 'nylon', 'cashmere'
   ];
 
-  // 할인가 계산 함수
+  // 할인가 계산
   const calculateDiscountPrice = (price, percentage) => {
     if (!price || !percentage) return '';
     const priceNum = parseInt(price);
@@ -90,7 +89,7 @@ function ProductRegister() {
     return Math.floor(priceNum * (1 - percentageNum / 100));
   };
 
-  // 게시물 정보 입력 핸들러
+  // 게시물 정보 입력값 변경 처리
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -116,14 +115,14 @@ function ProductRegister() {
     }
   };
 
-  // 중분류 선택 핸들러
+  // 중분류 선택 처리
   const handleSubCategorySelect = (subCategory) => {
     setSelectedSubCategory(subCategory);
     setSelectedItem(null);
     setFormData(prev => ({ ...prev, categoryName: '' }));
   };
 
-  // 소분류 선택 핸들러
+  // 소분류 선택 처리
   const handleItemSelect = (item) => {
     setSelectedItem(item);
     // categoryName 자동 생성: "중분류 소분류" 형식 (예: "신발 스니커즈")

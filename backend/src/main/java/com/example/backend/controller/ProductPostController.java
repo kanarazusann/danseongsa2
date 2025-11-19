@@ -18,7 +18,7 @@ public class ProductPostController {
     @Autowired
     private ProductPostService productPostService;
     
-    // 게시물 등록
+    // 게시물 등록 API
     @PostMapping("/productposts")
     public Map<String, Object> createProductPost(
             @RequestParam("postName") String postName,
@@ -36,32 +36,6 @@ public class ProductPostController {
         Map<String, Object> map = new HashMap<>();
         
         try {
-            // 입력값 검증
-            if (postName == null || postName.trim().isEmpty()) {
-                map.put("rt", "FAIL");
-                map.put("message", "게시물명은 필수입니다.");
-                return map;
-            }
-            if (categoryName == null || categoryName.trim().isEmpty()) {
-                map.put("rt", "FAIL");
-                map.put("message", "카테고리명은 필수입니다.");
-                return map;
-            }
-            if (gender == null || gender.trim().isEmpty()) {
-                map.put("rt", "FAIL");
-                map.put("message", "성별은 필수입니다.");
-                return map;
-            }
-            if (season == null || season.trim().isEmpty()) {
-                map.put("rt", "FAIL");
-                map.put("message", "계절은 필수입니다.");
-                return map;
-            }
-            if (sellerId <= 0) {
-                map.put("rt", "FAIL");
-                map.put("message", "유효하지 않은 판매자 ID입니다.");
-                return map;
-            }
             // DTO 생성
             ProductPostDTO dto = new ProductPostDTO();
             dto.setPostName(postName);
@@ -88,6 +62,9 @@ public class ProductPostController {
             map.put("item", savedPost);
             map.put("message", "게시물이 성공적으로 등록되었습니다.");
             
+        } catch (IllegalArgumentException e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             map.put("rt", "FAIL");
@@ -97,7 +74,7 @@ public class ProductPostController {
         return map;
     }
     
-    // 게시물 전체 조회 (필터링 옵션)
+    // 모든 게시물 목록 조회 API
     @GetMapping("/productposts")
     public Map<String, Object> getAllProductPosts() {
         Map<String, Object> map = new HashMap<>();
@@ -116,7 +93,7 @@ public class ProductPostController {
         return map;
     }
     
-    // 게시물 단일 조회
+    // 게시물 ID로 게시물 조회 API
     @GetMapping("/productposts/detail")
     public Map<String, Object> getProductPost(@RequestParam("postId") int postId) {
         Map<String, Object> map = new HashMap<>();
