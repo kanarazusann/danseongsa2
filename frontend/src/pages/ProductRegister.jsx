@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import categoriesData from '../data/categories.json';
 import './ProductRegister.css';
 import { fetchSessionUser } from '../services/authService';
+import { createProductPost } from '../services/productService';
 
 function ProductRegister() {
   const navigate = useNavigate();
@@ -368,71 +369,13 @@ function ProductRegister() {
     setLoading(true);
 
     try {
-      // FormData를 사용하여 이미지 파일과 함께 전송
-      const submitData = new FormData();
+      // 상품 등록 API 호출
+      console.log('상품 등록 요청 시작');
+      const data = await createProductPost(formData, productOptions, images, sellerId);
+      console.log('상품 등록 성공:', data);
       
-      // 게시물 기본 정보 (ProductPost)
-      submitData.append('postName', formData.postName);
-      submitData.append('description', formData.description || '');
-      submitData.append('categoryName', formData.categoryName);
-      submitData.append('material', formData.material || '');
-      submitData.append('gender', formData.gender);
-      submitData.append('season', formData.season);
-      submitData.append('status', formData.status);
-      
-      // 판매자 ID 전달 (실제 로그인한 사용자)
-      submitData.append('sellerId', sellerId.toString());
-      
-      // 상품 옵션 정보 (Product) - JSON으로 전송
-      const productsData = productOptions.map(option => ({
-        color: option.color,
-        productSize: option.productSize,
-        price: parseInt(option.price),
-        discountPrice: option.discountPrice ? parseInt(option.discountPrice) : null,
-        stock: parseInt(option.stock) || 0,
-        status: option.status
-      }));
-      submitData.append('products', JSON.stringify(productsData));
-      
-      // 이미지 파일들
-      images.forEach((image, index) => {
-        submitData.append('images', image.file);
-        submitData.append(`imageIsMain_${index}`, image.isMain);
-      });
-
-      // 디버깅: 전송할 데이터 확인
-      console.log('전송 데이터:', {
-        postName: formData.postName,
-        categoryName: formData.categoryName,
-        gender: formData.gender,
-        season: formData.season,
-        status: formData.status,
-        sellerId: sellerId,
-        productsCount: productsData.length,
-        imagesCount: images.length
-      });
-
-      // API 호출
-      const response = await fetch('http://localhost:8080/productposts', {
-        method: 'POST',
-        body: submitData
-        // FormData를 사용할 때는 Content-Type 헤더를 설정하지 않음 (브라우저가 자동으로 설정)
-      });
-
-      // 응답 상태 확인
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 응답 오류:', response.status, errorText);
-        throw new Error(`서버 오류 (${response.status}): ${errorText}`);
-      }
-
-      const data = await response.json();
-      if (data.rt === 'OK') {
-        alert('상품이 성공적으로 등록되었습니다.');
-        navigate('/sellerDashboard?tab=products');
-      } else {
-        alert('상품 등록에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
-      }
+      alert('상품이 성공적으로 등록되었습니다.');
+      navigate('/sellerDashboard?tab=products');
       
     } catch (error) {
       console.error('상품 등록 중 오류 발생:', error);

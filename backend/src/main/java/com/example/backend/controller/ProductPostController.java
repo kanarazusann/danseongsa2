@@ -58,8 +58,24 @@ public class ProductPostController {
             // 실제 로그인한 판매자 ID 사용
             ProductPost savedPost = productPostService.createProductPost(dto, sellerId, images);
             
+            // 순환 참조 방지를 위해 필요한 필드만 Map으로 구성
+            Map<String, Object> item = new HashMap<>();
+            item.put("postId", savedPost.getPostId());
+            item.put("postName", savedPost.getPostName());
+            item.put("categoryName", savedPost.getCategoryName());
+            item.put("brand", savedPost.getBrand());
+            item.put("description", savedPost.getDescription());
+            item.put("material", savedPost.getMaterial());
+            item.put("gender", savedPost.getGender());
+            item.put("season", savedPost.getSeason());
+            item.put("status", savedPost.getStatus());
+            item.put("viewCount", savedPost.getViewCount());
+            item.put("sellerId", savedPost.getSellerId());
+            item.put("createdAt", savedPost.getCreatedAt());
+            item.put("updatedAt", savedPost.getUpdatedAt());
+            
             map.put("rt", "OK");
-            map.put("item", savedPost);
+            map.put("item", item);
             map.put("message", "게시물이 성공적으로 등록되었습니다.");
             
         } catch (IllegalArgumentException e) {

@@ -42,7 +42,7 @@ public class Product {
     @Column(name = "DISCOUNTPRICE")
     private Integer discountPrice;
 
-    @Column(name = "STOCK", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
+    @Column(name = "STOCK", nullable = false)
     private Integer stock = 0;
 
     @Column(name = "STATUS", length = 20)

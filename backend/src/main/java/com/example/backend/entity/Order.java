@@ -36,10 +36,10 @@ public class Order {
     @Column(name = "TOTALPRICE", nullable = false)
     private Integer totalPrice;
 
-    @Column(name = "DISCOUNTAMOUNT", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
+    @Column(name = "DISCOUNTAMOUNT", nullable = false)
     private Integer discountAmount = 0;
 
-    @Column(name = "DELIVERYFEE", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
+    @Column(name = "DELIVERYFEE", nullable = false)
     private Integer deliveryFee = 0;
 
     @Column(name = "FINALPRICE", nullable = false)

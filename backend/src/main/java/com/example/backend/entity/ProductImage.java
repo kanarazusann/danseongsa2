@@ -31,7 +31,7 @@ public class ProductImage {
     @Column(name = "IMAGEURL", nullable = false, length = 500)
     private String imageUrl;
 
-    @Column(name = "ISMAIN", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0")
+    @Column(name = "ISMAIN", nullable = false)
     private Integer isMain = 0;  // 0: 일반, 1: 대표
 
     @CreationTimestamp

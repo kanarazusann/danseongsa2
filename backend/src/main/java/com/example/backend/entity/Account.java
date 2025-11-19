@@ -38,10 +38,10 @@ public class Account {
     @Column(name = "ACCOUNTHOLDER", nullable = false, length = 50)
     private String accountHolder;
 
-    @Column(name = "BALANCE", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
+    @Column(name = "BALANCE", nullable = false)
     private Integer balance = 0;
 
-    @Column(name = "ISDEFAULT", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0")
+    @Column(name = "ISDEFAULT", nullable = false)
     private Integer isDefault = 0;  // 0: 일반, 1: 기본
 
     @CreationTimestamp

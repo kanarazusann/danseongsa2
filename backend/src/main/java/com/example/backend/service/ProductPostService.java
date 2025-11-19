@@ -31,7 +31,9 @@ public class ProductPostService {
     @Transactional
     public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles) throws IOException {
         User seller = getUserById(sellerId);
+        System.out.println("판매자 정보 - userId: " + seller.getUserId() + ", brand: " + seller.getBrand());
         ProductPost productPost = createProductPostEntity(dto, seller);
+        System.out.println("ProductPost brand 설정: " + productPost.getBrand());
         ProductPost savedPost = productPostDAO.save(productPost);
         
         productService.createProducts(savedPost, dto.getProducts());
@@ -53,7 +55,12 @@ public class ProductPostService {
         productPost.setCategoryName(dto.getCategoryName());
         productPost.setPostName(dto.getPostName());
         productPost.setDescription(dto.getDescription());
-        productPost.setBrand(dto.getBrand());
+        // 판매자의 brand 정보 사용
+        String brand = seller.getBrand() != null && !seller.getBrand().trim().isEmpty() 
+                ? seller.getBrand() 
+                : "";
+        System.out.println("판매자 brand 값: " + brand);
+        productPost.setBrand(brand);
         productPost.setMaterial(dto.getMaterial());
         productPost.setGender(dto.getGender());
         productPost.setSeason(dto.getSeason());

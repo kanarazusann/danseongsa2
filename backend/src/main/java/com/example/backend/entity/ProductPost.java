@@ -45,7 +45,7 @@ public class ProductPost {
     @Column(name = "MATERIAL", length = 100)
     private String material;
 
-    @Column(name = "VIEWCOUNT", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
+    @Column(name = "VIEWCOUNT", nullable = false)
     private Integer viewCount = 0;
 
     @Column(name = "STATUS", length = 20)

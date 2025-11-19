@@ -35,7 +35,7 @@ public class User {
     @Column(name = "PHONE", length = 20)
     private String phone;
 
-    @Column(name = "ISSELLER", nullable = false, columnDefinition = "NUMBER(1) DEFAULT 0")
+    @Column(name = "ISSELLER", nullable = false)
     private Integer isSeller = 0;  // 0: 일반, 1: 사업자
 
     @Column(name = "BUSINESSNUMBER", length = 20)
