@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.UserDTO;
 import com.example.backend.dto.UserLoginRequest;
 import com.example.backend.dto.UserSignupRequest;
 import com.example.backend.entity.User;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -80,6 +82,37 @@ public class UserController {
         } else {
             result.put("rt", "FAIL");
             result.put("message", "로그인 정보가 없습니다.");
+        }
+        return result;
+    }
+
+    @GetMapping("/api/users/{userId}")
+    public Map<String, Object> getUserById(@PathVariable int userId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            UserDTO userDTO = userService.getUserById(userId);
+            result.put("rt", "OK");
+            result.put("item", userDTO);
+        } catch (IllegalArgumentException e) {
+            result.put("rt", "FAIL");
+            result.put("message", e.getMessage());
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "유저 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping("/api/users")
+    public Map<String, Object> getAllUsers() {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            List<UserDTO> users = userService.getAllUsers();
+            result.put("rt", "OK");
+            result.put("items", users);
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "유저 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
         return result;
     }

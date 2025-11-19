@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dao.UserDAO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.dto.UserLoginRequest;
 import com.example.backend.dto.UserSignupRequest;
 import com.example.backend.entity.User;
@@ -10,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -76,6 +79,36 @@ public class UserService {
         item.put("address", user.getAddress());
         item.put("detailAddress", user.getDetailAddress());
         return item;
+    }
+
+    public UserDTO getUserById(int userId) {
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        return convertToDTO(user);
+    }
+
+    public List<UserDTO> getAllUsers() {
+        List<User> users = userDAO.findAll();
+        return users.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private UserDTO convertToDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setUserId(user.getUserId());
+        dto.setEmail(user.getEmail());
+        dto.setName(user.getName());
+        dto.setPhone(user.getPhone());
+        dto.setIsSeller(user.getIsSeller());
+        dto.setBusinessNumber(user.getBusinessNumber());
+        dto.setBrand(user.getBrand());
+        dto.setZipcode(user.getZipcode());
+        dto.setAddress(user.getAddress());
+        dto.setDetailAddress(user.getDetailAddress());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+        return dto;
     }
 
     private void validateSignupRequest(UserSignupRequest request) {
