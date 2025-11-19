@@ -1312,7 +1312,8 @@ feat: 상품 조회 API 구현
 - 게시물과 상품을 분리하여 하나의 게시물에 여러 옵션(사이즈, 색상) 관리
 - 카테고리 테이블 제거: `categoryName`을 상품게시물에 직접 포함
 - 이미지는 게시물에 속함 (postId)
-- 장바구니, 찜, 주문은 실제 상품(productId)을 선택
+- 장바구니, 주문은 실제 상품(productId)을 선택
+- 찜은 게시물(postId)을 선택 (게시물 단위 찜)
 
 ---
 
@@ -1343,6 +1344,7 @@ feat: 상품 조회 API 구현
 - brand (String) // 브랜드 (예: "나이키", "아디다스", "퓨마" 등)
 - material (String) // 주요소재 (예: "면", "폴리에스터", "나일론" 등)
 - viewCount (Integer, default: 0)  //조회수
+- wishCount (Integer, default: 0)  //찜수 (WISHLIST 테이블 트리거로 자동 업데이트)
 - status (String) // SELLING, SOLD_OUT(게시물상태)
 - gender (String) // 성별 (MEN, WOMEN, UNISEX)
 - season (String) // 계절 (SPRING, SUMMER, FALL, WINTER, ALL_SEASON)
@@ -1378,8 +1380,9 @@ feat: 상품 조회 API 구현
  찜(Wishlist)
 - wishlistId (PK, int)  // 찜id(seq) ⚠️ Long 대신 int 사용
 - userId (FK -> User)  // 유저id (user table과 join)
-- productId (FK -> Product)  // 상품id (상품 table과 join)
+- postId (FK -> ProductPost)  // 게시물id (게시물 table과 join)
 - createdAt (Timestamp)  // 찜목록에추가된날짜
+- 유니크 제약조건: (userId, postId) - 한 유저가 같은 게시물을 중복 찜할 수 없음
 
  주문(Order)
 - orderId (PK, int) //주문id (seq) ⚠️ Long 대신 int 사용

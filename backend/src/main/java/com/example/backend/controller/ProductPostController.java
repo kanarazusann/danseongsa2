@@ -109,6 +109,44 @@ public class ProductPostController {
         return map;
     }
     
+    // 인기순 게시물 목록 조회 API (찜수 기준)
+    @GetMapping("/productposts/popular")
+    public Map<String, Object> getPopularProductPosts() {
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            List<Map<String, Object>> productPosts = productPostService.findAllOrderByPopularity();
+            
+            map.put("rt", "OK");
+            map.put("items", productPosts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "인기 상품 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
+    
+    // 최신순 게시물 목록 조회 API (생성일 기준)
+    @GetMapping("/productposts/newest")
+    public Map<String, Object> getNewestProductPosts() {
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            List<Map<String, Object>> productPosts = productPostService.findAllOrderByCreatedAtDesc();
+            
+            map.put("rt", "OK");
+            map.put("items", productPosts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "최신 상품 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
+    
     // 게시물 ID로 게시물 조회 API
     @GetMapping("/productposts/detail")
     public Map<String, Object> getProductPost(@RequestParam("postId") int postId) {

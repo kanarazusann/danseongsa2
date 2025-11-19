@@ -102,3 +102,31 @@ export const getProductPostById = async (postId) => {
   }
 };
 
+// 인기순 상품 게시물 목록 조회 (찜수 기준)
+export const getPopularProductPosts = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/productposts/popular`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('인기 상품 조회 오류:', error);
+    throw error;
+  }
+};
+
+// 최신순 상품 게시물 목록 조회 (생성일 기준)
+export const getNewestProductPosts = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/productposts/newest`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('최신 상품 조회 오류:', error);
+    throw error;
+  }
+};
+

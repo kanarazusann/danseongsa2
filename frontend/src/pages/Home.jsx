@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import categoryStructure from '../data/categories.json';
+import { getPopularProductPosts, getNewestProductPosts } from '../services/productService';
 import './Home.css';
 
 function Home() {
@@ -11,39 +12,68 @@ function Home() {
   const [selectedMainCategory, setSelectedMainCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [popularProducts, setPopularProducts] = useState([]);
+  const [newProducts, setNewProducts] = useState([]);
+  const [loadingPopular, setLoadingPopular] = useState(true);
+  const [loadingNew, setLoadingNew] = useState(true);
 
-  // TODO: API 연동 필요
-  // 인기 상품 (찜 많은 순)
-  // DB: Product + Wishlist 조인하여 COUNT(wishlistId)로 정렬
-  // SELECT p.*, COUNT(w.wishlistId) as wishCount, c.brand
-  // FROM Product p
-  // LEFT JOIN Wishlist w ON p.productId = w.productId
-  // LEFT JOIN Category c ON p.categoryId = c.categoryId
-  // WHERE p.status = 'SELLING'
-  // GROUP BY p.productId
-  // ORDER BY wishCount DESC
-  const popularProducts = [
-    { id: 1, brand: "DANSUNGSA", name: "클래식 오버핏 코트", price: 89000, discountPrice: null, image: "https://via.placeholder.com/400x500/000000/FFFFFF?text=COAT", wishCount: 125 },
-    { id: 2, brand: "DANSUNGSA", name: "베이직 티셔츠", price: 29000, discountPrice: null, image: "https://via.placeholder.com/400x500/FFFFFF/000000?text=T-SHIRT", wishCount: 98 },
-    { id: 3, brand: "DANSUNGSA", name: "슬림 데님 팬츠", price: 59000, discountPrice: 49000, image: "https://via.placeholder.com/400x500/000000/FFFFFF?text=PANTS", wishCount: 87 },
-    { id: 4, brand: "DANSUNGSA", name: "레더 스니커즈", price: 79000, discountPrice: null, image: "https://via.placeholder.com/400x500/FFFFFF/000000?text=SHOES", wishCount: 76 },
-  ];
+  // 인기 상품 목록 로드 (4개만)
+  useEffect(() => {
+    const loadPopularProducts = async () => {
+      try {
+        setLoadingPopular(true);
+        const response = await getPopularProductPosts();
+        if (response.rt === 'OK' && response.items) {
+          // API 응답을 ProductCard 컴포넌트 형식으로 변환 (최대 4개)
+          const formattedProducts = response.items.slice(0, 4).map(item => ({
+            id: item.postId,
+            brand: item.brand || '',
+            name: item.postName || '',
+            price: item.price || 0,
+            discountPrice: item.discountPrice || null,
+            image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+          }));
+          setPopularProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('인기 상품 로드 오류:', error);
+        setPopularProducts([]);
+      } finally {
+        setLoadingPopular(false);
+      }
+    };
 
-  // TODO: API 연동 필요
-  // 신상품 (최신 등록)
-  // DB: Product 테이블에서 createdAt 기준 DESC 정렬, status = 'SELLING'
-  // SELECT p.*, pi.imageUrl, c.brand
-  // FROM Product p
-  // LEFT JOIN ProductImage pi ON p.productId = pi.productId AND pi.isMain = true
-  // LEFT JOIN Category c ON p.categoryId = c.categoryId
-  // WHERE p.status = 'SELLING'
-  // ORDER BY p.createdAt DESC
-  const newProducts = [
-    { id: 5, brand: "DANSUNGSA", name: "미니멀 백팩", price: 49000, discountPrice: null, image: "https://via.placeholder.com/400x500/000000/FFFFFF?text=BAG", createdAt: '2025-01-14' },
-    { id: 6, brand: "DANSUNGSA", name: "오버핏 후드", price: 69000, discountPrice: null, image: "https://via.placeholder.com/400x500/FFFFFF/000000?text=HOODIE", createdAt: '2025-01-14' },
-    { id: 7, brand: "DANSUNGSA", name: "슬림핏 청바지", price: 89000, discountPrice: 79000, image: "https://via.placeholder.com/400x500/000000/FFFFFF?text=JEANS", createdAt: '2025-01-13' },
-    { id: 8, brand: "DANSUNGSA", name: "캔버스 스니커즈", price: 99000, discountPrice: null, image: "https://via.placeholder.com/400x500/FFFFFF/000000?text=SNEAKERS", createdAt: '2025-01-13' },
-  ];
+    loadPopularProducts();
+  }, []);
+
+  // 최신 상품 목록 로드 (4개만)
+  useEffect(() => {
+    const loadNewProducts = async () => {
+      try {
+        setLoadingNew(true);
+        const response = await getNewestProductPosts();
+        if (response.rt === 'OK' && response.items) {
+          // API 응답을 ProductCard 컴포넌트 형식으로 변환 (최대 4개)
+          const formattedProducts = response.items.slice(0, 4).map(item => ({
+            id: item.postId,
+            brand: item.brand || '',
+            name: item.postName || '',
+            price: item.price || 0,
+            discountPrice: item.discountPrice || null,
+            image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+          }));
+          setNewProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('최신 상품 로드 오류:', error);
+        setNewProducts([]);
+      } finally {
+        setLoadingNew(false);
+      }
+    };
+
+    loadNewProducts();
+  }, []);
 
   // TODO: API 연동 필요
   // 카테고리 구조는 categories.json에서 가져옴
@@ -266,9 +296,15 @@ function Home() {
             </Link>
           </div>
           <div className="product-grid">
-            {popularProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {loadingPopular ? (
+              <div>로딩 중...</div>
+            ) : popularProducts.length > 0 ? (
+              popularProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div>인기 상품이 없습니다.</div>
+            )}
           </div>
         </div>
       </section>
@@ -283,9 +319,15 @@ function Home() {
             </Link>
           </div>
           <div className="product-grid">
-            {newProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {loadingNew ? (
+              <div>로딩 중...</div>
+            ) : newProducts.length > 0 ? (
+              newProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div>최신 상품이 없습니다.</div>
+            )}
           </div>
         </div>
       </section>

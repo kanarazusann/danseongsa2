@@ -48,6 +48,9 @@ public class ProductPost {
     @Column(name = "VIEWCOUNT", nullable = false)
     private Integer viewCount = 0;
 
+    @Column(name = "WISHCOUNT", nullable = false)
+    private Integer wishCount = 0;
+
     @Column(name = "STATUS", length = 20)
     private String status;  // SELLING, SOLD_OUT
 
@@ -74,5 +77,8 @@ public class ProductPost {
 
     @OneToMany(mappedBy = "productPost", fetch = FetchType.LAZY)
     private List<Review> reviews;  // 게시물에 대한 리뷰 목록
+
+    @OneToMany(mappedBy = "productPost", fetch = FetchType.LAZY)
+    private List<Wishlist> wishlists;  // 게시물에 대한 찜 목록
 }
 

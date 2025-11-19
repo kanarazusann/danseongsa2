@@ -8,7 +8,11 @@ function ProductCard({ product }) {
   return (
     <Link to={`/product/${product.id}`} className="product-card">
       <div className="product-image">
-        <img src={product.image} alt={product.name} />
+        {product.image ? (
+          <img src={product.image} alt={product.name} />
+        ) : (
+          <div className="product-image-placeholder">이미지 없음</div>
+        )}
         <div className="product-overlay">
           <button className="quick-view">QUICK VIEW</button>
         </div>

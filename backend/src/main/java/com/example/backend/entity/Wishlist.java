@@ -9,7 +9,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "WISHLIST")
+@Table(name = "WISHLIST", uniqueConstraints = {
+    @UniqueConstraint(name = "UK_WISHLIST_USER_POST", columnNames = {"USERID", "POSTID"})
+})
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,16 +26,16 @@ public class Wishlist {
     @Column(name = "USERID", nullable = false, insertable = false, updatable = false)
     private int userId;
 
-    @Column(name = "PRODUCTID", nullable = false, insertable = false, updatable = false)
-    private int productId;
+    @Column(name = "POSTID", nullable = false, insertable = false, updatable = false)
+    private int postId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USERID", nullable = false)
     private User user;  // 사용자 (FK -> User)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PRODUCTID", nullable = false)
-    private Product product;  // 상품 (FK -> Product)
+    @JoinColumn(name = "POSTID", nullable = false)
+    private ProductPost productPost;  // 게시물 (FK -> ProductPost)
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)

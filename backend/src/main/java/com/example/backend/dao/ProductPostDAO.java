@@ -27,5 +27,15 @@ public class ProductPostDAO {
     public List<ProductPost> findAll() {
         return productPostRepository.findAll();
     }
+    
+    // 인기순 조회 (찜수 기준)
+    public List<ProductPost> findAllOrderByPopularity() {
+        return productPostRepository.findAllOrderByPopularity();
+    }
+    
+    // 최신순 조회 (생성일 기준)
+    public List<ProductPost> findAllOrderByCreatedAtDesc() {
+        return productPostRepository.findAllOrderByCreatedAtDesc();
+    }
 }
 

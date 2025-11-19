@@ -61,9 +61,6 @@ public class Product {
     private List<Cart> carts;  // 장바구니에 담긴 상품 목록
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    private List<Wishlist> wishlists;  // 찜 목록에 담긴 상품 목록
-
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     private List<OrderItem> orderItems;  // 주문된 상품 목록
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
