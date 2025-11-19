@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import categoryStructure from '../data/categories.json';
+import { getFilteredProductPosts } from '../services/productService';
 import './ProductList.css';
 
 function ProductList() {
@@ -15,14 +16,14 @@ function ProductList() {
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // URL 파라미터에서 필터 값 가져오기
+  // URL 파라미터에서 필터 값 가져오기 (단일 선택)
   const category = searchParams.get('category') || '';
   const gender = searchParams.get('gender') || '';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'newest';
-  const color = searchParams.get('color') || '';
-  const size = searchParams.get('size') || '';
-  const season = searchParams.get('season') || '';
+  const color = searchParams.get('color') || ''; // 단일 선택
+  const size = searchParams.get('size') || ''; // 단일 선택
+  const season = searchParams.get('season') || ''; // 단일 선택
 
   useEffect(() => {
     // 정렬 옵션이 URL 파라미터로 변경되면 상태 업데이트
@@ -32,77 +33,48 @@ function ProductList() {
   }, [sort, search]);
 
   useEffect(() => {
-    // TODO: API 연동 필요
-    // 실제 API 호출 예시:
-    // const fetchProducts = async () => {
-    //   const params = new URLSearchParams();
-    //   if (category) params.append('category', category);
-    //   if (gender) params.append('gender', gender);
-    //   if (search) params.append('search', search);
-    //   params.append('sort', sortOption);
-    //   
-    //   const response = await fetch(`/api/products?${params.toString()}`);
-    //   const data = await response.json();
-    //   setProducts(data);
-    //   setLoading(false);
-    // };
-    // fetchProducts();
-
-    // 임시 데이터 (실제로는 API에서 가져옴)
-    setLoading(true);
+    // 실제 API 호출
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const response = await getFilteredProductPosts({
+          category: category || undefined,
+          gender: gender || undefined,
+          search: search || undefined,
+          colors: color ? [color] : undefined,
+          sizes: size ? [size] : undefined,
+          seasons: season ? [season] : undefined,
+          sort: sortOption
+        });
+        
+        if (response.rt === 'OK' && response.items) {
+          // API 응답을 ProductCard 컴포넌트 형식으로 변환
+          const formattedProducts = response.items.map(item => ({
+            id: item.postId,
+            brand: item.brand || '',
+            name: item.postName || '',
+            price: item.price || 0,
+            discountPrice: item.discountPrice || null,
+            image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null,
+            wishCount: item.wishCount || 0,
+            categoryName: item.categoryName || '',
+            gender: item.gender || '',
+            season: item.season || '',
+            createdAt: item.createdAt || new Date().toISOString()
+          }));
+          setProducts(formattedProducts);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error('상품 목록 조회 오류:', error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // 카테고리 필터링 시뮬레이션
-    let filteredProducts = getMockProducts();
-    
-    if (category) {
-      // categoryName으로 필터링
-      // category 형식: "중분류 소분류" 또는 "중분류"
-      // DB의 categoryName 형식: "중분류 소분류" (예: "신발 스니커즈")
-      filteredProducts = filteredProducts.filter(p => 
-        p.categoryName && p.categoryName === category
-      );
-    }
-    
-    if (gender) {
-      // gender로 필터링
-      filteredProducts = filteredProducts.filter(p => 
-        p.gender === gender || p.gender === 'UNISEX'
-      );
-    }
-    
-    if (search) {
-      // 검색어로 필터링 (productName)
-      filteredProducts = filteredProducts.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    
-    if (color) {
-      // color로 필터링
-      filteredProducts = filteredProducts.filter(p => 
-        p.color && p.color.toLowerCase() === color.toLowerCase()
-      );
-    }
-    
-    if (size) {
-      // size로 필터링
-      filteredProducts = filteredProducts.filter(p => 
-        p.size && p.size === size
-      );
-    }
-    
-    if (season) {
-      // season으로 필터링
-      filteredProducts = filteredProducts.filter(p => 
-        p.season && (p.season === season || p.season === 'ALL_SEASON')
-      );
-    }
-    
-    // 정렬
-    const sortedProducts = sortProducts(filteredProducts, sortOption);
-    
-    setProducts(sortedProducts);
-    setLoading(false);
+    fetchProducts();
   }, [category, gender, search, sortOption, color, size, season]);
 
   // 정렬 함수
@@ -144,25 +116,58 @@ function ProductList() {
     setSearchParams(params);
   };
 
-  // 필터 변경 핸들러
+  // 필터 변경 핸들러 (단일 선택 - 라디오 버튼 방식)
   const handleFilterChange = (filterType, value) => {
     const params = new URLSearchParams(searchParams);
+    
+    // 기존 값 제거 후 새 값 설정 (단일 선택)
+    params.delete(filterType);
     if (value) {
       params.set(filterType, value);
-    } else {
-      params.delete(filterType);
     }
+    
+    setSearchParams(params);
+  };
+  
+  // 필터 제거 핸들러
+  const handleRemoveFilter = (filterType) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete(filterType);
     setSearchParams(params);
   };
 
   // 필터 초기화
   const handleResetFilters = () => {
     const params = new URLSearchParams();
-    // category, search, sort는 유지
+    // category, gender, search, sort는 유지
     if (category) params.set('category', category);
+    if (gender && gender !== '전체') params.set('gender', gender);
     if (search) params.set('search', search);
     if (sort) params.set('sort', sort);
     setSearchParams(params);
+  };
+  
+  // 필터 라벨 매핑
+  const getFilterLabel = (type, value) => {
+    const colorMap = {
+      'black': '블랙',
+      'white': '화이트',
+      'navy': '네이비',
+      'gray': '그레이',
+      'red': '레드',
+      'beige': '베이지'
+    };
+    const seasonMap = {
+      'SPRING': '봄',
+      'SUMMER': '여름',
+      'FALL': '가을',
+      'WINTER': '겨울',
+      'ALL_SEASON': '사계절'
+    };
+    
+    if (type === 'color') return colorMap[value] || value;
+    if (type === 'season') return seasonMap[value] || value;
+    return value;
   };
 
   // 임시 상품 데이터 (실제로는 API에서 가져옴)
@@ -295,6 +300,9 @@ function ProductList() {
       params.delete('category');
     }
     
+    // 카테고리 검색 시 최신순으로 정렬
+    params.set('sort', 'newest');
+    
     setSearchParams(params);
     setIsCategoryMenuOpen(false);
     setSelectedMainCategory(null);
@@ -347,31 +355,58 @@ function ProductList() {
                 </button>
               )}
             </div>
+            
+            {/* 선택한 필터 표시 */}
+            {(color || size || season) && (
+              <div className="selected-filters">
+                <h3 className="filter-title">선택한 필터</h3>
+                <div className="filter-tags">
+                  {color && (
+                    <span className="filter-tag">
+                      <span className="filter-tag-label">컬러</span>
+                      <span className="filter-tag-value">{getFilterLabel('color', color)}</span>
+                      <button onClick={() => handleRemoveFilter('color')} className="filter-tag-remove">×</button>
+                    </span>
+                  )}
+                  {size && (
+                    <span className="filter-tag">
+                      <span className="filter-tag-label">사이즈</span>
+                      <span className="filter-tag-value">{size}</span>
+                      <button onClick={() => handleRemoveFilter('size')} className="filter-tag-remove">×</button>
+                    </span>
+                  )}
+                  {season && (
+                    <span className="filter-tag">
+                      <span className="filter-tag-label">계절</span>
+                      <span className="filter-tag-value">{getFilterLabel('season', season)}</span>
+                      <button onClick={() => handleRemoveFilter('season')} className="filter-tag-remove">×</button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* 컬러 필터 */}
             <div className="filter-group">
               <h3 className="filter-title">컬러</h3>
               <div className="filter-options">
-                <label className="filter-option">
-                  <input
-                    type="radio"
-                    name="color"
-                    value=""
-                    checked={!color}
-                    onChange={() => handleFilterChange('color', '')}
-                  />
-                  <span>전체</span>
-                </label>
-                {['black', 'white', 'navy', 'gray', 'red'].map(c => (
-                  <label key={c} className="filter-option">
+                {[
+                  { value: 'black', label: '블랙' },
+                  { value: 'white', label: '화이트' },
+                  { value: 'navy', label: '네이비' },
+                  { value: 'gray', label: '그레이' },
+                  { value: 'red', label: '레드' },
+                  { value: 'beige', label: '베이지' }
+                ].map(c => (
+                  <label key={c.value} className="filter-option">
                     <input
                       type="radio"
                       name="color"
-                      value={c}
-                      checked={color === c}
-                      onChange={() => handleFilterChange('color', c)}
+                      value={c.value}
+                      checked={color === c.value}
+                      onChange={() => handleFilterChange('color', color === c.value ? '' : c.value)}
                     />
-                    <span>{c === 'black' ? '블랙' : c === 'white' ? '화이트' : c === 'navy' ? '네이비' : c === 'gray' ? '그레이' : '레드'}</span>
+                    <span>{c.label}</span>
                   </label>
                 ))}
               </div>
@@ -381,24 +416,14 @@ function ProductList() {
             <div className="filter-group">
               <h3 className="filter-title">사이즈</h3>
               <div className="filter-options">
-                <label className="filter-option">
-                  <input
-                    type="radio"
-                    name="size"
-                    value=""
-                    checked={!size}
-                    onChange={() => handleFilterChange('size', '')}
-                  />
-                  <span>전체</span>
-                </label>
-                {['S', 'M', 'L', 'XL', 'FREE'].map(s => (
+                {['S', 'M', 'L', 'XL', 'FREE', '240', '250', '260', '270', '280'].map(s => (
                   <label key={s} className="filter-option">
                     <input
                       type="radio"
                       name="size"
                       value={s}
                       checked={size === s}
-                      onChange={() => handleFilterChange('size', s)}
+                      onChange={() => handleFilterChange('size', size === s ? '' : s)}
                     />
                     <span>{s}</span>
                   </label>
@@ -410,21 +435,12 @@ function ProductList() {
             <div className="filter-group">
               <h3 className="filter-title">계절</h3>
               <div className="filter-options">
-                <label className="filter-option">
-                  <input
-                    type="radio"
-                    name="season"
-                    value=""
-                    checked={!season}
-                    onChange={() => handleFilterChange('season', '')}
-                  />
-                  <span>전체</span>
-                </label>
                 {[
                   { value: 'SPRING', label: '봄' },
                   { value: 'SUMMER', label: '여름' },
                   { value: 'FALL', label: '가을' },
                   { value: 'WINTER', label: '겨울' },
+                  { value: 'ALL_SEASON', label: '사계절' }
                 ].map(s => (
                   <label key={s.value} className="filter-option">
                     <input
@@ -432,7 +448,7 @@ function ProductList() {
                       name="season"
                       value={s.value}
                       checked={season === s.value}
-                      onChange={() => handleFilterChange('season', s.value)}
+                      onChange={() => handleFilterChange('season', season === s.value ? '' : s.value)}
                     />
                     <span>{s.label}</span>
                   </label>

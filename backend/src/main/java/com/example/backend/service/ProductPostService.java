@@ -206,5 +206,121 @@ public class ProductPostService {
             return item;
         }).collect(Collectors.toList());
     }
+    
+    // 필터링된 게시물 목록 조회 (카테고리, 성별, 검색어, 컬러, 사이즈, 계절 필터링 지원)
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> findWithFilters(String category, String gender, String search, 
+                                                      List<String> colors, List<String> sizes, List<String> seasons) {
+        // 모든 게시물 조회 (SELLING 상태만)
+        List<ProductPost> allPosts = productPostDAO.findByStatus("SELLING");
+        
+        return allPosts.stream()
+            .filter(post -> {
+                // 카테고리 필터링
+                if (category != null && !category.isEmpty()) {
+                    if (post.getCategoryName() == null || !post.getCategoryName().startsWith(category)) {
+                        return false;
+                    }
+                }
+                
+                // 성별 필터링
+                if (gender != null && !gender.isEmpty() && !gender.equals("전체")) {
+                    if (post.getGender() == null || (!post.getGender().equals(gender) && !post.getGender().equals("UNISEX"))) {
+                        return false;
+                    }
+                }
+                
+                // 검색어 필터링 (게시물명)
+                if (search != null && !search.isEmpty()) {
+                    if (post.getPostName() == null || !post.getPostName().toLowerCase().contains(search.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // 계절 필터링
+                if (seasons != null && !seasons.isEmpty()) {
+                    if (post.getSeason() == null || !seasons.contains(post.getSeason())) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            })
+            .map(post -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("postId", post.getPostId());
+                item.put("postName", post.getPostName());
+                item.put("brand", post.getBrand());
+                item.put("categoryName", post.getCategoryName());
+                item.put("status", post.getStatus());
+                item.put("gender", post.getGender());
+                item.put("season", post.getSeason());
+                item.put("wishCount", post.getWishCount() != null ? post.getWishCount() : 0);
+                // Timestamp를 String으로 변환하여 JSON 직렬화 문제 해결
+                item.put("createdAt", post.getCreatedAt() != null ? post.getCreatedAt().toString() : null);
+                
+                // 대표 이미지 조회
+                String mainImageUrl = null;
+                List<ProductImage> images = productImageDAO.findByPostId(post.getPostId());
+                if (images != null && !images.isEmpty()) {
+                    ProductImage mainImage = images.stream()
+                        .filter(img -> img.getIsMain() != null && img.getIsMain() == 1)
+                        .findFirst()
+                        .orElse(images.get(0));
+                    mainImageUrl = mainImage.getImageUrl();
+                }
+                item.put("imageUrl", mainImageUrl);
+                
+                // 최소 가격 조회 (할인가 우선, 없으면 원가)
+                Integer minPrice = null;
+                Integer minDiscountPrice = null;
+                List<Product> products = productDAO.findByPostId(post.getPostId());
+                
+                // 컬러/사이즈 필터링
+                if (products != null && !products.isEmpty()) {
+                    List<Product> filteredProducts = products;
+                    
+                    // 컬러 필터링
+                    if (colors != null && !colors.isEmpty()) {
+                        filteredProducts = filteredProducts.stream()
+                            .filter(p -> p.getColor() != null && colors.contains(p.getColor().toLowerCase()))
+                            .collect(Collectors.toList());
+                    }
+                    
+                    // 사이즈 필터링
+                    if (sizes != null && !sizes.isEmpty()) {
+                        filteredProducts = filteredProducts.stream()
+                            .filter(p -> p.getProductSize() != null && sizes.contains(p.getProductSize()))
+                            .collect(Collectors.toList());
+                    }
+                    
+                    // 필터링된 상품 중 최소 가격 찾기
+                    if (!filteredProducts.isEmpty()) {
+                        Product minPriceProduct = filteredProducts.stream()
+                            .min((p1, p2) -> {
+                                Integer price1 = (p1.getDiscountPrice() != null) ? p1.getDiscountPrice() : p1.getPrice();
+                                Integer price2 = (p2.getDiscountPrice() != null) ? p2.getDiscountPrice() : p2.getPrice();
+                                return price1.compareTo(price2);
+                            })
+                            .orElse(null);
+                        
+                        if (minPriceProduct != null) {
+                            minPrice = minPriceProduct.getPrice();
+                            minDiscountPrice = minPriceProduct.getDiscountPrice();
+                        }
+                    }
+                }
+                
+                item.put("price", minPrice);
+                item.put("discountPrice", minDiscountPrice);
+                
+                return item;
+            })
+            .filter(item -> {
+                // 컬러/사이즈 필터링 후 가격이 있는 상품만 반환
+                return item.get("price") != null;
+            })
+            .collect(Collectors.toList());
+    }
 }
 

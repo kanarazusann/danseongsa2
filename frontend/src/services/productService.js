@@ -130,3 +130,35 @@ export const getNewestProductPosts = async () => {
   }
 };
 
+// 필터링된 상품 게시물 목록 조회
+export const getFilteredProductPosts = async (filters) => {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filters.category) params.append('category', filters.category);
+    if (filters.gender && filters.gender !== '전체') params.append('gender', filters.gender);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.sort) params.append('sort', filters.sort);
+    
+    // 다중 선택 필터
+    if (filters.colors && filters.colors.length > 0) {
+      filters.colors.forEach(color => params.append('color', color));
+    }
+    if (filters.sizes && filters.sizes.length > 0) {
+      filters.sizes.forEach(size => params.append('size', size));
+    }
+    if (filters.seasons && filters.seasons.length > 0) {
+      filters.seasons.forEach(season => params.append('season', season));
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/productposts?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('필터링된 상품 조회 오류:', error);
+    throw error;
+  }
+};
+

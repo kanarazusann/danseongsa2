@@ -90,23 +90,79 @@ public class ProductPostController {
         return map;
     }
     
-    // 모든 게시물 목록 조회 API
+    // 모든 게시물 목록 조회 API (필터링 지원)
     @GetMapping("/productposts")
-    public Map<String, Object> getAllProductPosts() {
+    public Map<String, Object> getAllProductPosts(
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "gender", required = false) String gender,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "color", required = false) List<String> colors,
+            @RequestParam(value = "size", required = false) List<String> sizes,
+            @RequestParam(value = "season", required = false) List<String> seasons,
+            @RequestParam(value = "sort", required = false, defaultValue = "newest") String sort) {
         Map<String, Object> map = new HashMap<>();
         
         try {
-            // DB에서 필터링 조건으로 조회 (메모리 필터링 X)
-            List<ProductPost> productPosts = productPostService.findAll();
+            List<Map<String, Object>> productPosts = productPostService.findWithFilters(
+                category, gender, search, colors, sizes, seasons);
+            
+            // 정렬 적용
+            switch (sort) {
+                case "popular":
+                    productPosts.sort((a, b) -> {
+                        Integer wishCountA = (Integer) a.getOrDefault("wishCount", 0);
+                        Integer wishCountB = (Integer) b.getOrDefault("wishCount", 0);
+                        return wishCountB.compareTo(wishCountA);
+                    });
+                    break;
+                case "newest":
+                    productPosts.sort((a, b) -> {
+                        String dateAStr = (String) a.get("createdAt");
+                        String dateBStr = (String) b.get("createdAt");
+                        if (dateAStr == null && dateBStr == null) return 0;
+                        if (dateAStr == null) return 1;
+                        if (dateBStr == null) return -1;
+                        return dateBStr.compareTo(dateAStr);
+                    });
+                    break;
+                case "price-low":
+                    productPosts.sort((a, b) -> {
+                        Integer priceA = getDisplayPrice(a);
+                        Integer priceB = getDisplayPrice(b);
+                        if (priceA == null && priceB == null) return 0;
+                        if (priceA == null) return 1;
+                        if (priceB == null) return -1;
+                        return priceA.compareTo(priceB);
+                    });
+                    break;
+                case "price-high":
+                    productPosts.sort((a, b) -> {
+                        Integer priceA = getDisplayPrice(a);
+                        Integer priceB = getDisplayPrice(b);
+                        if (priceA == null && priceB == null) return 0;
+                        if (priceA == null) return 1;
+                        if (priceB == null) return -1;
+                        return priceB.compareTo(priceA);
+                    });
+                    break;
+            }
             
             map.put("rt", "OK");
             map.put("items", productPosts);
         } catch (Exception e) {
+            e.printStackTrace();
             map.put("rt", "FAIL");
-            map.put("message", "오류가 발생했습니다: " + e.getMessage());
+            map.put("message", "상품 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return map;
+    }
+    
+    // 표시 가격 계산 (할인가 우선, 없으면 원가)
+    private Integer getDisplayPrice(Map<String, Object> item) {
+        Integer discountPrice = (Integer) item.get("discountPrice");
+        Integer price = (Integer) item.get("price");
+        return discountPrice != null ? discountPrice : price;
     }
     
     // 인기순 게시물 목록 조회 API (찜수 기준)
