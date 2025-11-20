@@ -42,5 +42,10 @@ public class ProductPostDAO {
     public List<ProductPost> findByStatus(String status) {
         return productPostRepository.findByStatus(status);
     }
+    
+    // 브랜드로 게시물 목록 조회
+    public List<ProductPost> findByBrand(String brand) {
+        return productPostRepository.findByBrand(brand);
+    }
 }
 

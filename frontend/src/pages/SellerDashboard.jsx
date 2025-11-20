@@ -74,6 +74,7 @@ const formatDateTime = (value) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
+import { getProductPostsByBrand } from '../services/productService';
 
 function SellerDashboard() {
   const navigate = useNavigate();
@@ -83,6 +84,8 @@ function SellerDashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [sellerId, setSellerId] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
   
   // 세션에서 가져온 사용자 정보
   const [businessInfo, setBusinessInfo] = useState({
@@ -111,7 +114,7 @@ function SellerDashboard() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
 
-  // 세션에서 사용자 정보 가져오기
+  // 세션에서 사용자 정보 가져오기 및 브랜드로 상품 목록 조회
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -126,7 +129,8 @@ function SellerDashboard() {
           zipcode: item.zipcode || '',
           address: item.address || '',
           detailAddress: item.detailAddress || ''
-        });
+        });       
+        loadProductsByBrand(item.brand);
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
         alert('로그인이 필요합니다.');
@@ -187,8 +191,37 @@ function SellerDashboard() {
       viewCount: 2100,
       createdAt: '2025-01-08',
       image: 'https://via.placeholder.com/200x250/000000/FFFFFF?text=PANTS'
+  // 브랜드로 상품 목록 조회
+  const loadProductsByBrand = async (businessName) => {
+    if (!businessName) return;
+    
+    setLoading(true);
+    try {
+      const response = await getProductPostsByBrand(businessName);
+      if (response.items && response.items.length > 0) {
+        // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
+        const formattedProducts = response.items.map(item => ({
+          productId: item.postId, // postId를 productId로 사용
+          productName: item.postName,
+          price: item.price || 0,
+          discountPrice: item.discountPrice || null,
+          status: item.status || 'SELLING',
+          viewCount: item.viewCount || 0,
+          createdAt: item.createdAt ? item.createdAt.split('T')[0] : '', // 날짜만 추출
+          // ProductList와 동일한 방식으로 이미지 URL 처리
+          image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+        }));
+        setProducts(formattedProducts);
+      } else {
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error('상품 목록 조회 실패:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
 
   const reviews = [
@@ -474,7 +507,11 @@ function SellerDashboard() {
                 상품 등록
               </Link>
             </div>
-            {products.length === 0 ? (
+            {loading ? (
+              <div className="empty-state">
+                <p>상품 목록을 불러오는 중...</p>
+              </div>
+            ) : products.length === 0 ? (
               <div className="empty-state">
                 <p>등록된 상품이 없습니다.</p>
               </div>
@@ -483,7 +520,11 @@ function SellerDashboard() {
                 {products.map(product => (
                   <div key={product.productId} className="product-card">
                     <div className="product-image">
-                      <img src={product.image} alt={product.productName} />
+                      {product.image && product.image.trim() !== '' ? (
+                        <img src={product.image} alt={product.productName}/>
+                      ) : (
+                        <img src="https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image" alt={product.productName} />
+                      )}
                     </div>
                     <div className="product-details">
                       <h3 className="product-name">{product.productName}</h3>
@@ -494,7 +535,7 @@ function SellerDashboard() {
                             <span className="discount-price">{product.discountPrice.toLocaleString()}원</span>
                           </>
                         ) : (
-                          <span className="price">{product.price.toLocaleString()}원</span>
+                          <span className="price">{product.price > 0 ? product.price.toLocaleString() + '원' : '가격 미정'}</span>
                         )}
                       </div>
                       <div className="product-meta">
@@ -512,7 +553,12 @@ function SellerDashboard() {
                       >
                         수정
                       </button>
-                      <button className="btn-secondary">상세보기</button>
+                      <button 
+                        className="btn-secondary"
+                        onClick={() => navigate(`/product/${product.productId}`)}
+                      >
+                        상세보기
+                      </button>
                       {product.status === 'SELLING' && (
                         <button className="btn-danger">품절 처리</button>
                       )}

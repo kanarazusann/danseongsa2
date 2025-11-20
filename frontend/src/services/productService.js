@@ -247,3 +247,120 @@ export const getWishlist = async (userId) => {
   }
 };
 
+// 브랜드로 상품 게시물 목록 조회
+export const getProductPostsByBrand = async (brand) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('brand', brand);
+    
+    const response = await fetch(`${API_BASE_URL}/productposts/by-brand?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('브랜드로 상품 조회 오류:', error);
+    throw error;
+  }
+};
+
+// 상품 게시물 수정
+export const updateProductPost = async (postId, formData, productOptions, keptImageIds, newImages, mainImageIndex, keptDescriptionImageIds, newDescriptionImages) => {
+  try {
+    console.log('상품 수정 시작:', {
+      postId,
+      productOptionsCount: productOptions.length,
+      keptImageIdsCount: keptImageIds?.length || 0,
+      newImagesCount: newImages?.length || 0,
+      keptDescriptionImageIdsCount: keptDescriptionImageIds?.length || 0,
+      newDescriptionImagesCount: newDescriptionImages?.length || 0
+    });
+    
+    // FormData 생성
+    const submitData = new FormData();
+    
+    // 게시물 기본 정보
+    submitData.append('postId', postId.toString());
+    submitData.append('postName', formData.postName);
+    submitData.append('description', formData.description || '');
+    submitData.append('categoryName', formData.categoryName);
+    submitData.append('material', formData.material || '');
+    submitData.append('gender', formData.gender);
+    submitData.append('season', formData.season);
+    submitData.append('status', formData.status);
+    
+    // 상품 옵션 정보 (JSON으로 전송)
+    const productsData = productOptions.map(option => ({
+      productId: option.productId || null, // 기존 상품은 ID 유지, 새 상품은 null
+      color: option.color,
+      productSize: option.productSize,
+      price: parseInt(option.price),
+      discountPrice: option.discountPrice ? parseInt(option.discountPrice) : null,
+      stock: parseInt(option.stock) || 0,
+      status: option.status || 'SELLING'
+    }));
+    submitData.append('products', JSON.stringify(productsData));
+    
+    // 유지할 이미지 ID 목록 (JSON으로 전송)
+    if (keptImageIds && keptImageIds.length > 0) {
+      submitData.append('keptImageIds', JSON.stringify(keptImageIds));
+    }
+    
+    // 새로운 갤러리 이미지 파일들
+    if (newImages && newImages.length > 0) {
+      newImages.forEach((image) => {
+        if (image.file) {
+          submitData.append('images', image.file);
+        }
+      });
+    }
+    
+    // 대표 이미지 인덱스
+    if (mainImageIndex !== null && mainImageIndex !== undefined) {
+      submitData.append('mainImageIndex', mainImageIndex.toString());
+    }
+    
+    // 유지할 상품 설명 이미지 ID 목록 (JSON으로 전송)
+    if (keptDescriptionImageIds && keptDescriptionImageIds.length > 0) {
+      submitData.append('keptDescriptionImageIds', JSON.stringify(keptDescriptionImageIds));
+    }
+    
+    // 새로운 상품 설명 이미지 파일들
+    if (newDescriptionImages && newDescriptionImages.length > 0) {
+      newDescriptionImages.forEach((image) => {
+        if (image.file) {
+          submitData.append('descriptionImages', image.file);
+        }
+      });
+    }
+    
+    console.log('전송 데이터:', {
+      postId,
+      postName: formData.postName,
+      categoryName: formData.categoryName,
+      gender: formData.gender,
+      season: formData.season,
+      status: formData.status,
+      productsCount: productsData.length,
+      keptImageIdsCount: keptImageIds?.length || 0,
+      newImagesCount: newImages?.length || 0,
+      mainImageIndex,
+      keptDescriptionImageIdsCount: keptDescriptionImageIds?.length || 0,
+      newDescriptionImagesCount: newDescriptionImages?.length || 0
+    });
+    
+    // API 호출
+    const response = await fetch(`${API_BASE_URL}/productposts`, {
+      method: 'PUT',
+      credentials: 'include',
+      body: submitData
+    });
+    
+    console.log('상품 수정 API 응답 상태:', response.status);
+    return handleResponse(response);
+  } catch (error) {
+    console.error('상품 수정 오류:', error);
+    throw error;
+  }
+};
+

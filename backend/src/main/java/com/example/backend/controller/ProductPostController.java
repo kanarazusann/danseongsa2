@@ -222,5 +222,117 @@ public class ProductPostController {
         
         return map;
     }
+    
+    // 브랜드로 게시물 목록 조회 API
+    @GetMapping("/productposts/by-brand")
+    public Map<String, Object> getProductPostsByBrand(@RequestParam("brand") String brand) {
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            List<Map<String, Object>> productPosts = productPostService.findByBrand(brand);
+            map.put("rt", "OK");
+            map.put("items", productPosts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "브랜드로 상품 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
+    
+    // 게시물 수정 API
+    @PutMapping("/productposts")
+    public Map<String, Object> updateProductPost(
+            @RequestParam("postId") int postId,
+            @RequestParam("postName") String postName,
+            @RequestParam(value = "description", required = false, defaultValue = "") String description,
+            @RequestParam("categoryName") String categoryName,
+            @RequestParam(value = "material", required = false, defaultValue = "") String material,
+            @RequestParam("gender") String gender,
+            @RequestParam("season") String season,
+            @RequestParam("status") String status,
+            @RequestParam("products") String productsJson,
+            @RequestParam(value = "keptImageIds", required = false) String keptImageIdsJson,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "mainImageIndex", required = false) Integer mainImageIndex,
+            @RequestParam(value = "keptDescriptionImageIds", required = false) String keptDescriptionImageIdsJson,
+            @RequestParam(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
+        
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            // DTO 생성
+            ProductPostDTO dto = new ProductPostDTO();
+            dto.setPostName(postName);
+            dto.setDescription(description != null ? description : "");
+            dto.setCategoryName(categoryName);
+            dto.setMaterial(material != null ? material : "");
+            dto.setGender(gender);
+            dto.setSeason(season);
+            dto.setStatus(status);
+            
+            // products JSON 파싱
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<ProductDTO> products = objectMapper.readValue(
+                productsJson, 
+                new TypeReference<List<ProductDTO>>() {}
+            );
+            dto.setProducts(products);
+            
+            // keptImageIds JSON 파싱
+            List<Integer> keptImageIds = null;
+            if (keptImageIdsJson != null && !keptImageIdsJson.isEmpty()) {
+                keptImageIds = objectMapper.readValue(
+                    keptImageIdsJson,
+                    new TypeReference<List<Integer>>() {}
+                );
+            }
+            
+            // keptDescriptionImageIds JSON 파싱
+            List<Integer> keptDescriptionImageIds = null;
+            if (keptDescriptionImageIdsJson != null && !keptDescriptionImageIdsJson.isEmpty()) {
+                keptDescriptionImageIds = objectMapper.readValue(
+                    keptDescriptionImageIdsJson,
+                    new TypeReference<List<Integer>>() {}
+                );
+            }
+            
+            // 게시물 수정
+            ProductPost updatedPost = productPostService.updateProductPost(
+                postId, dto, keptImageIds, images, mainImageIndex, 
+                keptDescriptionImageIds, descriptionImages);
+            
+            // 순환 참조 방지를 위해 필요한 필드만 Map으로 구성
+            Map<String, Object> item = new HashMap<>();
+            item.put("postId", updatedPost.getPostId());
+            item.put("postName", updatedPost.getPostName());
+            item.put("categoryName", updatedPost.getCategoryName());
+            item.put("brand", updatedPost.getBrand());
+            item.put("description", updatedPost.getDescription());
+            item.put("material", updatedPost.getMaterial());
+            item.put("gender", updatedPost.getGender());
+            item.put("season", updatedPost.getSeason());
+            item.put("status", updatedPost.getStatus());
+            item.put("viewCount", updatedPost.getViewCount());
+            item.put("sellerId", updatedPost.getSellerId());
+            item.put("createdAt", updatedPost.getCreatedAt());
+            item.put("updatedAt", updatedPost.getUpdatedAt());
+            
+            map.put("rt", "OK");
+            map.put("item", item);
+            map.put("message", "게시물이 성공적으로 수정되었습니다.");
+            
+        } catch (IllegalArgumentException e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "게시물 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
 }
 

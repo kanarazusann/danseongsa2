@@ -35,5 +35,9 @@ public class ProductDAO {
     public void deleteById(int productId) {
         productRepository.deleteById(productId);
     }
+    
+    public void deleteAll(List<Product> products) {
+        productRepository.deleteAll(products);
+    }
 }
 

@@ -79,7 +79,8 @@ function ProductRegister() {
     { value: 'beige', label: '베이지' },
     { value: 'brown', label: '브라운' },
     { value: 'blue', label: '블루' },
-    { value: 'green', label: '그린' }
+    { value: 'green', label: '그린' },
+    { value: 'pink', label: '핑크' }
   ];
   const materialOptions = [
     'cotton', 'polyester', 'wool', 'denim', 'leather', 'silk', 'linen', 'nylon', 'cashmere'
