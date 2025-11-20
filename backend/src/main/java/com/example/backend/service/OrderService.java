@@ -8,6 +8,7 @@ import com.example.backend.dto.OrderCreateRequest;
 import com.example.backend.entity.*;
 import com.example.backend.repository.OrderItemRepository;
 import com.example.backend.repository.OrderRepository;
+import com.example.backend.repository.RefundRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,9 @@ public class OrderService {
 
     @Autowired
     private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private RefundRepository refundRepository;
 
     @Transactional
     public Map<String, Object> createOrder(OrderCreateRequest request) {
@@ -292,21 +296,17 @@ public class OrderService {
             productDAO.save(product);
         }
 
+        orderItem.setStatus("CANCELED");
+        orderItemRepository.save(orderItem);
+
         Order order = orderItem.getOrder();
-        orderItemRepository.delete(orderItem);
+        updateOrderStatusBasedOnItems(order);
+        Order refreshedOrder = orderRepository.findById(order.getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
 
         Map<String, Object> response = new HashMap<>();
-        List<OrderItem> remainingItems = orderItemRepository.findByOrder_OrderId(order.getOrderId());
-        if (remainingItems.isEmpty()) {
-            orderRepository.delete(order);
-            response.put("orderDeleted", true);
-        } else {
-            updateOrderStatusBasedOnItems(order);
-            Order refreshedOrder = orderRepository.findById(order.getOrderId())
-                    .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
-            response.put("orderDeleted", false);
-            response.put("order", buildOrderResponse(refreshedOrder, null));
-        }
+        response.put("orderDeleted", false);
+        response.put("order", buildOrderResponse(refreshedOrder, null));
         return response;
     }
 
@@ -327,55 +327,29 @@ public class OrderService {
             product.setStock(currentStock + quantity);
             productDAO.save(product);
         }
+
+        orderItem.setStatus("CANCELED");
+        orderItemRepository.save(orderItem);
+
         Order order = orderItem.getOrder();
-        orderItemRepository.delete(orderItem);
+        updateOrderStatusBasedOnItems(order);
+        Order refreshedOrder = orderRepository.findById(order.getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
+
         Map<String, Object> response = new HashMap<>();
-        List<OrderItem> remainingItems = orderItemRepository.findByOrder_OrderId(order.getOrderId());
-        if (remainingItems.isEmpty()) {
-            orderRepository.delete(order);
-            response.put("orderDeleted", true);
-        } else {
-            updateOrderStatusBasedOnItems(order);
-            Order refreshedOrder = orderRepository.findById(order.getOrderId())
-                    .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
-            response.put("orderDeleted", false);
-            response.put("order", buildOrderResponse(refreshedOrder, null));
-        }
+        response.put("orderDeleted", false);
+        response.put("order", buildOrderResponse(refreshedOrder, null));
         return response;
     }
 
     @Transactional
     public Map<String, Object> requestRefund(int orderItemId, int userId) {
-        OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "";
-        if (!"DELIVERING".equals(currentStatus) && !"DELIVERED".equals(currentStatus)) {
-            throw new IllegalStateException("환불을 요청할 수 없는 상태입니다.");
-        }
-        orderItem.setStatus("REFUND_REQUESTED");
-        orderItemRepository.save(orderItem);
-        updateOrderStatusBasedOnItems(orderItem.getOrder());
-        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
-                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
-        Map<String, Object> response = new HashMap<>();
-        response.put("order", buildOrderResponse(refreshedOrder, null));
-        return response;
+        return createRefundRequest(orderItemId, userId, "REFUND", "사용자 환불 요청", null, null);
     }
 
     @Transactional
     public Map<String, Object> requestExchange(int orderItemId, int userId) {
-        OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "";
-        if (!"DELIVERING".equals(currentStatus) && !"DELIVERED".equals(currentStatus)) {
-            throw new IllegalStateException("교환을 요청할 수 없는 상태입니다.");
-        }
-        orderItem.setStatus("EXCHANGE_REQUESTED");
-        orderItemRepository.save(orderItem);
-        updateOrderStatusBasedOnItems(orderItem.getOrder());
-        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
-                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
-        Map<String, Object> response = new HashMap<>();
-        response.put("order", buildOrderResponse(refreshedOrder, null));
-        return response;
+        return createRefundRequest(orderItemId, userId, "EXCHANGE", "사용자 교환 요청", null, null);
     }
 
     @Transactional
@@ -402,6 +376,214 @@ public class OrderService {
         return orderItems.stream()
                 .map(this::buildSellerOrderItemResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, Object> createRefundRequest(int orderItemId,
+                                                   int userId,
+                                                   String refundType,
+                                                   String reason,
+                                                   String reasonDetail,
+                                                   Integer refundAmount) {
+        OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
+        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "";
+        validateRefundRequestStatus(refundType, currentStatus);
+
+        refundRepository.findByOrderItem_OrderItemIdAndStatusIn(
+                orderItemId,
+                Arrays.asList("REQUESTED", "APPROVED")
+        ).ifPresent(r -> {
+            throw new IllegalStateException("이미 처리 중인 신청이 있습니다.");
+        });
+
+        Refund refund = new Refund();
+        refund.setOrderItem(orderItem);
+        refund.setUser(orderItem.getOrder().getUser());
+        refund.setRefundType(refundType != null ? refundType.toUpperCase() : "REFUND");
+        refund.setReason(reason);
+        refund.setReasonDetail(reasonDetail);
+        refund.setRefundAmount(refundAmount);
+        refund.setStatus("REQUESTED");
+        refund.setPreviousStatus(orderItem.getStatus());
+
+        String requestStatus = "REFUND_REQUESTED";
+        if ("EXCHANGE".equalsIgnoreCase(refundType)) {
+            requestStatus = "EXCHANGE_REQUESTED";
+        }
+        orderItem.setStatus(requestStatus);
+        orderItemRepository.save(orderItem);
+
+        Refund saved = refundRepository.save(refund);
+        updateOrderStatusBasedOnItems(orderItem.getOrder());
+        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("refund", buildRefundResponse(saved));
+        response.put("order", buildOrderResponse(refreshedOrder, null));
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> cancelRefundRequest(int refundId, int userId) {
+        Refund refund = getRefundOrThrow(refundId);
+        if (refund.getUser() == null || refund.getUser().getUserId() != userId) {
+            throw new IllegalArgumentException("신청을 취소할 수 없습니다.");
+        }
+        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+            throw new IllegalStateException("이미 처리된 요청입니다.");
+        }
+
+        OrderItem orderItem = refund.getOrderItem();
+        orderItem.setStatus(refund.getPreviousStatus());
+        orderItemRepository.save(orderItem);
+
+        refund.setStatus("CANCELED");
+        refundRepository.save(refund);
+
+        updateOrderStatusBasedOnItems(orderItem.getOrder());
+        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("refund", buildRefundResponse(refund));
+        response.put("order", buildOrderResponse(refreshedOrder, null));
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> approveRefundRequest(int refundId, int sellerId, String sellerResponse) {
+        Refund refund = getRefundOrThrow(refundId);
+        OrderItem orderItem = refund.getOrderItem();
+        if (orderItem.getSellerId() != sellerId) {
+            throw new IllegalArgumentException("해당 요청을 처리할 수 없습니다.");
+        }
+        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+            throw new IllegalStateException("이미 처리된 요청입니다.");
+        }
+
+        String type = refund.getRefundType() != null ? refund.getRefundType().toUpperCase() : "REFUND";
+        refund.setSellerResponse(sellerResponse);
+        if ("EXCHANGE".equals(type)) {
+            refund.setStatus("APPROVED");
+            orderItem.setStatus("EXCHANGE_APPROVED");
+            orderItemRepository.save(orderItem);
+        } else {
+            refund.setStatus("COMPLETED");
+            if (orderItem.getProduct() != null) {
+                Integer qty = Optional.ofNullable(orderItem.getQuantity()).orElse(0);
+                Integer stock = Optional.ofNullable(orderItem.getProduct().getStock()).orElse(0);
+                orderItem.getProduct().setStock(stock + qty);
+                productDAO.save(orderItem.getProduct());
+            }
+            orderItem.setStatus("CANCELED");
+            orderItemRepository.save(orderItem);
+        }
+        refundRepository.save(refund);
+
+        updateOrderStatusBasedOnItems(orderItem.getOrder());
+        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("refund", buildRefundResponse(refund));
+        response.put("order", buildOrderResponse(refreshedOrder, null));
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> rejectRefundRequest(int refundId, int sellerId, String sellerResponse) {
+        Refund refund = getRefundOrThrow(refundId);
+        OrderItem orderItem = refund.getOrderItem();
+        if (orderItem.getSellerId() != sellerId) {
+            throw new IllegalArgumentException("해당 요청을 처리할 수 없습니다.");
+        }
+        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+            throw new IllegalStateException("이미 처리된 요청입니다.");
+        }
+
+        refund.setStatus("REJECTED");
+        refund.setSellerResponse(sellerResponse);
+        orderItem.setStatus(refund.getPreviousStatus());
+        orderItemRepository.save(orderItem);
+        refundRepository.save(refund);
+
+        updateOrderStatusBasedOnItems(orderItem.getOrder());
+        Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문을 찾을 수 없습니다."));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("refund", buildRefundResponse(refund));
+        response.put("order", buildOrderResponse(refreshedOrder, null));
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getRefundsByUser(int userId) {
+        return refundRepository.findByUser_UserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::buildRefundResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getRefundsBySeller(int sellerId) {
+        return refundRepository.findBySellerId(sellerId).stream()
+                .map(this::buildRefundResponse)
+                .collect(Collectors.toList());
+    }
+
+    private void validateRefundRequestStatus(String refundType, String currentStatus) {
+        String type = refundType != null ? refundType.toUpperCase() : "REFUND";
+        switch (type) {
+            case "CANCEL" -> {
+                if (!"PAID".equals(currentStatus)) {
+                    throw new IllegalStateException("결제 완료 상태에서만 취소 요청이 가능합니다.");
+                }
+            }
+            case "EXCHANGE", "REFUND" -> {
+                if (!"DELIVERING".equals(currentStatus) && !"DELIVERED".equals(currentStatus)) {
+                    throw new IllegalStateException("배송중 또는 배송완료 상태에서만 요청할 수 있습니다.");
+                }
+            }
+            default -> throw new IllegalArgumentException("지원하지 않는 요청 유형입니다.");
+        }
+    }
+
+    private Refund getRefundOrThrow(int refundId) {
+        return refundRepository.findById(refundId)
+                .orElseThrow(() -> new IllegalArgumentException("환불/교환 요청을 찾을 수 없습니다."));
+    }
+
+    private Map<String, Object> buildRefundResponse(Refund refund) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("refundId", refund.getRefundId());
+        map.put("refundType", refund.getRefundType());
+        map.put("status", refund.getStatus());
+        map.put("reason", refund.getReason());
+        map.put("reasonDetail", refund.getReasonDetail());
+        map.put("refundAmount", refund.getRefundAmount());
+        map.put("previousStatus", refund.getPreviousStatus());
+        map.put("sellerResponse", refund.getSellerResponse());
+        map.put("createdAt", refund.getCreatedAt());
+        map.put("updatedAt", refund.getUpdatedAt());
+
+        OrderItem orderItem = refund.getOrderItem();
+        if (orderItem != null) {
+            map.put("orderItemId", orderItem.getOrderItemId());
+            map.put("orderItemStatus", orderItem.getStatus());
+            map.put("productName", orderItem.getPostName());
+            map.put("productId", orderItem.getProductId());
+            map.put("quantity", orderItem.getQuantity());
+            map.put("price", orderItem.getPrice());
+            Order order = orderItem.getOrder();
+            if (order != null) {
+                map.put("orderId", order.getOrderId());
+                map.put("orderNumber", order.getOrderNumber());
+                map.put("buyerName", order.getRecipientName());
+                map.put("buyerPhone", order.getRecipientPhone());
+            }
+        }
+        return map;
     }
 
     private String generateOrderNumber(int userId) {
@@ -530,18 +712,26 @@ public class OrderService {
         }
 
         boolean allDelivered = items.stream()
-                .allMatch(item -> "DELIVERED".equalsIgnoreCase(item.getStatus()));
+                .allMatch(item -> "DELIVERED".equalsIgnoreCase(
+                        Optional.ofNullable(item.getStatus()).orElse("")));
+
+        boolean allCanceled = items.stream()
+                .allMatch(item -> "CANCELED".equalsIgnoreCase(
+                        Optional.ofNullable(item.getStatus()).orElse("")));
 
         boolean anyRefund = items.stream().anyMatch(item -> {
-            String status = item.getStatus() != null ? item.getStatus().toUpperCase() : "";
-            return status.startsWith("REFUND") || status.startsWith("EXCHANGE");
+            String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
+            return status.contains("REFUND") || status.contains("EXCHANGE") || status.contains("CANCEL");
         });
 
         boolean anyDelivering = items.stream()
-                .anyMatch(item -> "DELIVERING".equalsIgnoreCase(item.getStatus()));
+                .anyMatch(item -> "DELIVERING".equalsIgnoreCase(
+                        Optional.ofNullable(item.getStatus()).orElse("")));
 
         String newStatus = "PAID";
-        if (allDelivered) {
+        if (allCanceled) {
+            newStatus = "CANCELED";
+        } else if (allDelivered) {
             newStatus = "DELIVERED";
         } else if (anyRefund) {
             newStatus = "REFUND";

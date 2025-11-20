@@ -259,6 +259,27 @@
   max-width: 120px;
 }
 
+.refund-info {
+  width: 100%;
+  border: 1px dashed #dddddd;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.refund-status-text {
+  font-size: 13px;
+  color: #333333;
+}
+
+.refund-info .btn-secondary {
+  align-self: flex-end;
+  min-width: 110px;
+}
+
 .btn-review {
   background-color: #ffffff;
   color: #333333;

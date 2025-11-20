@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './MyPage.css';
 import { fetchSessionUser, logout } from '../services/authService';
 import { getWishlist, removeWishlist } from '../services/productService';
-import { getOrdersByUserId } from '../services/orderService';
+import { getOrdersByUserId, getUserRefunds, cancelRefundRequest } from '../services/orderService';
 import ProductCard from '../components/ProductCard';
 
 function MyPage() {
@@ -24,54 +24,14 @@ function MyPage() {
     zipcode: '',
     detailAddress: ''
   });
+  const [userId, setUserId] = useState(null);
 
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [wishlist, setWishlist] = useState([]);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
-
-
-  const refunds = [
-    {
-      refundId: 1,
-      orderNumber: 'ORD20250110-003',
-      productName: '베이직 티셔츠',
-      refundType: 'REFUND',
-      reason: '사이즈 불만',
-      reasonDetail: '사이즈가 생각보다 작아서 환불 신청합니다.',
-      refundAmount: 29000,
-      status: 'COMPLETED',
-      requestDate: '2025-01-11',
-      completedDate: '2025-01-13',
-      accountNumber: '123-456-789012'
-    },
-    {
-      refundId: 2,
-      orderNumber: 'ORD20250108-004',
-      productName: '슬림 데님 팬츠',
-      refundType: 'EXCHANGE',
-      reason: '색상 불만',
-      reasonDetail: '다른 색상으로 교환하고 싶습니다.',
-      refundAmount: 59000,
-      status: 'APPROVED',
-      requestDate: '2025-01-09',
-      completedDate: null,
-      accountNumber: null
-    },
-    {
-      refundId: 3,
-      orderNumber: 'ORD20250105-005',
-      productName: '미니멀 백팩',
-      refundType: 'REFUND',
-      reason: '상품 불량',
-      reasonDetail: '지퍼가 고장났습니다.',
-      refundAmount: 49000,
-      status: 'REQUESTED',
-      requestDate: '2025-01-12',
-      completedDate: null,
-      accountNumber: '987-654-321098'
-    }
-  ];
+  const [refunds, setRefunds] = useState([]);
+  const [loadingRefunds, setLoadingRefunds] = useState(false);
 
   const [reviews, setReviews] = useState([
     {
@@ -121,9 +81,36 @@ function MyPage() {
   const getRefundTypeText = (type) => {
     const typeMap = {
       'REFUND': '환불',
-      'EXCHANGE': '교환'
+      'EXCHANGE': '교환',
+      'CANCEL': '취소'
     };
     return typeMap[type] || type;
+  };
+
+  const getRefundStatusText = (status) => {
+    const statusMap = {
+      'REQUESTED': '승인 대기',
+      'APPROVED': '승인됨',
+      'REJECTED': '거절됨',
+      'COMPLETED': '처리 완료',
+      'CANCELED': '사용자 취소'
+    };
+    return statusMap[status?.toUpperCase()] || status || '';
+  };
+
+  const handleCancelRefundRequest = async (refundId) => {
+    if (!userId) return;
+    if (!window.confirm('신청을 취소하시겠습니까?')) {
+      return;
+    }
+    try {
+      await cancelRefundRequest(refundId, userId);
+      const response = await getUserRefunds(userId);
+      setRefunds(response.items || []);
+      alert('신청이 취소되었습니다.');
+    } catch (error) {
+      alert(error.message || '신청 취소 중 오류가 발생했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -143,6 +130,7 @@ function MyPage() {
           zipcode: item.zipcode || '',
           detailAddress: item.detailAddress || ''
         });
+        setUserId(item.userId);
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
         alert('로그인이 필요합니다.');
@@ -241,6 +229,26 @@ function MyPage() {
     loadWishlist();
   }, [activeTab, navigate]);
 
+  // 취소/반품 내역 로드
+  useEffect(() => {
+    const loadRefunds = async () => {
+      if (activeTab !== 'refunds' || !userId) return;
+
+      try {
+        setLoadingRefunds(true);
+        const response = await getUserRefunds(userId);
+        setRefunds(response.items || []);
+      } catch (error) {
+        console.error('취소/반품 내역 로드 오류:', error);
+        setRefunds([]);
+      } finally {
+        setLoadingRefunds(false);
+      }
+    };
+
+    loadRefunds();
+  }, [activeTab, userId]);
+
   // 찜 삭제 처리
   const handleRemoveWishlist = async (postId) => {
     if (!window.confirm('찜 목록에서 삭제하시겠습니까?')) {
@@ -258,15 +266,6 @@ function MyPage() {
       console.error('찜 삭제 오류:', error);
       alert('찜 삭제 중 오류가 발생했습니다.');
     }
-  };
-
-  const getRefundStatusText = (status) => {
-    const statusMap = {
-      'REQUESTED': '신청완료',
-      'APPROVED': '승인완료',
-      'COMPLETED': '처리완료'
-    };
-    return statusMap[status] || status;
   };
 
   // 회원탈퇴 처리
@@ -515,7 +514,9 @@ function MyPage() {
         {activeTab === 'refunds' && (
           <div className="tab-content">
             <h2>취소/반품 내역</h2>
-            {refunds.length === 0 ? (
+            {loadingRefunds ? (
+              <div className="loading">로딩 중...</div>
+            ) : refunds.length === 0 ? (
               <div className="empty-state">
                 <p>취소/반품 내역이 없습니다.</p>
               </div>
@@ -527,53 +528,62 @@ function MyPage() {
                       <div className="refund-type-badge">
                         {getRefundTypeText(refund.refundType)}
                       </div>
-                      <span className={`refund-status ${refund.status.toLowerCase()}`}>
+                      <span className={`refund-status ${refund.status?.toLowerCase() || ''}`}>
                         {getRefundStatusText(refund.status)}
                       </span>
                     </div>
                     <div className="refund-info">
                       <div className="refund-row">
                         <label>주문번호</label>
-                        <div className="refund-value">{refund.orderNumber}</div>
+                        <div className="refund-value">{refund.orderNumber || '-'}</div>
                       </div>
                       <div className="refund-row">
                         <label>상품명</label>
-                        <div className="refund-value">{refund.productName}</div>
+                        <div className="refund-value">{refund.productName || '-'}</div>
                       </div>
                       <div className="refund-row">
                         <label>신청일</label>
-                        <div className="refund-value">{refund.requestDate}</div>
+                        <div className="refund-value">{refund.createdAt ? refund.createdAt.split('T')[0] : '-'}</div>
                       </div>
-                      {refund.completedDate && (
+                      {refund.updatedAt && (
                         <div className="refund-row">
-                          <label>처리완료일</label>
-                          <div className="refund-value">{refund.completedDate}</div>
+                          <label>최근 업데이트</label>
+                          <div className="refund-value">{refund.updatedAt.split('T')[0]}</div>
                         </div>
                       )}
                       <div className="refund-row">
                         <label>사유</label>
-                        <div className="refund-value">{refund.reason}</div>
+                        <div className="refund-value">{refund.reason || '-'}</div>
                       </div>
-                      <div className="refund-row">
-                        <label>상세사유</label>
-                        <div className="refund-value refund-detail">{refund.reasonDetail}</div>
-                      </div>
-                      <div className="refund-row">
-                        <label>환불금액</label>
-                        <div className="refund-value refund-amount">
-                          {refund.refundAmount.toLocaleString()}원
-                        </div>
-                      </div>
-                      {refund.accountNumber && (
+                      {refund.reasonDetail && (
                         <div className="refund-row">
-                          <label>환불계좌</label>
-                          <div className="refund-value">{refund.accountNumber}</div>
+                          <label>상세사유</label>
+                          <div className="refund-value refund-detail">{refund.reasonDetail}</div>
+                        </div>
+                      )}
+                      {refund.refundAmount !== null && refund.refundAmount !== undefined && (
+                        <div className="refund-row">
+                          <label>환불금액</label>
+                          <div className="refund-value refund-amount">
+                            {Number(refund.refundAmount).toLocaleString()}원
+                          </div>
+                        </div>
+                      )}
+                      {refund.sellerResponse && (
+                        <div className="refund-row">
+                          <label>판매자 메모</label>
+                          <div className="refund-value">{refund.sellerResponse}</div>
                         </div>
                       )}
                     </div>
-                    {refund.status === 'REQUESTED' && (
+                    {refund.status?.toUpperCase() === 'REQUESTED' && (
                       <div className="refund-actions">
-                        <button className="btn-secondary">신청 취소</button>
+                        <button
+                          className="btn-secondary"
+                          onClick={() => handleCancelRefundRequest(refund.refundId)}
+                        >
+                          신청 취소
+                        </button>
                       </div>
                     )}
                   </div>

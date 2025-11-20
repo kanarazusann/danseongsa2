@@ -1406,7 +1406,7 @@ feat: 상품 조회 API 구현
 - createdAt (Timestamp)  // 찜목록에추가된날짜
 - 유니크 제약조건: (userId, postId) - 한 유저가 같은 게시물을 중복 찜할 수 없음
 
- 주문(Order)
+주문(Order)
 - orderId (PK, int) //주문id (seq) ⚠️ Long 대신 int 사용
 - userId (FK -> User)  // userid(user테이블과 join)
 - orderNumber (String, unique) // 주문번호 (예: ORD20250114-001)
@@ -1414,7 +1414,7 @@ feat: 상품 조회 API 구현
 - discountAmount (Integer, default: 0) //할인된 금액
 - deliveryFee (Integer, default: 0) // 배송비
 - finalPrice (Integer, not null) // 최종 결제금액
-- orderStatus (String) //  CONFIRMED, PAID, DELIVERED, CANCELLED  주문상태
+- orderStatus (String) //  PAID, DELIVERING, REFUND(환불/교환 진행중), DELIVERED, CANCELED
 - recipientName (String, not null) // 받는 분 이름
 - recipientPhone (String, not null) // 받는 분 전화번호
 - zipcode (String) // 우편번호 (다음 주소검색 API 사용)
@@ -1424,7 +1424,7 @@ feat: 상품 조회 API 구현
 - createdAt (Timestamp)  // 주문된 날짜
 - updatedAt (Timestamp)  //주문이 수정된 날짜
 
- 주문상세(OrderItem)
+주문상세(OrderItem)
 - orderItemId (PK, int)  // 주문상세id(seq) ⚠️ Long 대신 int 사용   <= 상품별
 - orderId (FK -> Order)  // 주문id (order table과 join)
 - productId (FK -> Product)  //상품id(상품 table과 join) - 실제 구매한 상품 옵션
@@ -1434,8 +1434,8 @@ feat: 상품 조회 API 구현
 - color (String) // 주문 당시 색상
 - productSize (String) // 주문 당시 사이즈 ⚠️ Oracle 예약어 SIZE 대신 productSize 사용
 - quantity (Integer, not null)  //수량
-- price (Integer, not null) // 주문 당시 수량과 상품가격을 곱한 가격
-- status (String) // CONFIRMED, CANCELLED, REFUNDED
+- price (Integer, not null) // 주문 당시 단가
+- status (String) // PAID, DELIVERING, DELIVERED, CANCELED, REFUND_REQUESTED, REFUNDED, EXCHANGE_REQUESTED, EXCHANGED
 - createdAt (Timestamp)  //주문된 날짜
 
  결제(Payment)
@@ -1464,21 +1464,19 @@ feat: 상품 조회 API 구현
 - imageUrl (String, not null)  //이미지경로
 - createdAt (Timestamp)  // 이미지 업로드 날짜
 
- 환불/교환(Refund)
+환불/교환(Refund)
 - refundId (PK, int) 환불/교환 고유 id ⚠️ Long 대신 int 사용
 - orderItemId (FK -> OrderItem)  주문상세id
 - userId (FK -> User)  유저id
-- refundType (String) // REFUND, EXCHANGE  환불이냐 교환이냐
+- refundType (String) // CANCEL, REFUND, EXCHANGE
 - reason (String, not null)  이유 (아마 선택식)
 - reasonDetail (Text)  이유를 텍스트로
 - refundAmount (Integer)   환불하는 총가격
-- accountId (FK -> Account, nullable) // 환불받을 계좌(계좌결제일경우만, null 가능)
-- status (String) // 
-고객: "사이즈 안맞아서 환불할게요" → REQUESTED
-판매자: "확인했습니다. 환불 승인합니다" → APPROVED
-고객 상품 반송 완료
-판매자 확인 후 환불금 입금 → COMPLETED
+- status (String) // REQUESTED → APPROVED/REJECTED → COMPLETED (교환도 동일 흐름)
+- previousStatus (String) // 요청 이전 orderItem 상태
+- sellerResponse (String) // 판매자 메모/처리내용
 - createdAt (Timestamp)  //환불/교환신청시간 
+- updatedAt (Timestamp)  //상태 변경 시간
 
 
 **그리고 모든 작업은 db를 참고꼭하기 그리고 커서 너가 이상하다고 생각이들면 꼭 나에게 정말할거냐 물어보고 하면 안되는 이유 알려줘 **

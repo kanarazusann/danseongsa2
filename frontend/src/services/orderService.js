@@ -87,30 +87,6 @@ export const cancelOrderItem = async (orderItemId, userId) => {
   return handleResponse(response);
 };
 
-export const requestRefund = async (orderItemId, userId) => {
-  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/refund`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify({ userId })
-  });
-  return handleResponse(response);
-};
-
-export const requestExchange = async (orderItemId, userId) => {
-  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/exchange`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify({ userId })
-  });
-  return handleResponse(response);
-};
-
 export const confirmOrderItem = async (orderItemId, userId) => {
   const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/confirm`, {
     method: 'POST',
@@ -121,6 +97,111 @@ export const confirmOrderItem = async (orderItemId, userId) => {
     body: JSON.stringify({ userId })
   });
   return handleResponse(response);
+};
+
+export const createRefundRequest = async ({
+  orderItemId,
+  userId,
+  refundType,
+  reason,
+  reasonDetail,
+  refundAmount
+}) => {
+  const payload = {
+    orderItemId,
+    userId,
+    refundType,
+    reason,
+    reasonDetail,
+    refundAmount
+  };
+  const response = await fetch(`${API_BASE_URL}/refunds`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return handleResponse(response);
+};
+
+export const cancelRefundRequest = async (refundId, userId) => {
+  const response = await fetch(`${API_BASE_URL}/refunds/${refundId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ userId })
+  });
+  return handleResponse(response);
+};
+
+export const approveRefundRequest = async (refundId, sellerId, sellerResponse) => {
+  const response = await fetch(`${API_BASE_URL}/refunds/${refundId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ sellerId, sellerResponse })
+  });
+  return handleResponse(response);
+};
+
+export const rejectRefundRequest = async (refundId, sellerId, sellerResponse) => {
+  const response = await fetch(`${API_BASE_URL}/refunds/${refundId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ sellerId, sellerResponse })
+  });
+  return handleResponse(response);
+};
+
+export const getUserRefunds = async (userId) => {
+  const params = new URLSearchParams();
+  params.append('userId', userId);
+  const response = await fetch(`${API_BASE_URL}/refunds/user?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return handleResponse(response);
+};
+
+export const getSellerRefunds = async (sellerId) => {
+  const params = new URLSearchParams();
+  params.append('sellerId', sellerId);
+  const response = await fetch(`${API_BASE_URL}/refunds/seller?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return handleResponse(response);
+};
+
+export const requestRefund = async (orderItemId, userId) => {
+  return createRefundRequest({
+    orderItemId,
+    userId,
+    refundType: 'REFUND',
+    reason: '환불 요청',
+    reasonDetail: '',
+    refundAmount: null
+  });
+};
+
+export const requestExchange = async (orderItemId, userId) => {
+  return createRefundRequest({
+    orderItemId,
+    userId,
+    refundType: 'EXCHANGE',
+    reason: '교환 요청',
+    reasonDetail: '',
+    refundAmount: null
+  });
 };
 
 

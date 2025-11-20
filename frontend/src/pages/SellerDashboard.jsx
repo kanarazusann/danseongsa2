@@ -1,8 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
 import { fetchSessionUser } from '../services/authService';
-import { getSellerOrders, shipOrderItem, cancelOrderItemBySeller } from '../services/orderService';
+import {
+  getSellerOrders,
+  shipOrderItem,
+  cancelOrderItemBySeller,
+  getSellerRefunds,
+  approveRefundRequest,
+  rejectRefundRequest
+} from '../services/orderService';
 import { getProductPostsByBrand } from '../services/productService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -33,10 +40,34 @@ const ORDER_STATUS_TEXT = {
   EXCHANGED: '교환완료'
 };
 
+const REFUND_TYPE_TEXT = {
+  REFUND: '환불',
+  EXCHANGE: '교환',
+  CANCEL: '취소'
+};
+
+const REFUND_STATUS_TEXT = {
+  REQUESTED: '승인 대기',
+  APPROVED: '승인됨',
+  COMPLETED: '처리 완료',
+  REJECTED: '거절됨',
+  CANCELED: '사용자 취소'
+};
+
 const getOrderStatusText = (status) => {
   if (!status) return '결제완료';
   const key = status.toUpperCase();
   return ORDER_STATUS_TEXT[key] || status;
+};
+
+const mapRefundTypeText = (type) => {
+  if (!type) return '-';
+  return REFUND_TYPE_TEXT[type.toUpperCase()] || type;
+};
+
+const mapRefundStatusText = (status) => {
+  if (!status) return '-';
+  return REFUND_STATUS_TEXT[status.toUpperCase()] || status;
 };
 
 const getOrderStatusClass = (status) => {
@@ -104,7 +135,7 @@ function SellerDashboard() {
 
   // URL 파라미터가 변경되면 activeTab 업데이트
   useEffect(() => {
-    if (tabParam && ['dashboard', 'business', 'products', 'orders', 'reviews'].includes(tabParam)) {
+    if (tabParam && ['dashboard', 'business', 'products', 'orders', 'returns', 'reviews'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -116,6 +147,9 @@ function SellerDashboard() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
+  const [refunds, setRefunds] = useState([]);
+  const [refundsLoading, setRefundsLoading] = useState(false);
+  const [refundsError, setRefundsError] = useState('');
 
   // 세션에서 사용자 정보 가져오기 및 브랜드로 상품 목록 조회
   useEffect(() => {
@@ -143,14 +177,14 @@ function SellerDashboard() {
     loadUserInfo();
   }, [navigate]);
 
-  useEffect(() => {
-    if (!sellerId) return;
-
-    const loadSellerOrders = async () => {
+  const loadSellerOrders = useCallback(
+    async (targetSellerId) => {
+      const id = targetSellerId || sellerId;
+      if (!id) return;
       try {
         setOrdersLoading(true);
         setOrdersError('');
-        const data = await getSellerOrders(sellerId);
+        const data = await getSellerOrders(id);
         setOrders(data.items || []);
       } catch (error) {
         console.error('판매자 주문 조회 오류:', error);
@@ -159,10 +193,39 @@ function SellerDashboard() {
       } finally {
         setOrdersLoading(false);
       }
-    };
+    },
+    [sellerId]
+  );
 
-    loadSellerOrders();
-  }, [sellerId]);
+  useEffect(() => {
+    if (!sellerId) return;
+    loadSellerOrders(sellerId);
+  }, [sellerId, loadSellerOrders]);
+
+  const loadSellerRefunds = useCallback(
+    async (targetSellerId) => {
+      const id = targetSellerId || sellerId;
+      if (!id) return;
+      try {
+        setRefundsLoading(true);
+        setRefundsError('');
+        const data = await getSellerRefunds(id);
+        setRefunds(data.items || []);
+      } catch (error) {
+        console.error('판매자 취소/반품 조회 오류:', error);
+        setRefunds([]);
+        setRefundsError(error.message || '취소/반품 정보를 불러오지 못했습니다.');
+      } finally {
+        setRefundsLoading(false);
+      }
+    },
+    [sellerId]
+  );
+
+  useEffect(() => {
+    if (!sellerId) return;
+    loadSellerRefunds(sellerId);
+  }, [sellerId, loadSellerRefunds]);
 
   
   // 브랜드로 상품 목록 조회
@@ -249,6 +312,27 @@ function SellerDashboard() {
       totalProducts: products.length,
       pendingOrders
     };
+  }, [orders, products.length]);
+
+  const { activeOrders, afterSalesOrders } = useMemo(() => {
+    if (!orders) {
+      return { activeOrders: [], afterSalesOrders: [] };
+    }
+    const active = [];
+    const afterSales = [];
+    orders.forEach(item => {
+      const status = (item.status || '').toUpperCase();
+      if (
+        status.includes('CANCEL') ||
+        status.includes('REFUND') ||
+        status.includes('EXCHANGE')
+      ) {
+        afterSales.push(item);
+      } else {
+        active.push(item);
+      }
+    });
+    return { activeOrders: active, afterSalesOrders: afterSales };
   }, [orders]);
 
   const getStatusText = (status) => {
@@ -312,6 +396,33 @@ function SellerDashboard() {
     }
   };
 
+  const handleApproveRefund = async (refundId) => {
+    if (!sellerId) return;
+    const memo = window.prompt('승인 메모를 입력하세요.', '승인되었습니다.');
+    try {
+      await approveRefundRequest(refundId, sellerId, memo || '승인');
+      await Promise.all([loadSellerRefunds(), loadSellerOrders()]);
+      alert('요청을 승인했습니다.');
+    } catch (error) {
+      console.error('환불 승인 오류:', error);
+      alert(error.message || '승인 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleRejectRefund = async (refundId) => {
+    if (!sellerId) return;
+    const memo = window.prompt('거절 사유를 입력하세요.', '사유를 입력해주세요.');
+    if (memo === null) return;
+    try {
+      await rejectRefundRequest(refundId, sellerId, memo || '거절');
+      await Promise.all([loadSellerRefunds(), loadSellerOrders()]);
+      alert('요청을 거절했습니다.');
+    } catch (error) {
+      console.error('환불 거절 오류:', error);
+      alert(error.message || '거절 처리 중 오류가 발생했습니다.');
+    }
+  };
+
 
 
   // 회원탈퇴 처리
@@ -366,6 +477,12 @@ function SellerDashboard() {
             onClick={() => setActiveTab('orders')}
           >
             주문 관리
+          </button>
+          <button 
+            className={activeTab === 'returns' ? 'tab active' : 'tab'}
+            onClick={() => setActiveTab('returns')}
+          >
+            취소/반품 관리
           </button>
           <button 
             className={activeTab === 'reviews' ? 'tab active' : 'tab'}
@@ -599,15 +716,14 @@ function SellerDashboard() {
               <div className="empty-state">
                 <p>{ordersError}</p>
               </div>
-            ) : orders.length === 0 ? (
+            ) : activeOrders.length === 0 ? (
               <div className="empty-state">
-                <p>주문 내역이 없습니다.</p>
+                <p>진행 중인 주문이 없습니다.</p>
               </div>
             ) : (
               <div className="orders-list">
-                {orders.map(order => {
+                {activeOrders.map(order => {
                   const statusUpper = (order.status || 'PAID').toUpperCase();
-                  const isPaid = statusUpper === 'PAID';
                   return (
                     <div key={order.orderItemId} className="order-card">
                       <div className="order-header">
@@ -625,8 +741,8 @@ function SellerDashboard() {
                       <div className="order-body">
                         <div className="order-product-thumb">
                           {order.productImage ? (
-                            <img 
-                              src={resolveImageUrl(order.productImage)} 
+                            <img
+                              src={resolveImageUrl(order.productImage)}
                               alt={order.productName}
                             />
                           ) : (
@@ -641,8 +757,12 @@ function SellerDashboard() {
                               {order.productSize && <span>사이즈: {order.productSize}</span>}
                             </div>
                             <span className="item-quantity">수량: {order.quantity || 0}개</span>
-                            <span className="item-price">단가: {(order.price || 0).toLocaleString()}원</span>
-                            <span className="item-total">합계: {(order.totalPrice || 0).toLocaleString()}원</span>
+                            <span className="item-price">
+                              단가: {(order.price || 0).toLocaleString()}원
+                            </span>
+                            <span className="item-total">
+                              합계: {(order.totalPrice || 0).toLocaleString()}원
+                            </span>
                           </div>
                           <div className="order-buyer-info">
                             <span>연락처: {order.buyerPhone || '-'}</span>
@@ -656,16 +776,22 @@ function SellerDashboard() {
                       <div className="order-actions">
                         {statusUpper === 'PAID' && (
                           <>
-                            <button className="btn-primary" onClick={() => handleShipOrder(order.orderItemId)}>
+                            <button
+                              className="btn-primary"
+                              onClick={() => handleShipOrder(order.orderItemId)}
+                            >
                               배송 처리
                             </button>
-                        <button className="btn-secondary" onClick={() => handleSellerCancel(order.orderItemId)}>
+                            <button
+                              className="btn-secondary"
+                              onClick={() => handleSellerCancel(order.orderItemId)}
+                            >
                               주문 취소
                             </button>
                           </>
                         )}
                         {['CANCELED', 'CANCELLED', 'REFUNDED', 'EXCHANGED'].includes(statusUpper) && (
-                          <button 
+                          <button
                             className="btn-danger"
                             onClick={() => handleDeleteOrder(order.orderItemId)}
                           >
@@ -678,6 +804,142 @@ function SellerDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'returns' && (
+          <div className="tab-content">
+            <h2>취소/반품 관리</h2>
+            <section className="refund-section">
+              <h3>신청 목록</h3>
+              {refundsLoading ? (
+                <div className="empty-state">
+                  <p>요청을 불러오는 중입니다...</p>
+                </div>
+              ) : refundsError ? (
+                <div className="empty-state">
+                  <p>{refundsError}</p>
+                </div>
+              ) : refunds.length === 0 ? (
+                <div className="empty-state">
+                  <p>대기 중인 신청이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="refunds-list">
+                  {refunds.map(refund => (
+                    <div key={refund.refundId} className="refund-card">
+                      <div className="refund-header">
+                        <div className="refund-type-badge">
+                          {mapRefundTypeText(refund.refundType)}
+                        </div>
+                        <span className={`refund-status ${refund.status?.toLowerCase() || ''}`}>
+                          {mapRefundStatusText(refund.status)}
+                        </span>
+                      </div>
+                      <div className="refund-body">
+                        <div className="refund-row">
+                          <label>주문번호</label>
+                          <span>{refund.orderNumber || '-'}</span>
+                        </div>
+                        <div className="refund-row">
+                          <label>상품명</label>
+                          <span>{refund.productName || '-'}</span>
+                        </div>
+                        <div className="refund-row">
+                          <label>신청일</label>
+                          <span>{refund.createdAt ? refund.createdAt.split('T')[0] : '-'}</span>
+                        </div>
+                        <div className="refund-row">
+                          <label>사유</label>
+                          <span>{refund.reason || '-'}</span>
+                        </div>
+                        {refund.reasonDetail && (
+                          <div className="refund-row">
+                            <label>상세사유</label>
+                            <span>{refund.reasonDetail}</span>
+                          </div>
+                        )}
+                        {refund.sellerResponse && (
+                          <div className="refund-row">
+                            <label>판매자 메모</label>
+                            <span>{refund.sellerResponse}</span>
+                          </div>
+                        )}
+                      </div>
+                      {refund.status?.toUpperCase() === 'REQUESTED' && (
+                        <div className="refund-actions">
+                          <button
+                            className="btn-primary"
+                            onClick={() => handleApproveRefund(refund.refundId)}
+                          >
+                            승인
+                          </button>
+                          <button
+                            className="btn-danger"
+                            onClick={() => handleRejectRefund(refund.refundId)}
+                          >
+                            거절
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="refund-section">
+              <h3>취소/환불 처리된 주문</h3>
+              {afterSalesOrders.length === 0 ? (
+                <div className="empty-state">
+                  <p>취소/환불/교환 처리된 주문이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="orders-list">
+                  {afterSalesOrders.map(order => (
+                    <div key={order.orderItemId} className="order-card cancelled">
+                      <div className="order-header">
+                        <div className="order-header-left">
+                          <div className="order-meta">
+                            <span className="order-number">주문번호: {order.orderNumber || '-'}</span>
+                            <span className="order-date">{formatDateTime(order.orderDate)}</span>
+                            <span className="buyer-name">구매자: {order.buyerName || '-'}</span>
+                          </div>
+                        </div>
+                        <span className={`order-status ${getOrderStatusClass(order.status)}`}>
+                          {getOrderStatusText(order.status)}
+                        </span>
+                      </div>
+                      <div className="order-body">
+                        <div className="order-product-thumb">
+                          {order.productImage ? (
+                            <img src={resolveImageUrl(order.productImage)} alt={order.productName} />
+                          ) : (
+                            <div className="thumb-placeholder">이미지 없음</div>
+                          )}
+                        </div>
+                        <div className="order-body-info">
+                          <div className="order-item-info">
+                            <span className="item-name">{order.productName}</span>
+                            <span className="item-quantity">수량: {order.quantity || 0}개</span>
+                            <span className="item-total">
+                              합계: {(order.totalPrice || 0).toLocaleString()}원
+                            </span>
+                          </div>
+                          <div className="order-buyer-info">
+                            <span>연락처: {order.buyerPhone || '-'}</span>
+                            <span>
+                              배송지: {order.zipcode ? `[${order.zipcode}] ` : ''}
+                              {order.address || ''} {order.detailAddress || ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
 
