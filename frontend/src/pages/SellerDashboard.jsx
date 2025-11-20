@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
 import { fetchSessionUser } from '../services/authService';
 import { getSellerOrders } from '../services/orderService';
+import { getProductPostsByBrand } from '../services/productService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -161,36 +162,7 @@ function SellerDashboard() {
     loadSellerOrders();
   }, [sellerId]);
 
-  const products = [
-    {
-      productId: 1,
-      productName: '클래식 오버핏 코트',
-      price: 89000,
-      discountPrice: 69000,
-      status: 'SELLING',
-      viewCount: 1250,
-      createdAt: '2025-01-10',
-      image: 'https://via.placeholder.com/200x250/000000/FFFFFF?text=COAT'
-    },
-    {
-      productId: 2,
-      productName: '베이직 티셔츠',
-      price: 29000,
-      discountPrice: null,
-      status: 'SELLING',
-      viewCount: 890,
-      createdAt: '2025-01-12',
-      image: 'https://via.placeholder.com/200x250/FFFFFF/000000?text=T-SHIRT'
-    },
-    {
-      productId: 3,
-      productName: '슬림 데님 팬츠',
-      price: 59000,
-      discountPrice: 49000,
-      status: 'SOLD_OUT',
-      viewCount: 2100,
-      createdAt: '2025-01-08',
-      image: 'https://via.placeholder.com/200x250/000000/FFFFFF?text=PANTS'
+  
   // 브랜드로 상품 목록 조회
   const loadProductsByBrand = async (businessName) => {
     if (!businessName) return;
