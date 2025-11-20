@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyPage.css';
 import { fetchSessionUser, logout } from '../services/authService';
+import { getWishlist, removeWishlist } from '../services/productService';
+import ProductCard from '../components/ProductCard';
 
 function MyPage() {
   const navigate = useNavigate();
@@ -11,17 +13,6 @@ function MyPage() {
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [editRating, setEditRating] = useState(5);
   const [editContent, setEditContent] = useState('');
-  const [editingAccountId, setEditingAccountId] = useState(null);
-  const [isAddingAccount, setIsAddingAccount] = useState(false);
-  const [editBankName, setEditBankName] = useState('');
-  const [editAccountNumber, setEditAccountNumber] = useState('');
-  const [editAccountHolder, setEditAccountHolder] = useState('');
-  const [accountsList, setAccountsList] = useState([
-    { accountId: 1, bankName: 'KB국민은행', accountNumber: '123-456-789012', accountHolder: '홍길동', isDefault: true, balance: 500000 },
-    { accountId: 2, bankName: '신한은행', accountNumber: '987-654-321098', accountHolder: '홍길동', isDefault: false, balance: 300000 }
-  ]);
-  const selectRef = useRef(null);
-  const addSelectRef = useRef(null);
 
   // 세션에서 가져온 사용자 정보
   const [userInfo, setUserInfo] = useState({
@@ -68,10 +59,8 @@ function MyPage() {
     },
   ];
 
-  const wishlist = [
-    { id: 1, name: '슬림 데님 팬츠', price: 59000, image: 'https://via.placeholder.com/300x400/000000/FFFFFF?text=PANTS' },
-    { id: 2, name: '미니멀 백팩', price: 49000, image: 'https://via.placeholder.com/300x400/FFFFFF/000000?text=BAG' }
-  ];
+  const [wishlist, setWishlist] = useState([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
 
   const refunds = [
@@ -196,6 +185,63 @@ function MyPage() {
     loadUserInfo();
   }, [navigate]);
 
+  // 찜목록 로드
+  useEffect(() => {
+    const loadWishlist = async () => {
+      if (activeTab !== 'wishlist') return;
+      
+      try {
+        setLoadingWishlist(true);
+        const { item: userInfo } = await fetchSessionUser();
+        const response = await getWishlist(userInfo.userId);
+        
+        if (response.rt === 'OK' && response.items) {
+          // Home.jsx와 동일한 변환 로직
+          const formattedProducts = response.items.map(item => ({
+            id: item.postId,
+            brand: item.brand || '',
+            name: item.postName || '',
+            price: item.price || 0,
+            discountPrice: item.discountPrice || null,
+            image: item.imageUrl ? (item.imageUrl.startsWith('http') 
+              ? item.imageUrl 
+              : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) 
+              : null
+          }));
+          setWishlist(formattedProducts);
+        } else {
+          setWishlist([]);
+        }
+      } catch (error) {
+        console.error('찜목록 로드 오류:', error);
+        setWishlist([]);
+      } finally {
+        setLoadingWishlist(false);
+      }
+    };
+    
+    loadWishlist();
+  }, [activeTab, navigate]);
+
+  // 찜 삭제 처리
+  const handleRemoveWishlist = async (postId) => {
+    if (!window.confirm('찜 목록에서 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      const { item: userInfo } = await fetchSessionUser();
+      await removeWishlist(userInfo.userId, postId);
+      
+      // 목록에서 제거
+      setWishlist(wishlist.filter(item => item.id !== postId));
+      alert('찜 목록에서 삭제되었습니다.');
+    } catch (error) {
+      console.error('찜 삭제 오류:', error);
+      alert('찜 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   const getRefundStatusText = (status) => {
     const statusMap = {
       'REQUESTED': '신청완료',
@@ -269,161 +315,6 @@ function MyPage() {
     }
   };
 
-  // 계좌 수정 시작
-  const handleStartEditAccount = (account) => {
-    setEditingAccountId(account.accountId);
-    setEditBankName(account.bankName);
-    setEditAccountNumber(account.accountNumber);
-    setEditAccountHolder(account.accountHolder);
-  };
-
-  // 드롭다운이 아래로 열리도록 처리
-  useEffect(() => {
-    const handleMouseDown = (e) => {
-      if (e.target.tagName === 'SELECT' && selectRef.current) {
-        const select = e.target;
-        const rect = select.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        
-        // 아래 공간이 부족하고 위 공간이 더 많으면 스크롤 조정
-        if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-          setTimeout(() => {
-            select.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 10);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-    };
-  }, [editingAccountId]);
-
-  // 계좌 수정 취소
-  const handleCancelEditAccount = () => {
-    setEditingAccountId(null);
-    setEditBankName('');
-    setEditAccountNumber('');
-    setEditAccountHolder('');
-  };
-
-  // 계좌 추가 시작
-  const handleStartAddAccount = () => {
-    setIsAddingAccount(true);
-    setEditBankName('');
-    setEditAccountNumber('');
-    setEditAccountHolder('');
-  };
-
-  // 계좌 추가 취소
-  const handleCancelAddAccount = () => {
-    setIsAddingAccount(false);
-    setEditBankName('');
-    setEditAccountNumber('');
-    setEditAccountHolder('');
-  };
-
-  // 계좌 추가 저장
-  const handleSaveAddAccount = () => {
-    if (!editBankName.trim() || !editAccountNumber.trim() || !editAccountHolder.trim()) {
-      alert('모든 필드를 입력해주세요.');
-      return;
-    }
-
-    // 나중에 API 호출로 교체
-    // 예: await addAccount({ bankName: editBankName, accountNumber: editAccountNumber, accountHolder: editAccountHolder });
-
-    // 새 계좌 ID 생성 (실제로는 서버에서 받아옴)
-    const newAccountId = Math.max(...accountsList.map(acc => acc.accountId), 0) + 1;
-
-    // 임시로 상태 업데이트
-    setAccountsList([
-      ...accountsList,
-      {
-        accountId: newAccountId,
-        bankName: editBankName,
-        accountNumber: editAccountNumber,
-        accountHolder: editAccountHolder,
-        isDefault: accountsList.length === 0, // 첫 계좌면 기본계좌로 설정
-        balance: 0
-      }
-    ]);
-
-    setIsAddingAccount(false);
-    setEditBankName('');
-    setEditAccountNumber('');
-    setEditAccountHolder('');
-    alert('계좌가 추가되었습니다.');
-  };
-
-  // 계좌 수정 저장
-  const handleSaveEditAccount = () => {
-    if (!editBankName.trim() || !editAccountNumber.trim() || !editAccountHolder.trim()) {
-      alert('모든 필드를 입력해주세요.');
-      return;
-    }
-
-    // 나중에 API 호출로 교체
-    // 예: await updateAccount(editingAccountId, { bankName: editBankName, accountNumber: editAccountNumber, accountHolder: editAccountHolder });
-
-    // 임시로 상태 업데이트
-    setAccountsList(accountsList.map(account => 
-      account.accountId === editingAccountId
-        ? { ...account, bankName: editBankName, accountNumber: editAccountNumber, accountHolder: editAccountHolder }
-        : account
-    ));
-
-    setEditingAccountId(null);
-    setEditBankName('');
-    setEditAccountNumber('');
-    setEditAccountHolder('');
-    alert('계좌 정보가 수정되었습니다.');
-  };
-
-  // 기본 계좌 설정
-  const handleSetDefaultAccount = (accountId) => {
-    // 나중에 API 호출로 교체
-    // 예: await setDefaultAccount(accountId);
-
-    // 선택한 계좌를 기본 계좌로 설정하고, 나머지는 모두 false로 설정
-    const updatedAccounts = accountsList.map(account => 
-      account.accountId === accountId
-        ? { ...account, isDefault: true }
-        : { ...account, isDefault: false }
-    );
-
-    // 임시로 상태 업데이트
-    setAccountsList(updatedAccounts);
-    alert('기본 계좌가 설정되었습니다.');
-  };
-
-  // 계좌 삭제
-  const handleDeleteBankAccount = (accountId) => {
-    const account = accountsList.find(acc => acc.accountId === accountId);
-    if (!account) return;
-
-    if (window.confirm(`정말로 ${account.bankName} 계좌를 삭제하시겠습니까?`)) {
-      // 나중에 API 호출로 교체
-      // 예: await deleteAccount(accountId);
-
-      // 기본계좌를 삭제하는 경우, 다른 계좌가 있으면 첫 번째 계좌를 기본계좌로 설정
-      let updatedAccounts = accountsList.filter(acc => acc.accountId !== accountId);
-      
-      if (account.isDefault && updatedAccounts.length > 0) {
-        updatedAccounts = updatedAccounts.map((acc, index) => 
-          index === 0 ? { ...acc, isDefault: true } : acc
-        );
-      }
-
-      // 임시로 상태 업데이트
-      setAccountsList(updatedAccounts);
-      alert('계좌가 삭제되었습니다.');
-    }
-  };
-
   return (
     <div className="mypage">
       <div className="container">
@@ -448,12 +339,6 @@ function MyPage() {
             onClick={() => setActiveTab('wishlist')}
           >
             찜 목록
-          </button>
-          <button 
-            className={activeTab === 'accounts' ? 'tab active' : 'tab'}
-            onClick={() => setActiveTab('accounts')}
-          >
-            계좌 관리
           </button>
           <button 
             className={activeTab === 'refunds' ? 'tab active' : 'tab'}
@@ -581,240 +466,30 @@ function MyPage() {
         {activeTab === 'wishlist' && (
           <div className="tab-content">
             <h2>찜 목록</h2>
-            {wishlist.length === 0 ? (
+            {loadingWishlist ? (
+              <div className="empty-state">
+                <p>로딩 중...</p>
+              </div>
+            ) : wishlist.length === 0 ? (
               <div className="empty-state">
                 <p>찜한 상품이 없습니다.</p>
               </div>
             ) : (
               <div className="wishlist-grid">
-                {wishlist.map(item => (
-                  <div key={item.id} className="wishlist-item">
-                    <Link to={`/product/${item.id}`} className="wishlist-image">
-                      <img src={item.image} alt={item.name} />
-                    </Link>
-                    <div className="wishlist-info">
-                      <Link to={`/product/${item.id}`} className="wishlist-name">
-                        {item.name}
-                      </Link>
-                      <div className="wishlist-price">{item.price.toLocaleString()}원</div>
-                      <button className="btn-remove">삭제</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 계좌 관리 탭 */}
-        {activeTab === 'accounts' && (
-          <div className="tab-content">
-            <div className="accounts-header">
-              <h2>계좌 관리</h2>
-              <button 
-                className="btn-primary"
-                onClick={handleStartAddAccount}
-                disabled={isAddingAccount}
-              >
-                계좌 추가
-              </button>
-            </div>
-            
-            {/* 계좌 추가 폼 */}
-            {isAddingAccount && (
-              <div className="account-card">
-                <div className="account-edit-form">
-                  <div className="form-group">
-                    <label>은행명</label>
-                    <select
-                      ref={addSelectRef}
-                      value={editBankName}
-                      onChange={(e) => setEditBankName(e.target.value)}
-                      className="form-input"
-                      onFocus={(e) => {
-                        const select = e.target;
-                        const rect = select.getBoundingClientRect();
-                        const viewportHeight = window.innerHeight;
-                        const spaceBelow = viewportHeight - rect.bottom;
-                        
-                        if (spaceBelow < 300) {
-                          setTimeout(() => {
-                            select.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }, 50);
-                        }
+                {wishlist.map(product => (
+                  <div key={product.id} className="wishlist-item-wrapper">
+                    <ProductCard product={product} />
+                    <button 
+                      className="btn-remove-wishlist"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveWishlist(product.id);
                       }}
+                      aria-label="찜 삭제"
                     >
-                      <option value="">은행을 선택하세요</option>
-                      <option value="KB국민은행">KB국민은행</option>
-                      <option value="신한은행">신한은행</option>
-                      <option value="우리은행">우리은행</option>
-                      <option value="하나은행">하나은행</option>
-                      <option value="NH농협은행">NH농협은행</option>
-                      <option value="IBK기업은행">IBK기업은행</option>
-                      <option value="카카오뱅크">카카오뱅크</option>
-                      <option value="토스뱅크">토스뱅크</option>
-                      <option value="SC제일은행">SC제일은행</option>
-                      <option value="한국씨티은행">한국씨티은행</option>
-                      <option value="대구은행">대구은행</option>
-                      <option value="부산은행">부산은행</option>
-                      <option value="경남은행">경남은행</option>
-                      <option value="광주은행">광주은행</option>
-                      <option value="전북은행">전북은행</option>
-                      <option value="제주은행">제주은행</option>
-                      <option value="새마을금고">새마을금고</option>
-                      <option value="신협">신협</option>
-                      <option value="수협은행">수협은행</option>
-                      <option value="우체국">우체국</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>계좌번호</label>
-                    <input
-                      type="text"
-                      value={editAccountNumber}
-                      onChange={(e) => setEditAccountNumber(e.target.value)}
-                      className="form-input"
-                      placeholder="계좌번호를 입력하세요"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>예금주</label>
-                    <input
-                      type="text"
-                      value={editAccountHolder}
-                      onChange={(e) => setEditAccountHolder(e.target.value)}
-                      className="form-input"
-                      placeholder="예금주를 입력하세요"
-                    />
-                  </div>
-                  <div className="account-edit-actions">
-                    <button className="btn-secondary" onClick={handleCancelAddAccount}>
-                      취소
+                      ×
                     </button>
-                    <button className="btn-primary" onClick={handleSaveAddAccount}>
-                      저장
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {accountsList.length === 0 && !isAddingAccount ? (
-              <div className="empty-state">
-                <p>등록된 계좌가 없습니다.</p>
-              </div>
-            ) : (
-              <div className="accounts-list">
-                {accountsList.map(account => (
-                  <div key={account.accountId} className="account-card">
-                    {account.isDefault && <span className="default-flag">기본계좌</span>}
-                    {editingAccountId === account.accountId ? (
-                      <div className="account-edit-form">
-                        <div className="form-group">
-                          <label>은행명</label>
-                          <select
-                            ref={selectRef}
-                            value={editBankName}
-                            onChange={(e) => setEditBankName(e.target.value)}
-                            className="form-input"
-                            onFocus={(e) => {
-                              // 드롭다운이 아래로 열리도록 요소를 화면 상단으로 스크롤
-                              const select = e.target;
-                              const rect = select.getBoundingClientRect();
-                              const viewportHeight = window.innerHeight;
-                              const spaceBelow = viewportHeight - rect.bottom;
-                              
-                              if (spaceBelow < 300) {
-                                setTimeout(() => {
-                                  select.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }, 50);
-                              }
-                            }}
-                          >
-                            <option value="">은행을 선택하세요</option>
-                            <option value="KB국민은행">KB국민은행</option>
-                            <option value="신한은행">신한은행</option>
-                            <option value="우리은행">우리은행</option>
-                            <option value="하나은행">하나은행</option>
-                            <option value="NH농협은행">NH농협은행</option>
-                            <option value="IBK기업은행">IBK기업은행</option>
-                            <option value="카카오뱅크">카카오뱅크</option>
-                            <option value="토스뱅크">토스뱅크</option>
-                            <option value="SC제일은행">SC제일은행</option>
-                            <option value="한국씨티은행">한국씨티은행</option>
-                            <option value="대구은행">대구은행</option>
-                            <option value="부산은행">부산은행</option>
-                            <option value="경남은행">경남은행</option>
-                            <option value="광주은행">광주은행</option>
-                            <option value="전북은행">전북은행</option>
-                            <option value="제주은행">제주은행</option>
-                            <option value="새마을금고">새마을금고</option>
-                            <option value="신협">신협</option>
-                            <option value="수협은행">수협은행</option>
-                            <option value="우체국">우체국</option>
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label>계좌번호</label>
-                          <input
-                            type="text"
-                            value={editAccountNumber}
-                            onChange={(e) => setEditAccountNumber(e.target.value)}
-                            className="form-input"
-                            placeholder="계좌번호를 입력하세요"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>예금주</label>
-                          <input
-                            type="text"
-                            value={editAccountHolder}
-                            onChange={(e) => setEditAccountHolder(e.target.value)}
-                            className="form-input"
-                            placeholder="예금주를 입력하세요"
-                          />
-                        </div>
-                        <div className="account-edit-actions">
-                          <button className="btn-secondary" onClick={handleCancelEditAccount}>
-                            취소
-                          </button>
-                          <button className="btn-primary" onClick={handleSaveEditAccount}>
-                            저장
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="account-info">
-                          <div className="account-bank">{account.bankName}</div>
-                          <div className="account-number">{account.accountNumber}</div>
-                          <div className="account-holder">예금주: {account.accountHolder}</div>
-                          <div className="account-balance">잔액: {account.balance.toLocaleString()}원</div>
-                        </div>
-                        <div className="account-actions">
-                          {!account.isDefault && (
-                            <button 
-                              className="btn-secondary"
-                              onClick={() => handleSetDefaultAccount(account.accountId)}
-                            >
-                              기본계좌로 설정
-                            </button>
-                          )}
-                          <button 
-                            className="btn-secondary"
-                            onClick={() => handleStartEditAccount(account)}
-                          >
-                            수정
-                          </button>
-                          <button 
-                            className="btn-danger"
-                            onClick={() => handleDeleteBankAccount(account.accountId)}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </>
-                    )}
                   </div>
                 ))}
               </div>

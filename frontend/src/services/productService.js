@@ -233,3 +233,17 @@ export const removeWishlist = async (userId, postId) => {
   }
 };
 
+// 찜목록 조회
+export const getWishlist = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/wishlist?userId=${userId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('찜목록 조회 오류:', error);
+    throw error;
+  }
+};
+

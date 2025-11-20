@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -59,6 +60,23 @@ public class WishlistController {
             map.put("rt", "FAIL");
             map.put("message", "찜 삭제 중 오류가 발생했습니다: " + e.getMessage());
         }
+        return map;
+    }
+    
+    // 사용자 찜목록 조회
+    @GetMapping("/wishlist")
+    public Map<String, Object> getUserWishlist(@RequestParam("userId") int userId) {
+        Map<String, Object> map = new HashMap<>();
+        try {
+            List<Map<String, Object>> wishlist = wishlistService.getUserWishlist(userId);
+            map.put("rt", "OK");
+            map.put("items", wishlist);
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "찜목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        System.out.println(map);
         return map;
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import com.example.backend.entity.Wishlist;
 import com.example.backend.repository.WishlistRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -29,6 +30,11 @@ public class WishlistDAO {
 
     public long countByPostId(int postId) {
         return wishlistRepository.countByPostId(postId);
+    }
+    
+    // 사용자 ID로 찜 목록 조회 (최신순)
+    public List<Wishlist> findByUserIdOrderByCreatedAtDesc(int userId) {
+        return wishlistRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 }
 

@@ -54,6 +54,8 @@
   padding: 40px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .tab-content h2 {
@@ -304,8 +306,65 @@
 /* 찜 목록 */
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 30px;
+  justify-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wishlist-item-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wishlist-item-wrapper .product-card {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.wishlist-item-wrapper .product-card .product-image {
+  width: 100% !important;
+  max-width: 100%;
+  height: auto !important;
+  aspect-ratio: 230 / 300;
+  min-height: 0;
+}
+
+.btn-remove-wishlist {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  color: #666666;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-remove-wishlist:hover {
+  background-color: rgba(255, 255, 255, 1);
+  color: #000000;
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
 }
 
 .wishlist-item {
@@ -799,6 +858,13 @@
 }
 
 /* 반응형 */
+@media (max-width: 1024px) {
+  .wishlist-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .mypage-tabs {
     overflow-x: auto;
