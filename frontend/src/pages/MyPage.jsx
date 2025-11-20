@@ -4,7 +4,6 @@ import './MyPage.css';
 import { fetchSessionUser, logout } from '../services/authService';
 import { getWishlist, removeWishlist } from '../services/productService';
 import { getOrdersByUserId, getUserRefunds, cancelRefundRequest } from '../services/orderService';
-import { getOrdersByUserId } from '../services/orderService';
 import { getReviewsByUserId, updateReview, deleteReview } from '../services/reviewService';
 import ProductCard from '../components/ProductCard';
 
