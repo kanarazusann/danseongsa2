@@ -75,7 +75,6 @@ const formatDateTime = (value) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
-import { getProductPostsByBrand } from '../services/productService';
 
 function SellerDashboard() {
   const navigate = useNavigate();
