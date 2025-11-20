@@ -16,28 +16,31 @@ const resolveImageUrl = (url) => {
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   try {
-    // ISO 형식 또는 Timestamp 형식 모두 처리
+    // ISO 형식 문자열을 직접 파싱 (예: "2025-01-15T12:34:56")
     let date;
     if (typeof dateString === 'string') {
-      // Oracle Timestamp 형식 처리 (예: "2025-01-15 12:34:56.0")
-      const cleanDate = dateString.split('.')[0].replace(' ', 'T');
-      date = new Date(cleanDate);
+      // ISO 형식 문자열 그대로 사용
+      date = new Date(dateString);
     } else {
       date = new Date(dateString);
     }
     
+    // 유효한 날짜인지 확인
     if (isNaN(date.getTime())) {
-      return dateString;
+      console.error('날짜 파싱 실패:', dateString);
+      return '-';
     }
     
+    // YYYY-MM-DD HH:mm 형식으로 포맷팅
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}`;
-  } catch {
-    return dateString || '-';
+  } catch (error) {
+    console.error('날짜 포맷 오류:', dateString, error);
+    return '-';
   }
 };
 
@@ -60,6 +63,9 @@ function OrderDetail() {
       try {
         const { item: user } = await fetchSessionUser();
         const response = await getOrderDetail(orderId, user.userId);
+        console.log('주문 정보:', response.item);
+        console.log('주문일시:', response.item?.orderDate);
+        console.log('결제일시:', response.item?.paymentInfo?.paidAt);
         setOrder(response.item);
       } catch (error) {
         setErrorMessage(error.message || '주문 정보를 불러오지 못했습니다.');
@@ -136,16 +142,6 @@ function OrderDetail() {
     }
   };
 
-  // 환불 신청 핸들러
-  const handleRefundRequest = (orderItemId) => {
-    navigate('/refund/request', { 
-      state: { 
-        orderId: order.orderId,
-        orderItemId,
-        order 
-      } 
-    });
-  };
 
   if (loading) {
     return (
@@ -191,7 +187,9 @@ function OrderDetail() {
               </div>
               <div className="info-item">
                 <span className="info-label">주문일시</span>
-                <span className="info-value">{order.orderDate ? formatDate(order.orderDate) : '-'}</span>
+                <span className="info-value">
+                  {formatDate(order.orderDate || order.updatedAt || order.createdAt)}
+                </span>
               </div>
               <div className="info-item">
                 <span className="info-label">주문상태</span>
@@ -280,14 +278,6 @@ function OrderDetail() {
                           리뷰 작성
                         </button>
                       )}
-                      {(order.orderStatus || order.status)?.toUpperCase() === 'PAID' && (
-                        <button 
-                          className="btn-secondary"
-                          onClick={() => handleRefundRequest(item.orderItemId)}
-                        >
-                          환불신청
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
@@ -322,7 +312,9 @@ function OrderDetail() {
               </div>
               <div className="info-item">
                 <span className="info-label">결제일시</span>
-                <span className="info-value">{order.paymentInfo?.paidAt ? formatDate(order.paymentInfo.paidAt) : (order.orderDate ? formatDate(order.orderDate) : '-')}</span>
+                <span className="info-value">
+                  {formatDate(order.paymentInfo?.paidAt || order.orderDate || order.updatedAt || order.createdAt)}
+                </span>
               </div>
             </div>
           </section>

@@ -143,12 +143,19 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         
+        // 저장 후 refresh하여 최신 데이터 가져오기 (updatedAt 자동 설정)
+        orderRepository.flush(); // DB에 즉시 반영
+        
         // 장바구니에서 주문한 경우 장바구니 삭제
         if (!cartsToDelete.isEmpty()) {
             cartDAO.deleteAll(cartsToDelete);
         }
 
-        return buildOrderResponse(savedOrder, request.getPaymentMethod());
+        // 최신 정보 다시 조회하여 날짜 필드 확실히 가져오기
+        Order freshOrder = orderRepository.findById(savedOrder.getOrderId())
+                .orElseThrow(() -> new IllegalStateException("주문 저장 후 조회 실패"));
+
+        return buildOrderResponse(freshOrder, request.getPaymentMethod());
     }
 
     private OrderItem createOrderItemFromCart(Cart cart, Product product, int effectivePrice) {
@@ -248,17 +255,16 @@ public class OrderService {
         item.put("orderId", order.getOrderId());
         item.put("orderNumber", order.getOrderNumber());
         item.put("orderStatus", order.getOrderStatus());
-        // 주문일시는 updatedAt 사용 (결제 완료 시점)
-        // Timestamp를 ISO 형식 문자열로 변환 (yyyy-MM-ddTHH:mm:ss)
+        
+        // 주문일시: updatedAt 우선, 없으면 createdAt 사용
+        String orderDateStr = null;
         if (order.getUpdatedAt() != null) {
-            LocalDateTime dateTime = order.getUpdatedAt().toLocalDateTime();
-            item.put("orderDate", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            orderDateStr = order.getUpdatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         } else if (order.getCreatedAt() != null) {
-            LocalDateTime dateTime = order.getCreatedAt().toLocalDateTime();
-            item.put("orderDate", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        } else {
-            item.put("orderDate", null);
+            orderDateStr = order.getCreatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         }
+        item.put("orderDate", orderDateStr);
+        item.put("updatedAt", orderDateStr);
         item.put("finalPrice", order.getFinalPrice());
 
         Map<String, Object> deliveryInfo = new HashMap<>();
@@ -276,17 +282,8 @@ public class OrderService {
         paymentInfo.put("discountAmount", order.getDiscountAmount());
         paymentInfo.put("deliveryFee", order.getDeliveryFee());
         paymentInfo.put("finalPrice", order.getFinalPrice());
-        // 결제일시는 updatedAt 사용 (주문일시와 동일)
-        // Timestamp를 ISO 형식 문자열로 변환 (yyyy-MM-ddTHH:mm:ss)
-        if (order.getUpdatedAt() != null) {
-            LocalDateTime dateTime = order.getUpdatedAt().toLocalDateTime();
-            paymentInfo.put("paidAt", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        } else if (order.getCreatedAt() != null) {
-            LocalDateTime dateTime = order.getCreatedAt().toLocalDateTime();
-            paymentInfo.put("paidAt", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        } else {
-            paymentInfo.put("paidAt", null);
-        }
+        // 결제일시: 주문일시와 동일 (updatedAt 우선, 없으면 createdAt)
+        paymentInfo.put("paidAt", orderDateStr);
         item.put("paymentInfo", paymentInfo);
 
         List<Map<String, Object>> orderItemList = order.getOrderItems().stream()
