@@ -20,11 +20,11 @@ function Home() {
 
   // 배너 이미지 배열 (5개)
   const bannerImages = [
-    { image: 'https://via.placeholder.com/1920x600/000000/FFFFFF?text=BANNER1', title: '첫 번째 배너', text: '첫 번째 배너 텍스트입니다', link: '/banner1' },
+    { image: '/bannerImage/겨울배너.png', title: '첫 번째 배너', text: '첫 번째 배너 텍스트입니다', link: '/banner1' },
     { image: '/bannerImage/패딩배너.png', title: '두 번째 배너', text: '두 번째 배너 텍스트입니다', link: '/banner2' },
-    { image: 'https://via.placeholder.com/1920x600/666666/FFFFFF?text=BANNER3', title: '세 번째 배너', text: '세 번째 배너 텍스트입니다', link: '/banner3' },
-    { image: 'https://via.placeholder.com/1920x600/999999/FFFFFF?text=BANNER4', title: '네 번째 배너', text: '네 번째 배너 텍스트입니다', link: '/banner4' },
-    { image: 'https://via.placeholder.com/1920x600/CCCCCC/000000?text=BANNER5', title: '다섯 번째 배너', text: '다섯 번째 배너 텍스트입니다', link: '/banner5' }
+    { image: '/bannerImage/방한배너.png', title: '세 번째 배너', text: '세 번째 배너 텍스트입니다', link: '/banner3' },
+    { image: '/bannerImage/패딩배너.png', title: '네 번째 배너', text: '네 번째 배너 텍스트입니다', link: '/banner4' },
+    { image: '/bannerImage/패딩배너.png', title: '다섯 번째 배너', text: '다섯 번째 배너 텍스트입니다', link: '/banner5' }
   ];
 
   // 이전 슬라이드
@@ -198,8 +198,8 @@ function Home() {
           >
             {bannerImages.map((banner, index) => (
               <div key={index} className="banner-slide">
-                {index === 1 ? (
-                  <Link to="/banner2" style={{ display: 'block', width: '100%', height: '100%' }}>
+                {banner.link ? (
+                  <Link to={banner.link} style={{ display: 'block', width: '100%', height: '100%' }}>
                     <img src={banner.image} alt={`배너 ${index + 1}`} style={{ cursor: 'pointer' }} />
                   </Link>
                 ) : (
