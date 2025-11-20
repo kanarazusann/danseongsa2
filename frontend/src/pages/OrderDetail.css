@@ -238,9 +238,17 @@
 .payment-item-actions {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 10px;
   padding-left: 20px;
   margin-top: 40px;
+  justify-content: flex-end;
+}
+
+.payment-item-status-text {
+  font-size: 13px;
+  color: #666666;
+  margin-top: 10px;
 }
 
 .payment-item-total .btn-review,

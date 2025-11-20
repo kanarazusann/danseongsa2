@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
 import { fetchSessionUser } from '../services/authService';
-import { getSellerOrders } from '../services/orderService';
+import { getSellerOrders, shipOrderItem, cancelOrderItemBySeller } from '../services/orderService';
 import { getProductPostsByBrand } from '../services/productService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -26,6 +26,7 @@ const ORDER_STATUS_TEXT = {
   DELIVERED: '배송완료',
   CANCELED: '취소됨',
   CANCELLED: '취소됨',
+  REFUND: '환불/교환',
   REFUND_REQUESTED: '환불요청중',
   REFUNDED: '환불완료',
   EXCHANGE_REQUESTED: '교환요청중',
@@ -52,6 +53,8 @@ const getOrderStatusClass = (status) => {
       return 'refund-requested';
     case 'refunded':
       return 'refunded';
+    case 'refund':
+      return 'refund-requested';
     case 'exchange_requested':
       return 'exchange-requested';
     case 'exchanged':
@@ -235,7 +238,7 @@ function SellerDashboard() {
       return sum + (order.totalPrice || 0);
     }, 0);
 
-    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND_REQUESTED', 'EXCHANGE_REQUESTED'];
+    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND', 'REFUND_REQUESTED', 'EXCHANGE_REQUESTED'];
     const pendingOrders = orders.filter(order =>
       pendingStatuses.includes((order.status || '').toUpperCase())
     ).length;
@@ -266,6 +269,46 @@ function SellerDashboard() {
       // 임시로 상태 업데이트
       setOrders(prev => prev.filter(order => order.orderItemId !== orderItemId));
       alert('주문이 삭제되었습니다.');
+    }
+  };
+
+  const handleShipOrder = async (orderItemId) => {
+    if (!sellerId) return;
+    try {
+      const response = await shipOrderItem(orderItemId, sellerId);
+      if (response.item) {
+        const updated = response.item;
+        setOrders(prev =>
+          prev.map(order =>
+            order.orderItemId === updated.orderItemId ? { ...order, ...updated } : order
+          )
+        );
+        setOrdersError('');
+      }
+    } catch (error) {
+      console.error('배송 처리 오류:', error);
+      alert(error.message || '배송 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSellerCancel = async (orderItemId) => {
+    if (!sellerId) return;
+    if (!window.confirm('해당 주문을 취소하시겠습니까?')) {
+      return;
+    }
+    try {
+      const response = await cancelOrderItemBySeller(orderItemId, sellerId);
+      if (response.item?.orderDeleted) {
+        setOrders(prev => prev.filter(order => order.orderItemId !== orderItemId));
+      } else if (response.item?.order) {
+        setOrders(prev =>
+          prev.filter(order => order.orderItemId !== orderItemId)
+        );
+      }
+      alert('주문이 취소되었습니다.');
+    } catch (error) {
+      console.error('판매자 주문 취소 오류:', error);
+      alert(error.message || '주문 취소 중 오류가 발생했습니다.');
     }
   };
 
@@ -569,9 +612,6 @@ function SellerDashboard() {
                     <div key={order.orderItemId} className="order-card">
                       <div className="order-header">
                         <div className="order-header-left">
-                          {isPaid && (
-                            <span className="order-status-badge paid">결제완료</span>
-                          )}
                           <div className="order-meta">
                             <span className="order-number">주문번호: {order.orderNumber || '-'}</span>
                             <span className="order-date">{formatDateTime(order.orderDate)}</span>
@@ -616,18 +656,13 @@ function SellerDashboard() {
                       <div className="order-actions">
                         {statusUpper === 'PAID' && (
                           <>
-                            <button className="btn-primary" onClick={() => alert('배송 처리 기능은 준비 중입니다.')}>
+                            <button className="btn-primary" onClick={() => handleShipOrder(order.orderItemId)}>
                               배송 처리
                             </button>
-                            <button className="btn-secondary" onClick={() => alert('주문 취소 기능은 준비 중입니다.')}>
+                        <button className="btn-secondary" onClick={() => handleSellerCancel(order.orderItemId)}>
                               주문 취소
                             </button>
                           </>
-                        )}
-                        {statusUpper === 'DELIVERING' && (
-                          <button className="btn-primary" onClick={() => alert('배송완료 처리는 준비 중입니다.')}>
-                            배송완료 처리
-                          </button>
                         )}
                         {['CANCELED', 'CANCELLED', 'REFUNDED', 'EXCHANGED'].includes(statusUpper) && (
                           <button 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import './OrderDetail.css';
 import { fetchSessionUser } from '../services/authService';
-import { getOrderDetail } from '../services/orderService';
+import { getOrderDetail, cancelOrderItem, requestRefund, requestExchange, confirmOrderItem } from '../services/orderService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -47,11 +47,11 @@ const formatDate = (dateString) => {
 function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -63,13 +63,14 @@ function OrderDetail() {
 
       try {
         const { item: user } = await fetchSessionUser();
+        setUserId(user.userId);
         const response = await getOrderDetail(orderId, user.userId);
         console.log('주문 정보:', response.item);
         console.log('주문일시:', response.item?.orderDate);
         console.log('결제일시:', response.item?.paymentInfo?.paidAt);
         
         if (response.item) {
-          setOrder(response.item);
+        setOrder(response.item);
         } else {
           setErrorMessage('주문 정보를 찾을 수 없습니다.');
         }
@@ -81,17 +82,25 @@ function OrderDetail() {
       }
     };
 
-    loadOrder();
+      loadOrder();
   }, [orderId, navigate]);
 
   const getStatusText = (status) => {
     const statusMap = {
       'PAID': '결제완료',
+      'DELIVERING': '배송중',
       'DELIVERED': '배송완료',
+      'CANCELED': '취소됨',
       'CANCELLED': '취소됨',
-      'REFUNDED': '환불됨'
+      'REFUND': '환불/교환',
+      'REFUND_REQUESTED': '환불요청중',
+      'REFUNDED': '환불완료',
+      'EXCHANGE_REQUESTED': '교환요청중',
+      'EXCHANGED': '교환완료'
     };
-    return statusMap[status] || '결제완료'; // 기본값은 결제완료
+    if (!status) return statusMap['PAID'];
+    const key = status.toUpperCase();
+    return statusMap[key] || status;
   };
   
   // 리뷰 작성 핸들러
@@ -107,29 +116,61 @@ function OrderDetail() {
     });
   };
 
-  // 환불 요청 핸들러
-  const handleRefundRequest = (item) => {
-    // TODO: 환불 요청 페이지로 이동 또는 모달 표시
-    navigate('/refund/request', {
-      state: {
-        orderId: order.orderId,
-        orderItemId: item.orderItemId,
-        productName: item.productName
+  const handleOrderUpdate = (result, successMessage) => {
+    if (!result) return;
+    if (result.orderDeleted) {
+      alert(successMessage || '처리가 완료되었습니다.');
+      navigate('/mypage');
+      return;
+    }
+    if (result.order) {
+      setOrder(result.order);
+      if (successMessage) {
+        alert(successMessage);
       }
-    });
+    }
   };
 
-  // 교환 요청 핸들러
-  const handleExchangeRequest = (item) => {
-    // TODO: 교환 요청 페이지로 이동 또는 모달 표시
-    alert('교환 요청 기능은 준비 중입니다.');
+  const handleCancelOrderItem = async (orderItemId) => {
+    if (!userId) return;
+    if (!window.confirm('해당 상품의 결제를 취소하시겠습니까?')) {
+      return;
+    }
+    try {
+      const response = await cancelOrderItem(orderItemId, userId);
+      handleOrderUpdate(response.item, '결제가 취소되었습니다.');
+    } catch (error) {
+      alert(error.message || '결제 취소 중 오류가 발생했습니다.');
+    }
   };
 
-  // 구매확정 핸들러
-  const handleConfirmPurchase = (item) => {
-    // TODO: 구매확정 API 호출
-    if (window.confirm('구매를 확정하시겠습니까?')) {
-      alert('구매확정 기능은 준비 중입니다.');
+  const handleRefundRequest = async (orderItemId) => {
+    if (!userId) return;
+    try {
+      const response = await requestRefund(orderItemId, userId);
+      handleOrderUpdate(response.item, '환불 요청이 접수되었습니다.');
+    } catch (error) {
+      alert(error.message || '환불 요청 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleExchangeRequest = async (orderItemId) => {
+    if (!userId) return;
+    try {
+      const response = await requestExchange(orderItemId, userId);
+      handleOrderUpdate(response.item, '교환 요청이 접수되었습니다.');
+    } catch (error) {
+      alert(error.message || '교환 요청 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleConfirmPurchase = async (orderItemId) => {
+    if (!userId) return;
+    try {
+      const response = await confirmOrderItem(orderItemId, userId);
+      handleOrderUpdate(response.item, '구매가 확정되었습니다.');
+    } catch (error) {
+      alert(error.message || '구매 확정 중 오류가 발생했습니다.');
     }
   };
 
@@ -141,38 +182,6 @@ function OrderDetail() {
     };
     return methodMap[method] || method;
   };
-
-  // 결제 취소 핸들러 (데이터 삭제)
-  const handleCancelOrder = async () => {
-    if (!window.confirm('정말로 이 주문을 취소하시겠습니까? 주문 정보가 완전히 삭제됩니다.')) {
-      return;
-    }
-
-    try {
-      const { item: user } = await fetchSessionUser();
-      const response = await fetch(`${API_BASE_URL}/orders/${order.orderId}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ userId: user.userId })
-      });
-
-      const data = await response.json();
-      if (response.ok && data.rt === 'OK') {
-        alert('주문이 취소되었습니다.');
-        // 주문 목록 페이지로 이동 (주문이 삭제되었으므로)
-        navigate('/mypage');
-      } else {
-        alert(data.message || '주문 취소 중 오류가 발생했습니다.');
-      }
-    } catch (error) {
-      console.error('주문 취소 오류:', error);
-      alert('주문 취소 중 오류가 발생했습니다.');
-    }
-  };
-
 
   if (loading) {
     return (
@@ -302,30 +311,66 @@ function OrderDetail() {
                       <span className="total-label">합계</span>
                       <span className="total-price">{itemTotal.toLocaleString()}원</span>
                       {(() => {
-                        const orderStatus = (order.orderStatus || order.status)?.toUpperCase();
-                        if (orderStatus === 'PAID' || orderStatus === 'DELIVERING') {
+                        const itemStatus = (item.status || 'PAID').toUpperCase();
+                        if (itemStatus === 'PAID') {
                           return (
                             <div className="payment-item-actions">
-                              <button className="btn-review" onClick={() => handleRefundRequest(item)}>
+                              <button
+                                className="btn-review"
+                                onClick={() => handleCancelOrderItem(item.orderItemId)}
+                              >
+                                결제 취소
+                              </button>
+                            </div>
+                          );
+                        }
+                        if (itemStatus === 'DELIVERING') {
+                          return (
+                            <div className="payment-item-actions">
+                              <button
+                                className="btn-review"
+                                onClick={() => handleRefundRequest(item.orderItemId)}
+                              >
                                 환불 요청
                               </button>
-                              <button className="btn-review" onClick={() => handleExchangeRequest(item)}>
+                              <button
+                                className="btn-review"
+                                onClick={() => handleExchangeRequest(item.orderItemId)}
+                              >
                                 교환 요청
                               </button>
-                              <button className="btn-review" onClick={() => handleConfirmPurchase(item)}>
+                              <button
+                                className="btn-review"
+                                onClick={() => handleConfirmPurchase(item.orderItemId)}
+                              >
                                 구매확정
                               </button>
                             </div>
                           );
-                        } else if (orderStatus === 'DELIVERED') {
+                        }
+                        if (itemStatus === 'DELIVERED') {
                           return (
-                            <button 
-                              className="btn-review"
-                              onClick={() => handleWriteReview(item)}
-                            >
-                              리뷰 작성
-                            </button>
+                            <div className="payment-item-actions">
+                              <button
+                                className="btn-review"
+                                onClick={() => handleWriteReview(item)}
+                              >
+                                리뷰 작성
+                              </button>
+                            </div>
                           );
+                        }
+                        if (itemStatus === 'REFUND_REQUESTED') {
+                          return <div className="payment-item-status-text">환불 요청 처리중</div>;
+                        }
+                        if (itemStatus === 'EXCHANGE_REQUESTED') {
+                          return <div className="payment-item-status-text">교환 요청 처리중</div>;
+                        }
+                        if (itemStatus === 'REFUNDED') {
+                          return <div className="payment-item-status-text">환불 완료</div>;
+                        }
+                        if (itemStatus === 'EXCHANGED') {
+                          return <div className="payment-item-status-text">교환 완료</div>;
                         }
                         return null;
                       })()}
@@ -342,53 +387,48 @@ function OrderDetail() {
 
           {/* 결제 정보 */}
           {order.paymentInfo && (
-            <section className="detail-section">
-              <h2 className="section-title">결제 정보</h2>
-              <div className="payment-info">
+          <section className="detail-section">
+            <h2 className="section-title">결제 정보</h2>
+            <div className="payment-info">
                 {order.paymentInfo.amount !== undefined && (
-                  <div className="info-item">
-                    <span className="info-label">상품 금액</span>
-                    <span className="info-value">{order.paymentInfo.amount.toLocaleString()}원</span>
-                  </div>
+              <div className="info-item">
+                <span className="info-label">상품 금액</span>
+                <span className="info-value">{order.paymentInfo.amount.toLocaleString()}원</span>
+              </div>
                 )}
-                {order.paymentInfo.discountAmount > 0 && (
-                  <div className="info-item">
-                    <span className="info-label">할인 금액</span>
-                    <span className="info-value">-{order.paymentInfo.discountAmount.toLocaleString()}원</span>
-                  </div>
-                )}
-                {order.paymentInfo.deliveryFee !== undefined && (
-                  <div className="info-item">
-                    <span className="info-label">배송비</span>
-                    <span className="info-value">
-                      {order.paymentInfo.deliveryFee === 0 ? '무료' : `${order.paymentInfo.deliveryFee.toLocaleString()}원`}
-                    </span>
-                  </div>
-                )}
-                <div className="info-divider"></div>
-                {order.paymentInfo.finalPrice !== undefined && (
-                  <div className="info-item total">
-                    <span className="info-label">최종 결제금액</span>
-                    <span className="info-value final-price">{order.paymentInfo.finalPrice.toLocaleString()}원</span>
-                  </div>
-                )}
+              {order.paymentInfo.discountAmount > 0 && (
                 <div className="info-item">
-                  <span className="info-label">결제일시</span>
+                  <span className="info-label">할인 금액</span>
+                  <span className="info-value">-{order.paymentInfo.discountAmount.toLocaleString()}원</span>
+                </div>
+              )}
+                {order.paymentInfo.deliveryFee !== undefined && (
+              <div className="info-item">
+                <span className="info-label">배송비</span>
+                <span className="info-value">
+                  {order.paymentInfo.deliveryFee === 0 ? '무료' : `${order.paymentInfo.deliveryFee.toLocaleString()}원`}
+                </span>
+              </div>
+                )}
+              <div className="info-divider"></div>
+                {order.paymentInfo.finalPrice !== undefined && (
+              <div className="info-item total">
+                <span className="info-label">최종 결제금액</span>
+                <span className="info-value final-price">{order.paymentInfo.finalPrice.toLocaleString()}원</span>
+              </div>
+                )}
+              <div className="info-item">
+                <span className="info-label">결제일시</span>
                   <span className="info-value">
                     {formatDate(order.paymentInfo?.paidAt || order.createdAt || order.orderDate)}
                   </span>
-                </div>
               </div>
-            </section>
+            </div>
+          </section>
           )}
 
           {/* 주문 액션 버튼 */}
           <div className="order-detail-actions">
-            {(order.orderStatus || order.status || 'PAID').toUpperCase() === 'PAID' && (
-              <button onClick={handleCancelOrder} className="btn-danger">
-                결제 취소
-              </button>
-            )}
             <button onClick={() => navigate('/mypage')} className="btn-secondary">
               목록으로
             </button>

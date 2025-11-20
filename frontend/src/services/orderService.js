@@ -51,4 +51,76 @@ export const getSellerOrders = async (sellerId) => {
   return handleResponse(response);
 };
 
+export const shipOrderItem = async (orderItemId, sellerId) => {
+  const response = await fetch(`${API_BASE_URL}/seller/orders/${orderItemId}/ship`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ sellerId })
+  });
+  return handleResponse(response);
+};
+
+export const cancelOrderItemBySeller = async (orderItemId, sellerId) => {
+  const response = await fetch(`${API_BASE_URL}/seller/orders/${orderItemId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ sellerId })
+  });
+  return handleResponse(response);
+};
+
+export const cancelOrderItem = async (orderItemId, userId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ userId })
+  });
+  return handleResponse(response);
+};
+
+export const requestRefund = async (orderItemId, userId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/refund`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ userId })
+  });
+  return handleResponse(response);
+};
+
+export const requestExchange = async (orderItemId, userId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/exchange`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ userId })
+  });
+  return handleResponse(response);
+};
+
+export const confirmOrderItem = async (orderItemId, userId) => {
+  const response = await fetch(`${API_BASE_URL}/orders/items/${orderItemId}/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ userId })
+  });
+  return handleResponse(response);
+};
+
 

@@ -16,5 +16,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
             "where oi.sellerId = :sellerId " +
             "order by oi.orderItemId desc")
     List<OrderItem> findBySellerIdWithDetails(@Param("sellerId") int sellerId);
+
+    List<OrderItem> findByOrder_OrderId(int orderId);
 }
 
