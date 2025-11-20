@@ -1,25 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './ReviewWrite.css';
+import { fetchSessionUser } from '../services/authService';
+import { createReview } from '../services/reviewService';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function ReviewWrite() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // location.state에서 전달받은 데이터 또는 예시 데이터
+  // location.state에서 전달받은 데이터
   const stateData = location.state || {};
+  
+  // 필수 정보 확인
+  const postId = stateData.postId;
+  const orderItemId = stateData.orderItemId;
+  const productId = stateData.productId || null;
+  
   const productInfo = {
-    productId: stateData.productId || 1,
-    productName: stateData.productName || '클래식 오버핏 코트',
-    productImage: stateData.productImage || 'https://via.placeholder.com/200x250/000000/FFFFFF?text=COAT',
+    productId: productId || stateData.productId || 1,
+    postId: postId || stateData.postId || 1,
+    productName: stateData.productName || stateData.postName || '클래식 오버핏 코트',
+    productImage: stateData.productImage || stateData.imageUrl || 'https://via.placeholder.com/200x250/000000/FFFFFF?text=COAT',
     brand: stateData.brand || 'DANSUNGSA',
     orderNumber: stateData.orderNumber || 'ORD20250114-001'
   };
   
   // 리뷰 작성 상태
+  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
   const [images, setImages] = useState([]);
+  
+  // 세션에서 사용자 정보 가져오기
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        const { item } = await fetchSessionUser();
+        setUserId(item.userId);
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      }
+    };
+    loadUserInfo();
+  }, [navigate]);
+  
+  // 필수 정보 확인
+  useEffect(() => {
+    if (!postId || !orderItemId) {
+      alert('리뷰 작성에 필요한 정보가 없습니다.');
+      navigate(-1);
+    }
+  }, [postId, orderItemId, navigate]);
   
   // 이미지 선택
   const handleImageSelect = (e) => {
@@ -28,6 +64,14 @@ function ReviewWrite() {
       alert('이미지는 최대 5개까지 업로드 가능합니다.');
       return;
     }
+    
+    // 파일 크기 확인 (각 파일 최대 5MB)
+    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert('각 파일은 최대 5MB까지 업로드 가능합니다.');
+      return;
+    }
+    
     const newImages = files.map(file => ({
       file,
       preview: URL.createObjectURL(file)
@@ -42,16 +86,53 @@ function ReviewWrite() {
   };
   
   // 리뷰 작성
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!content.trim()) {
       alert('리뷰 내용을 입력해주세요.');
       return;
     }
-    // TODO: API 호출
-    console.log('리뷰 작성:', { rating, content, images });
-    alert('리뷰가 작성되었습니다.');
-    navigate('/mypage');
+    
+    if (!userId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+    
+    if (!postId || !orderItemId) {
+      alert('리뷰 작성에 필요한 정보가 없습니다.');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const reviewData = {
+        userId,
+        postId,
+        productId,
+        orderItemId,
+        rating,
+        content: content.trim(),
+        images
+      };
+      
+      await createReview(reviewData);
+      
+      // 이미지 미리보기 URL 정리
+      images.forEach(image => {
+        URL.revokeObjectURL(image.preview);
+      });
+      
+      alert('리뷰가 작성되었습니다.');
+      navigate('/mypage');
+    } catch (error) {
+      console.error('리뷰 작성 오류:', error);
+      alert(error.message || '리뷰 작성 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -63,15 +144,18 @@ function ReviewWrite() {
         <div className="product-info-section">
           <h2 className="section-title">주문 상품</h2>
           <div className="product-info-card">
-            <Link to={`/product/${productInfo.productId}`} className="product-image-link">
+            <Link to={`/product?productId=${productInfo.postId}`} className="product-image-link">
               <img 
-                src={productInfo.productImage} 
+                src={productInfo.productImage.startsWith('http') ? productInfo.productImage : `${API_BASE_URL}${productInfo.productImage}`}
                 alt={productInfo.productName}
                 className="product-image"
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
+                }}
               />
             </Link>
             <div className="product-details">
-              <Link to={`/product/${productInfo.productId}`} className="product-name">
+              <Link to={`/product?productId=${productInfo.postId}`} className="product-name">
                 {productInfo.productName}
               </Link>
               <p className="product-brand">{productInfo.brand}</p>
@@ -199,9 +283,9 @@ function ReviewWrite() {
             <button
               type="submit"
               className="btn-submit"
-              disabled={!content.trim()}
+              disabled={!content.trim() || loading}
             >
-              리뷰 작성
+              {loading ? '작성 중...' : '리뷰 작성'}
             </button>
           </div>
         </form>
