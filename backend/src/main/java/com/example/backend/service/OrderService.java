@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dao.CartDAO;
 import com.example.backend.dao.ProductDAO;
 import com.example.backend.dao.ProductImageDAO;
+import com.example.backend.dao.ReviewDAO;
 import com.example.backend.dao.UserDAO;
 import com.example.backend.dto.OrderCreateRequest;
 import com.example.backend.entity.*;
@@ -38,6 +39,9 @@ public class OrderService {
 
     @Autowired
     private OrderItemRepository orderItemRepository;
+    
+    @Autowired
+    private ReviewDAO reviewDAO;
 
     @Autowired
     private RefundRepository refundRepository;
@@ -649,6 +653,16 @@ public class OrderService {
         if (orderItem.getProductPost() != null) {
             map.put("brand", orderItem.getProductPost().getBrand());
         }
+        
+        // 리뷰 작성 여부 확인
+        Review review = reviewDAO.findByOrderItemId(orderItem.getOrderItemId());
+        if (review != null) {
+            map.put("reviewId", review.getReviewId());
+            map.put("hasReview", true);
+        } else {
+            map.put("hasReview", false);
+        }
+        
         return map;
     }
 

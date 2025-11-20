@@ -150,13 +150,21 @@ function OrderDetail() {
   const handleWriteReview = (item) => {
     navigate('/review/write', {
       state: {
+        postId: item.postId,
         productId: item.productId,
         productName: item.productName,
         productImage: item.productImage,
+        brand: item.brand,
         orderItemId: item.orderItemId,
         orderNumber: order.orderNumber
       }
     });
+  };
+  
+  // 리뷰 보기 핸들러
+  const handleViewReview = (reviewId) => {
+    // 리뷰 상세 페이지로 이동 (나중에 구현)
+    navigate(`/review/${reviewId}`);
   };
 
   const handleCancelOrderItem = async (orderItemId) => {
@@ -425,12 +433,21 @@ function OrderDetail() {
                         if (itemStatus === 'DELIVERED') {
                           return (
                             <div className="payment-item-actions">
-                              <button
-                                className="btn-review"
-                                onClick={() => handleWriteReview(item)}
-                              >
-                                리뷰 작성
-                              </button>
+                              {item.hasReview ? (
+                                <button
+                                  className="btn-review"
+                                  onClick={() => handleViewReview(item.reviewId)}
+                                >
+                                  리뷰 보기
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn-review"
+                                  onClick={() => handleWriteReview(item)}
+                                >
+                                  리뷰 작성
+                                </button>
+                              )}
                             </div>
                           );
                         }

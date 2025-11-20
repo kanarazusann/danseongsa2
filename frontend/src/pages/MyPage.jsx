@@ -4,7 +4,11 @@ import './MyPage.css';
 import { fetchSessionUser, logout } from '../services/authService';
 import { getWishlist, removeWishlist } from '../services/productService';
 import { getOrdersByUserId, getUserRefunds, cancelRefundRequest } from '../services/orderService';
+import { getOrdersByUserId } from '../services/orderService';
+import { getReviewsByUserId, updateReview, deleteReview } from '../services/reviewService';
 import ProductCard from '../components/ProductCard';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function MyPage() {
   const navigate = useNavigate();
@@ -32,42 +36,34 @@ function MyPage() {
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [refunds, setRefunds] = useState([]);
   const [loadingRefunds, setLoadingRefunds] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
-  const [reviews, setReviews] = useState([
-    {
-      reviewId: 1,
-      productId: 1,
-      productName: '클래식 오버핏 코트',
-      productImage: 'https://via.placeholder.com/200x250/000000/FFFFFF?text=COAT',
-      rating: 5,
-      content: '정말 좋은 상품입니다! 품질도 좋고 사이즈도 딱 맞아요. 다음에도 또 구매할 예정입니다.',
-      createdAt: '2025-01-15',
-      updatedAt: '2025-01-15',
-      orderNumber: 'ORD20250114-001'
-    },
-    {
-      reviewId: 2,
-      productId: 2,
-      productName: '베이직 티셔츠',
-      productImage: 'https://via.placeholder.com/200x250/FFFFFF/000000?text=T-SHIRT',
-      rating: 4,
-      content: '가격 대비 만족스럽습니다. 다만 색상이 사진보다 약간 다르네요.',
-      createdAt: '2025-01-14',
-      updatedAt: '2025-01-14',
-      orderNumber: 'ORD20250114-001'
-    },
-    {
-      reviewId: 3,
-      productId: 3,
-      productName: '레더 스니커즈',
-      productImage: 'https://via.placeholder.com/200x250/FFFFFF/000000?text=SHOES',
-      rating: 5,
-      content: '신발이 정말 편하고 디자인도 예뻐요! 강력 추천합니다.',
-      createdAt: '2025-01-13',
-      updatedAt: '2025-01-13',
-      orderNumber: 'ORD20250113-002'
+
+  
+
+  // 날짜 포맷팅 함수 (YYYY-MM-DD)
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return dateString;
     }
-  ]);
+  };
+  
+  // 이미지 URL 처리
+  const resolveImageUrl = (url) => {
+    if (!url) return 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
 
   const getStatusText = (status) => {
     const statusMap = {
@@ -228,6 +224,45 @@ function MyPage() {
     
     loadWishlist();
   }, [activeTab, navigate]);
+  
+  // 리뷰 목록 로드
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (activeTab !== 'reviews') return;
+      
+      try {
+        setLoadingReviews(true);
+        const { item: userInfo } = await fetchSessionUser();
+        const response = await getReviewsByUserId(userInfo.userId);
+        
+        if (response.rt === 'OK' && response.items) {
+          const formattedReviews = response.items.map(review => ({
+            reviewId: review.reviewId,
+            postId: review.postId,
+            productId: review.productId || review.postId,
+            productName: review.productName || '',
+            productImage: resolveImageUrl(review.productImage),
+            brand: review.brand || '',
+            rating: review.rating,
+            content: review.content || '',
+            createdAt: formatDate(review.createdAt),
+            updatedAt: formatDate(review.updatedAt),
+            orderNumber: review.orderNumber || ''
+          }));
+          setReviews(formattedReviews);
+        } else {
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error('리뷰 목록 로드 오류:', error);
+        setReviews([]);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+    
+    loadReviews();
+  }, [activeTab, navigate]);
 
   // 취소/반품 내역 로드
   useEffect(() => {
@@ -298,37 +333,66 @@ function MyPage() {
   };
 
   // 리뷰 수정 저장
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editContent.trim()) {
       alert('리뷰 내용을 입력해주세요.');
       return;
     }
 
-    // 나중에 API 호출로 교체
-    // 예: await updateReview(editingReviewId, { rating: editRating, content: editContent });
+    try {
+      const { item: userInfo } = await fetchSessionUser();
+      await updateReview(editingReviewId, {
+        userId: userInfo.userId,
+        rating: editRating,
+        content: editContent.trim(),
+        images: [] // 이미지 수정은 나중에 추가 가능
+      });
 
-    // 임시로 상태 업데이트
-    setReviews(reviews.map(review => 
-      review.reviewId === editingReviewId
-        ? { ...review, rating: editRating, content: editContent, updatedAt: new Date().toISOString().split('T')[0] }
-        : review
-    ));
+      // 리뷰 목록 다시 로드
+      const response = await getReviewsByUserId(userInfo.userId);
+      if (response.rt === 'OK' && response.items) {
+        const formattedReviews = response.items.map(review => ({
+          reviewId: review.reviewId,
+          postId: review.postId,
+          productId: review.productId || review.postId,
+          productName: review.productName || '',
+          productImage: resolveImageUrl(review.productImage),
+          brand: review.brand || '',
+          rating: review.rating,
+          content: review.content || '',
+          createdAt: formatDate(review.createdAt),
+          updatedAt: formatDate(review.updatedAt),
+          orderNumber: review.orderNumber || ''
+        }));
+        setReviews(formattedReviews);
+      }
 
-    setEditingReviewId(null);
-    setEditRating(5);
-    setEditContent('');
-    alert('리뷰가 수정되었습니다.');
+      setEditingReviewId(null);
+      setEditRating(5);
+      setEditContent('');
+      alert('리뷰가 수정되었습니다.');
+    } catch (error) {
+      console.error('리뷰 수정 오류:', error);
+      alert(error.message || '리뷰 수정 중 오류가 발생했습니다.');
+    }
   };
 
   // 리뷰 삭제
-  const handleDeleteReview = (reviewId) => {
-    if (window.confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
-      // 나중에 API 호출로 교체
-      // 예: await deleteReview(reviewId);
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
+      return;
+    }
 
-      // 임시로 상태 업데이트
+    try {
+      const { item: userInfo } = await fetchSessionUser();
+      await deleteReview(reviewId, userInfo.userId);
+
+      // 리뷰 목록에서 제거
       setReviews(reviews.filter(review => review.reviewId !== reviewId));
       alert('리뷰가 삭제되었습니다.');
+    } catch (error) {
+      console.error('리뷰 삭제 오류:', error);
+      alert(error.message || '리뷰 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -597,7 +661,11 @@ function MyPage() {
         {activeTab === 'reviews' && (
           <div className="tab-content">
             <h2>내 리뷰</h2>
-            {reviews.length === 0 ? (
+            {loadingReviews ? (
+              <div className="empty-state">
+                <p>로딩 중...</p>
+              </div>
+            ) : reviews.length === 0 ? (
               <div className="empty-state">
                 <p>작성한 리뷰가 없습니다.</p>
               </div>
@@ -606,17 +674,26 @@ function MyPage() {
                 {reviews.map(review => (
                   <div key={review.reviewId} className="review-card">
                     <div className="review-product-info">
-                      <Link to={`/product/${review.productId}`} className="review-product-image">
-                        <img src={review.productImage} alt={review.productName} />
+                      <Link to={`/product?productId=${review.postId}`} className="review-product-image">
+                        <img 
+                          src={review.productImage} 
+                          alt={review.productName}
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
+                          }}
+                        />
                       </Link>
                       <div className="review-product-details">
-                        <Link to={`/product/${review.productId}`} className="review-product-name">
+                        <Link to={`/product?productId=${review.postId}`} className="review-product-name">
                           {review.productName}
                         </Link>
+                        {review.brand && (
+                          <p className="review-brand">{review.brand}</p>
+                        )}
                         <div className="review-order-info">
-                          <span>주문번호: {review.orderNumber}</span>
+                          {review.orderNumber && <span>주문번호: {review.orderNumber}</span>}
                           <span>작성일: {review.createdAt}</span>
-                          {review.updatedAt !== review.createdAt && (
+                          {review.updatedAt && review.updatedAt !== review.createdAt && (
                             <span className="review-updated">수정됨</span>
                           )}
                         </div>
