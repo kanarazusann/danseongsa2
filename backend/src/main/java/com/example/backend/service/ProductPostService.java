@@ -596,10 +596,32 @@ public class ProductPostService {
                     }
                 }
                 
-                // 검색어 필터링 (게시물명)
+                // 검색어 필터링 (게시물명 및 브랜드명)
                 if (search != null && !search.isEmpty()) {
-                    if (post.getPostName() == null || !post.getPostName().toLowerCase().contains(search.toLowerCase())) {
-                        return false;
+                    // % 제거하고 검색어 정리
+                    String searchTerm = search.replace("%", "").trim();
+                    if (searchTerm.isEmpty()) {
+                        // %만 입력된 경우는 모든 결과 반환
+                    } else {
+                        String searchTermLower = searchTerm.toLowerCase();
+                        String postNameLower = post.getPostName() != null ? post.getPostName().toLowerCase() : "";
+                        // BRAND 컬럼에서 값 가져오기 (null 체크 및 공백 제거)
+                        String brandValue = post.getBrand();
+                        String brandLower = (brandValue != null && !brandValue.trim().isEmpty()) 
+                            ? brandValue.trim().toLowerCase() : "";
+                        
+                        // 게시물명 또는 브랜드명에 검색어가 포함되어 있는지 확인 (LIKE 검색)
+                        boolean matchesPostName = !postNameLower.isEmpty() && postNameLower.contains(searchTermLower);
+                        boolean matchesBrand = !brandLower.isEmpty() && brandLower.contains(searchTermLower);
+                        
+                        // 디버깅: 브랜드 검색 확인
+                        if (searchTermLower.length() > 0) {
+                            System.out.println("[검색 디버깅] 검색어: '" + searchTermLower + "', 게시물명: '" + postNameLower + "', 브랜드: '" + brandLower + "', 게시물명매칭: " + matchesPostName + ", 브랜드매칭: " + matchesBrand);
+                        }
+                        
+                        if (!matchesPostName && !matchesBrand) {
+                            return false;
+                        }
                     }
                 }
                 
@@ -687,6 +709,30 @@ public class ProductPostService {
                 return item.get("price") != null;
             })
             .collect(Collectors.toList());
+    }
+    
+    // 게시물 삭제
+    @Transactional
+    public void deleteProductPost(int postId) {
+        ProductPost post = productPostDAO.findById(postId);
+        if (post == null) {
+            throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
+        }
+        
+        // 관련 Product 삭제
+        List<Product> products = productDAO.findByPostId(postId);
+        if (products != null && !products.isEmpty()) {
+            productDAO.deleteAll(products);
+        }
+        
+        // 관련 ProductImage 삭제
+        List<ProductImage> images = productImageDAO.findByPostId(postId);
+        if (images != null && !images.isEmpty()) {
+            productImageDAO.deleteAll(images);
+        }
+        
+        // ProductPost 삭제
+        productPostDAO.deleteById(postId);
     }
 }
 

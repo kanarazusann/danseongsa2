@@ -47,5 +47,15 @@ public class ProductPostDAO {
     public List<ProductPost> findByBrand(String brand) {
         return productPostRepository.findByBrand(brand);
     }
+    
+    // 게시물 삭제
+    public void delete(ProductPost productPost) {
+        productPostRepository.delete(productPost);
+    }
+    
+    // 게시물 ID로 삭제
+    public void deleteById(int postId) {
+        productPostRepository.deleteById(postId);
+    }
 }
 

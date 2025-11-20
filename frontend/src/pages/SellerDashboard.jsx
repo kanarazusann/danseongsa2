@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
 import { fetchSessionUser } from '../services/authService';
 import { getSellerOrders, shipOrderItem, cancelOrderItemBySeller } from '../services/orderService';
-import { getProductPostsByBrand } from '../services/productService';
+import { getProductPostsByBrand, deleteProductPost } from '../services/productService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -132,7 +132,7 @@ function SellerDashboard() {
           zipcode: item.zipcode || '',
           address: item.address || '',
           detailAddress: item.detailAddress || ''
-        });       
+        });
         loadProductsByBrand(item.brand);
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
@@ -309,6 +309,21 @@ function SellerDashboard() {
     } catch (error) {
       console.error('판매자 주문 취소 오류:', error);
       alert(error.message || '주문 취소 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 상품 삭제 처리
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('정말로 이 상품을 삭제하시겠습니까? 삭제된 상품은 복구할 수 없습니다.')) {
+      return;
+    }
+    try {
+      await deleteProductPost(productId);
+      setProducts(prev => prev.filter(product => product.productId !== productId));
+      alert('상품이 삭제되었습니다.');
+    } catch (error) {
+      console.error('상품 삭제 오류:', error);
+      alert(error.message || '상품 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -573,12 +588,12 @@ function SellerDashboard() {
                       >
                         상세보기
                       </button>
-                      {product.status === 'SELLING' && (
-                        <button className="btn-danger">품절 처리</button>
-                      )}
-                      {product.status === 'SOLD_OUT' && (
-                        <button className="btn-secondary">재고 복구</button>
-                      )}
+                      <button 
+                        className="btn-danger"
+                        onClick={() => handleDeleteProduct(product.productId)}
+                      >
+                        삭제
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -609,19 +624,19 @@ function SellerDashboard() {
                   const statusUpper = (order.status || 'PAID').toUpperCase();
                   const isPaid = statusUpper === 'PAID';
                   return (
-                    <div key={order.orderItemId} className="order-card">
-                      <div className="order-header">
+                  <div key={order.orderItemId} className="order-card">
+                    <div className="order-header">
                         <div className="order-header-left">
                           <div className="order-meta">
                             <span className="order-number">주문번호: {order.orderNumber || '-'}</span>
                             <span className="order-date">{formatDateTime(order.orderDate)}</span>
                             <span className="buyer-name">구매자: {order.buyerName || '-'}</span>
                           </div>
-                        </div>
+                      </div>
                         <span className={`order-status ${getOrderStatusClass(order.status)}`}>
                           {getOrderStatusText(order.status)}
-                        </span>
-                      </div>
+                      </span>
+                    </div>
                       <div className="order-body">
                         <div className="order-product-thumb">
                           {order.productImage ? (
@@ -634,8 +649,8 @@ function SellerDashboard() {
                           )}
                         </div>
                         <div className="order-body-info">
-                          <div className="order-item-info">
-                            <span className="item-name">{order.productName}</span>
+                      <div className="order-item-info">
+                        <span className="item-name">{order.productName}</span>
                             <div className="item-options">
                               {order.color && <span>색상: {order.color}</span>}
                               {order.productSize && <span>사이즈: {order.productSize}</span>}
@@ -651,9 +666,9 @@ function SellerDashboard() {
                               {order.address || ''} {order.detailAddress || ''}
                             </span>
                           </div>
-                        </div>
                       </div>
-                      <div className="order-actions">
+                    </div>
+                    <div className="order-actions">
                         {statusUpper === 'PAID' && (
                           <>
                             <button className="btn-primary" onClick={() => handleShipOrder(order.orderItemId)}>
@@ -662,18 +677,18 @@ function SellerDashboard() {
                         <button className="btn-secondary" onClick={() => handleSellerCancel(order.orderItemId)}>
                               주문 취소
                             </button>
-                          </>
-                        )}
+                        </>
+                      )}
                         {['CANCELED', 'CANCELLED', 'REFUNDED', 'EXCHANGED'].includes(statusUpper) && (
-                          <button 
-                            className="btn-danger"
-                            onClick={() => handleDeleteOrder(order.orderItemId)}
-                          >
-                            삭제
-                          </button>
-                        )}
-                      </div>
+                        <button 
+                          className="btn-danger"
+                          onClick={() => handleDeleteOrder(order.orderItemId)}
+                        >
+                          삭제
+                        </button>
+                      )}
                     </div>
+                  </div>
                   );
                 })}
               </div>

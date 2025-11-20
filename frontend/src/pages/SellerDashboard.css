@@ -184,14 +184,16 @@
 }
 
 .products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
 }
 
 .product-card {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 20px;
@@ -199,12 +201,12 @@
 }
 
 .product-image {
-  width: 150px;
-  height: 200px;
+  width: 100%;
+  height: 250px;
   overflow: hidden;
   border-radius: 4px;
   background-color: #f5f5f5;
-  flex-shrink: 0;
+  margin-bottom: 15px;
 }
 
 .product-image img {
@@ -214,21 +216,25 @@
 }
 
 .product-details {
-  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
+  margin-bottom: 15px;
 }
 
 .product-details .product-name {
   font-size: 18px;
   font-weight: 700;
   color: #000000;
+  text-align: center;
 }
 
 .product-price-info {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 
@@ -247,6 +253,7 @@
 
 .product-meta {
   display: flex;
+  justify-content: center;
   gap: 15px;
   font-size: 14px;
   color: #666666;
@@ -256,7 +263,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-self: flex-start;
+  width: 100%;
+  align-items: center;
 }
 
 /* 주문 관리 */
@@ -736,6 +744,10 @@
   .dashboard-sections {
     grid-template-columns: 1fr;
   }
+
+  .products-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
@@ -758,17 +770,21 @@
     grid-template-columns: 1fr;
   }
 
+  .products-list {
+    grid-template-columns: 1fr;
+  }
+
   .product-card {
     flex-direction: column;
   }
 
   .product-image {
     width: 100%;
-    height: 300px;
+    height: 250px;
   }
 
   .product-actions {
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
   }
 

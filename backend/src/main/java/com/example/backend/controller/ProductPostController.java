@@ -334,5 +334,26 @@ public class ProductPostController {
         
         return map;
     }
+    
+    // 게시물 삭제 API
+    @DeleteMapping("/productposts/{postId}")
+    public Map<String, Object> deleteProductPost(@PathVariable("postId") int postId) {
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            productPostService.deleteProductPost(postId);
+            map.put("rt", "OK");
+            map.put("message", "게시물이 성공적으로 삭제되었습니다.");
+        } catch (IllegalArgumentException e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "게시물 삭제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
 }
 

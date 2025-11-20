@@ -364,3 +364,17 @@ export const updateProductPost = async (postId, formData, productOptions, keptIm
   }
 };
 
+// 상품 게시물 삭제
+export const deleteProductPost = async (postId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/productposts/${postId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    return handleResponse(response);
+  } catch (error) {
+    console.error('상품 삭제 오류:', error);
+    throw error;
+  }
+};
+
