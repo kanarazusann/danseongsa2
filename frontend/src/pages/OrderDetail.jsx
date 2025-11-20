@@ -49,13 +49,14 @@ function OrderDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [order, setOrder] = useState(location.state?.order || null);
-  const [loading, setLoading] = useState(!location.state?.order);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const loadOrder = async () => {
-      if (location.state?.order) {
+      if (!orderId) {
+        setErrorMessage('주문 ID가 없습니다.');
         setLoading(false);
         return;
       }
@@ -66,18 +67,22 @@ function OrderDetail() {
         console.log('주문 정보:', response.item);
         console.log('주문일시:', response.item?.orderDate);
         console.log('결제일시:', response.item?.paymentInfo?.paidAt);
-        setOrder(response.item);
+        
+        if (response.item) {
+          setOrder(response.item);
+        } else {
+          setErrorMessage('주문 정보를 찾을 수 없습니다.');
+        }
       } catch (error) {
+        console.error('주문 정보 로드 오류:', error);
         setErrorMessage(error.message || '주문 정보를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (orderId) {
-      loadOrder();
-    }
-  }, [orderId, location.state]);
+    loadOrder();
+  }, [orderId, navigate]);
 
   const getStatusText = (status) => {
     const statusMap = {
@@ -231,7 +236,7 @@ function OrderDetail() {
           <section className="detail-section">
             <h2 className="section-title">주문 상품</h2>
             <div className="payment-items">
-              {order.items.map((item) => {
+              {order.items && order.items.length > 0 ? order.items.map((item) => {
                 const itemPrice = item.discountPrice || item.price || 0;
                 const itemTotal = itemPrice * (item.quantity || 1);
 
@@ -281,43 +286,55 @@ function OrderDetail() {
                     </div>
                   </div>
                 );
-              })}
+              }) : (
+                <div className="empty-state">
+                  <p>주문 상품이 없습니다.</p>
+                </div>
+              )}
             </div>
           </section>
 
           {/* 결제 정보 */}
-          <section className="detail-section">
-            <h2 className="section-title">결제 정보</h2>
-            <div className="payment-info">
-              <div className="info-item">
-                <span className="info-label">상품 금액</span>
-                <span className="info-value">{order.paymentInfo.amount.toLocaleString()}원</span>
-              </div>
-              {order.paymentInfo.discountAmount > 0 && (
+          {order.paymentInfo && (
+            <section className="detail-section">
+              <h2 className="section-title">결제 정보</h2>
+              <div className="payment-info">
+                {order.paymentInfo.amount !== undefined && (
+                  <div className="info-item">
+                    <span className="info-label">상품 금액</span>
+                    <span className="info-value">{order.paymentInfo.amount.toLocaleString()}원</span>
+                  </div>
+                )}
+                {order.paymentInfo.discountAmount > 0 && (
+                  <div className="info-item">
+                    <span className="info-label">할인 금액</span>
+                    <span className="info-value">-{order.paymentInfo.discountAmount.toLocaleString()}원</span>
+                  </div>
+                )}
+                {order.paymentInfo.deliveryFee !== undefined && (
+                  <div className="info-item">
+                    <span className="info-label">배송비</span>
+                    <span className="info-value">
+                      {order.paymentInfo.deliveryFee === 0 ? '무료' : `${order.paymentInfo.deliveryFee.toLocaleString()}원`}
+                    </span>
+                  </div>
+                )}
+                <div className="info-divider"></div>
+                {order.paymentInfo.finalPrice !== undefined && (
+                  <div className="info-item total">
+                    <span className="info-label">최종 결제금액</span>
+                    <span className="info-value final-price">{order.paymentInfo.finalPrice.toLocaleString()}원</span>
+                  </div>
+                )}
                 <div className="info-item">
-                  <span className="info-label">할인 금액</span>
-                  <span className="info-value">-{order.paymentInfo.discountAmount.toLocaleString()}원</span>
+                  <span className="info-label">결제일시</span>
+                  <span className="info-value">
+                    {formatDate(order.paymentInfo?.paidAt || order.createdAt || order.orderDate)}
+                  </span>
                 </div>
-              )}
-              <div className="info-item">
-                <span className="info-label">배송비</span>
-                <span className="info-value">
-                  {order.paymentInfo.deliveryFee === 0 ? '무료' : `${order.paymentInfo.deliveryFee.toLocaleString()}원`}
-                </span>
               </div>
-              <div className="info-divider"></div>
-              <div className="info-item total">
-                <span className="info-label">최종 결제금액</span>
-                <span className="info-value final-price">{order.paymentInfo.finalPrice.toLocaleString()}원</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">결제일시</span>
-                <span className="info-value">
-                  {formatDate(order.paymentInfo?.paidAt || order.createdAt || order.orderDate)}
-                </span>
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* 주문 액션 버튼 */}
           <div className="order-detail-actions">
