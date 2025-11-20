@@ -1441,24 +1441,13 @@ feat: 상품 조회 API 구현
  결제(Payment)
 - paymentId (PK, int)  //결제고유id(seq) ⚠️ Long 대신 int 사용
 - orderId (FK -> Order)  //order table과 join
-- accountId (FK -> Account, nullable)  //계좌번호(계좌이체 결제용)
-- paymentMethod (String) // CARD, ACCOUNT, TOSS
+- paymentMethod (String) // CARD, TOSS
 - amount (Integer, not null) //  결제금액
 - status (String) // COMPLETED, FAILED, CANCELLED
 - transactionId (String) // PG사 거래번호 (카드결제, 토스페이 등)
 - paidAt (Timestamp) // 결제된 날짜
 
- 계좌(Account)
-- accountId (PK, int)  계좌고유id (seq) ⚠️ Long 대신 int 사용
-- userId (FK -> User)  유저아이디 조인
-- bankName (String, not null)  은행이름
-- accountNumber (String, not null)  계좌번호
-- accountHolder (String, not null)    통장에 적힌 이름 (결제계좌가 가족계좌일수도있기때문)
-- balance (Integer, default: 0) // 잔액
-- isDefault (Boolean, default: false)   true면 기본계좌로 설정
-- createdAt (Timestamp)  //  계좌등록날짜
-
- 리뷰(Review)
+리뷰(Review)
 - reviewId (PK, int)  //리뷰고유id ⚠️ Long 대신 int 사용 
 - postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 리뷰는 게시물 기준
 - productId (FK -> Product, nullable)  //상품id(상품 table과 join, nullable) - 특정 옵션에 대한 리뷰인 경우

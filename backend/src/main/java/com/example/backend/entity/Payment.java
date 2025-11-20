@@ -24,19 +24,12 @@ public class Payment {
     @Column(name = "ORDERID", nullable = false, insertable = false, updatable = false)
     private int orderId;
 
-    @Column(name = "ACCOUNTID", insertable = false, updatable = false)
-    private Integer accountId;  // nullable
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ORDERID", nullable = false)
     private Order order;  // 주문 (FK -> Order)
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ACCOUNTID")
-    private Account account;  // 계좌 (FK -> Account, nullable)
-
     @Column(name = "PAYMENTMETHOD", length = 20)
-    private String paymentMethod;  // CARD, ACCOUNT, TOSS
+    private String paymentMethod;  // CARD, TOSS
 
     @Column(name = "AMOUNT", nullable = false)
     private Integer amount;

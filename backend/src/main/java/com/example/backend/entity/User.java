@@ -75,9 +75,6 @@ public class User {
     private List<Order> orders;  // 사용자의 주문 목록
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Account> accounts;  // 사용자의 계좌 목록
-
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Review> reviews;  // 사용자가 작성한 리뷰 목록
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)

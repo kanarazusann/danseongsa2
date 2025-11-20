@@ -43,7 +43,10 @@ public class PaymentService {
             orderRequest.setPaymentMethod("CARD");
         }
 
+        // 토스페이먼츠 결제 확인 먼저 수행 (실패 시 예외 발생, 주문 생성 안 됨)
         Map<String, Object> tossResponse = requestTossConfirm(request);
+        
+        // 결제 확인 성공 후에만 주문 생성 (결제 실패 시 주문 생성 안 됨)
         Map<String, Object> order = orderService.createOrder(orderRequest);
 
         Object finalPrice = order.get("finalPrice");

@@ -33,9 +33,19 @@ function PaymentSuccess() {
       return;
     }
 
+    // 바로구매의 경우 orderItems 사용, 장바구니 주문의 경우 cartItemIds 사용
+    // Payment.jsx에서 이미 생성한 orderItems 사용
+    // orderItems가 빈 배열이 아닌 실제 값이 있을 때만 전달
+    const orderItems = pendingOrder.orderItems && pendingOrder.orderItems.length > 0 
+      ? pendingOrder.orderItems 
+      : null;
+
     const orderRequest = {
       userId: pendingOrder.userId,
-      cartItemIds: pendingOrder.cartItemIds,
+      cartItemIds: (pendingOrder.cartItemIds && pendingOrder.cartItemIds.length > 0) 
+        ? pendingOrder.cartItemIds 
+        : null,
+      orderItems,
       recipientName: pendingOrder.recipientName || pendingOrder.deliveryInfo?.recipientName,
       recipientPhone: pendingOrder.recipientPhone || pendingOrder.deliveryInfo?.recipientPhone,
       zipcode: pendingOrder.zipcode || pendingOrder.deliveryInfo?.postalCode,
@@ -61,6 +71,7 @@ function PaymentSuccess() {
         });
       })
       .catch((error) => {
+        console.error('결제 확인 오류:', error);
         setStatus('error');
         setMessage(error.message || '결제 확인 중 오류가 발생했습니다.');
       });

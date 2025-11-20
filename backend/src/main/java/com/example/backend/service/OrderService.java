@@ -36,57 +36,86 @@ public class OrderService {
 
     @Transactional
     public Map<String, Object> createOrder(OrderCreateRequest request) {
-        if (request.getCartItemIds() == null || request.getCartItemIds().isEmpty()) {
-            throw new IllegalArgumentException("주문할 장바구니 상품을 선택해주세요.");
-        }
-
         User user = userDAO.findById(request.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        List<Cart> carts = cartDAO.findByUserIdAndCartIds(request.getUserId(), request.getCartItemIds());
-        if (carts.isEmpty()) {
-            throw new IllegalArgumentException("선택한 장바구니 상품을 찾을 수 없습니다.");
+        List<OrderItem> orderItems;
+        int productTotal;
+        List<Cart> cartsToDelete = new ArrayList<>();
+
+        // 장바구니에서 주문하는 경우
+        if (request.getCartItemIds() != null && !request.getCartItemIds().isEmpty()) {
+            List<Cart> carts = cartDAO.findByUserIdAndCartIds(request.getUserId(), request.getCartItemIds());
+            if (carts.isEmpty()) {
+                throw new IllegalArgumentException("선택한 장바구니 상품을 찾을 수 없습니다.");
+            }
+
+            if (carts.size() != request.getCartItemIds().size()) {
+                throw new IllegalArgumentException("일부 장바구니 상품 정보를 찾을 수 없습니다.");
+            }
+
+            orderItems = new ArrayList<>();
+            productTotal = 0;
+
+            for (Cart cart : carts) {
+                Product product = cart.getProduct();
+                if (product == null) {
+                    throw new IllegalArgumentException("상품 정보를 찾을 수 없습니다.");
+                }
+                int stock = product.getStock() != null ? product.getStock() : 0;
+                if (stock < cart.getQuantity()) {
+                    throw new IllegalStateException("재고가 부족한 상품이 있습니다: " + product.getProductPost().getPostName());
+                }
+
+                int effectivePrice = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
+                productTotal += effectivePrice * cart.getQuantity();
+
+                OrderItem orderItem = createOrderItemFromCart(cart, product, effectivePrice);
+                orderItems.add(orderItem);
+
+                product.setStock(stock - cart.getQuantity());
+                productDAO.save(product);
+            }
+
+            cartsToDelete = carts;
         }
+        // 바로구매 - 직접 주문 항목으로 주문하는 경우
+        else if (request.getOrderItems() != null && !request.getOrderItems().isEmpty()) {
+            orderItems = new ArrayList<>();
+            productTotal = 0;
 
-        if (carts.size() != request.getCartItemIds().size()) {
-            throw new IllegalArgumentException("일부 장바구니 상품 정보를 찾을 수 없습니다.");
-        }
+            for (OrderCreateRequest.OrderItemRequest itemRequest : request.getOrderItems()) {
+                Product product = productDAO.findById(itemRequest.getProductId());
+                if (product == null) {
+                    throw new IllegalArgumentException("상품 정보를 찾을 수 없습니다: " + itemRequest.getProductId());
+                }
 
-        List<OrderItem> orderItems = new ArrayList<>();
-        int productTotal = 0;
+                // 색상과 사이즈가 일치하는지 확인 (null인 경우 스킵)
+                if (itemRequest.getColor() != null && product.getColor() != null && 
+                    !itemRequest.getColor().equals(product.getColor())) {
+                    throw new IllegalArgumentException("선택한 색상과 상품 정보가 일치하지 않습니다.");
+                }
+                if (itemRequest.getProductSize() != null && product.getProductSize() != null &&
+                    !itemRequest.getProductSize().equals(product.getProductSize())) {
+                    throw new IllegalArgumentException("선택한 사이즈와 상품 정보가 일치하지 않습니다.");
+                }
 
-        for (Cart cart : carts) {
-            Product product = cart.getProduct();
-            if (product == null) {
-                throw new IllegalArgumentException("상품 정보를 찾을 수 없습니다.");
+                int stock = product.getStock() != null ? product.getStock() : 0;
+                if (stock < itemRequest.getQuantity()) {
+                    throw new IllegalStateException("재고가 부족한 상품이 있습니다: " + product.getProductPost().getPostName());
+                }
+
+                int effectivePrice = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
+                productTotal += effectivePrice * itemRequest.getQuantity();
+
+                OrderItem orderItem = createOrderItemFromRequest(itemRequest, product, effectivePrice);
+                orderItems.add(orderItem);
+
+                product.setStock(stock - itemRequest.getQuantity());
+                productDAO.save(product);
             }
-            int stock = product.getStock() != null ? product.getStock() : 0;
-            if (stock < cart.getQuantity()) {
-                throw new IllegalStateException("재고가 부족한 상품이 있습니다: " + product.getProductPost().getPostName());
-            }
-
-            int effectivePrice = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
-            productTotal += effectivePrice * cart.getQuantity();
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(product);
-            orderItem.setProductId(product.getProductId());
-            orderItem.setProductPost(product.getProductPost());
-            orderItem.setPostId(product.getPostId());
-            if (product.getProductPost() != null) {
-                orderItem.setSeller(product.getProductPost().getSeller());
-                orderItem.setSellerId(product.getProductPost().getSellerId());
-                orderItem.setPostName(product.getProductPost().getPostName());
-            }
-            orderItem.setColor(product.getColor());
-            orderItem.setProductSize(product.getProductSize());
-            orderItem.setQuantity(cart.getQuantity());
-            orderItem.setPrice(effectivePrice);
-            orderItem.setStatus("CONFIRMED");
-            orderItems.add(orderItem);
-
-            product.setStock(stock - cart.getQuantity());
-            productDAO.save(product);
+        } else {
+            throw new IllegalArgumentException("주문할 상품을 선택해주세요.");
         }
 
         int deliveryFee = productTotal >= 50000 ? 0 : 3000;
@@ -99,7 +128,7 @@ public class OrderService {
         order.setDiscountAmount(0);
         order.setDeliveryFee(deliveryFee);
         order.setFinalPrice(finalPrice);
-        order.setOrderStatus("CONFIRMED");
+        order.setOrderStatus("PAID");  // 결제 완료 시 즉시 PAID로 설정
         order.setRecipientName(request.getRecipientName());
         order.setRecipientPhone(request.getRecipientPhone());
         order.setZipcode(request.getZipcode());
@@ -113,9 +142,51 @@ public class OrderService {
         }
 
         Order savedOrder = orderRepository.save(order);
-        cartDAO.deleteAll(carts);
+        
+        // 장바구니에서 주문한 경우 장바구니 삭제
+        if (!cartsToDelete.isEmpty()) {
+            cartDAO.deleteAll(cartsToDelete);
+        }
 
         return buildOrderResponse(savedOrder, request.getPaymentMethod());
+    }
+
+    private OrderItem createOrderItemFromCart(Cart cart, Product product, int effectivePrice) {
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setProductId(product.getProductId());
+        orderItem.setProductPost(product.getProductPost());
+        orderItem.setPostId(product.getPostId());
+        if (product.getProductPost() != null) {
+            orderItem.setSeller(product.getProductPost().getSeller());
+            orderItem.setSellerId(product.getProductPost().getSellerId());
+            orderItem.setPostName(product.getProductPost().getPostName());
+        }
+        orderItem.setColor(product.getColor());
+        orderItem.setProductSize(product.getProductSize());
+        orderItem.setQuantity(cart.getQuantity());
+        orderItem.setPrice(effectivePrice);
+        orderItem.setStatus("PAID");  // 결제 완료 시 즉시 PAID로 설정
+        return orderItem;
+    }
+
+    private OrderItem createOrderItemFromRequest(OrderCreateRequest.OrderItemRequest itemRequest, Product product, int effectivePrice) {
+        OrderItem orderItem = new OrderItem();
+        orderItem.setProduct(product);
+        orderItem.setProductId(product.getProductId());
+        orderItem.setProductPost(product.getProductPost());
+        orderItem.setPostId(product.getPostId());
+        if (product.getProductPost() != null) {
+            orderItem.setSeller(product.getProductPost().getSeller());
+            orderItem.setSellerId(product.getProductPost().getSellerId());
+            orderItem.setPostName(product.getProductPost().getPostName());
+        }
+        orderItem.setColor(product.getColor());
+        orderItem.setProductSize(product.getProductSize());
+        orderItem.setQuantity(itemRequest.getQuantity());
+        orderItem.setPrice(effectivePrice);
+        orderItem.setStatus("PAID");  // 결제 완료 시 즉시 PAID로 설정
+        return orderItem;
     }
 
     @Transactional(readOnly = true)
@@ -130,6 +201,42 @@ public class OrderService {
         return buildOrderResponse(order, null);
     }
 
+    @Transactional
+    public Map<String, Object> cancelOrder(int orderId, int userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+
+        if (order.getUser() == null || order.getUser().getUserId() != userId) {
+            throw new IllegalArgumentException("해당 주문에 접근할 수 없습니다.");
+        }
+
+        // 주문 상태 확인 (PAID인 경우만 취소 가능)
+        if (!"PAID".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("취소할 수 없는 주문 상태입니다.");
+        }
+
+        // 주문 상품들의 재고 복구
+        if (order.getOrderItems() != null) {
+            for (OrderItem orderItem : order.getOrderItems()) {
+                Product product = orderItem.getProduct();
+                if (product != null) {
+                    int currentStock = product.getStock() != null ? product.getStock() : 0;
+                    product.setStock(currentStock + orderItem.getQuantity());
+                    productDAO.save(product);
+                }
+            }
+        }
+
+        // Order 삭제 (CASCADE로 OrderItem도 자동 삭제됨)
+        orderRepository.deleteById(orderId);
+
+        // 성공 응답 반환
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "주문이 취소되었습니다.");
+        return response;
+    }
+
     private String generateOrderNumber(int userId) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String suffix = String.format("%04d", userId % 10000);
@@ -141,7 +248,17 @@ public class OrderService {
         item.put("orderId", order.getOrderId());
         item.put("orderNumber", order.getOrderNumber());
         item.put("orderStatus", order.getOrderStatus());
-        item.put("orderDate", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
+        // 주문일시는 updatedAt 사용 (결제 완료 시점)
+        // Timestamp를 ISO 형식 문자열로 변환 (yyyy-MM-ddTHH:mm:ss)
+        if (order.getUpdatedAt() != null) {
+            LocalDateTime dateTime = order.getUpdatedAt().toLocalDateTime();
+            item.put("orderDate", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        } else if (order.getCreatedAt() != null) {
+            LocalDateTime dateTime = order.getCreatedAt().toLocalDateTime();
+            item.put("orderDate", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        } else {
+            item.put("orderDate", null);
+        }
         item.put("finalPrice", order.getFinalPrice());
 
         Map<String, Object> deliveryInfo = new HashMap<>();
@@ -159,7 +276,17 @@ public class OrderService {
         paymentInfo.put("discountAmount", order.getDiscountAmount());
         paymentInfo.put("deliveryFee", order.getDeliveryFee());
         paymentInfo.put("finalPrice", order.getFinalPrice());
-        paymentInfo.put("paidAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : null);
+        // 결제일시는 updatedAt 사용 (주문일시와 동일)
+        // Timestamp를 ISO 형식 문자열로 변환 (yyyy-MM-ddTHH:mm:ss)
+        if (order.getUpdatedAt() != null) {
+            LocalDateTime dateTime = order.getUpdatedAt().toLocalDateTime();
+            paymentInfo.put("paidAt", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        } else if (order.getCreatedAt() != null) {
+            LocalDateTime dateTime = order.getCreatedAt().toLocalDateTime();
+            paymentInfo.put("paidAt", dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        } else {
+            paymentInfo.put("paidAt", null);
+        }
         item.put("paymentInfo", paymentInfo);
 
         List<Map<String, Object>> orderItemList = order.getOrderItems().stream()

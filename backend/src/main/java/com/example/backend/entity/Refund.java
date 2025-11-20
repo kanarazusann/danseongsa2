@@ -39,9 +39,6 @@ public class Refund {
     @Column(name = "REFUNDAMOUNT")
     private Integer refundAmount;
 
-    @Column(name = "ACCOUNTID", insertable = false, updatable = false)
-    private Integer accountId;  // nullable
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ORDERITEMID", nullable = false)
     private OrderItem orderItem;  // 주문상세 (FK -> OrderItem)
@@ -49,10 +46,6 @@ public class Refund {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USERID", nullable = false)
     private User user;  // 사용자 (FK -> User)
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ACCOUNTID")
-    private Account account;  // 계좌 (FK -> Account, nullable)
 
     @Column(name = "STATUS", length = 20)
     private String status;  // REQUESTED, APPROVED, COMPLETED

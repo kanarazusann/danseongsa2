@@ -26,8 +26,14 @@ public class PaymentController {
             map.put("rt", "OK");
             map.put("item", order);
         } catch (Exception e) {
+            e.printStackTrace(); // 에러 로그 출력
             map.put("rt", "FAIL");
-            map.put("message", e.getMessage());
+            String errorMessage = e.getMessage();
+            // 더 자세한 에러 정보 포함
+            if (e.getCause() != null) {
+                errorMessage += " (원인: " + e.getCause().getMessage() + ")";
+            }
+            map.put("message", errorMessage);
         }
         return map;
     }

@@ -17,7 +17,6 @@ function Payment() {
   }, [orderData, navigate]);
 
   const [sessionUser, setSessionUser] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('CARD'); // CARD, TRANSFER
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -67,16 +66,27 @@ function Payment() {
         ? `${items[0].productName} 외 ${items.length - 1}건`
         : items[0]?.productName || '단성사 주문';
 
+      // 바로구매의 경우 orderItems 생성 (cartItemIds가 없을 때)
+      const orderItems = orderData.cartItemIds && orderData.cartItemIds.length > 0
+        ? null // 장바구니에서 주문하는 경우
+        : items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity || 1,
+            color: item.color,
+            productSize: item.productSize
+          }));
+
       const pendingOrder = {
         userId: orderData.userId,
-        cartItemIds: orderData.cartItemIds,
+        cartItemIds: orderData.cartItemIds || null,
+        orderItems,
         recipientName: orderData.deliveryInfo.recipientName,
         recipientPhone: orderData.deliveryInfo.recipientPhone,
         zipcode: postalCode,
         address: orderData.deliveryInfo.address,
         detailAddress: orderData.deliveryInfo.detailAddress,
         deliveryMemo: orderData.deliveryInfo.deliveryMemo,
-        paymentMethod,
+        paymentMethod: 'CARD', // 기본값 카드 결제
         items,
         deliveryInfo: orderData.deliveryInfo,
         orderAmount: orderData.orderAmount,
@@ -85,18 +95,16 @@ function Payment() {
       };
       sessionStorage.setItem('pendingOrder', JSON.stringify(pendingOrder));
 
-      await tossPayments.requestPayment(
-        paymentMethod === 'TRANSFER' ? 'TRANSFER' : 'CARD',
-        {
-          amount: totalAmount,
-          orderId,
-          orderName,
-          customerName: orderData.deliveryInfo.recipientName || sessionUser?.name || '고객',
-          customerEmail: sessionUser?.email,
-          successUrl,
-          failUrl
-        }
-      );
+      // 토스페이먼츠 결제창 열기 (카드 결제 기본)
+      await tossPayments.requestPayment('CARD', {
+        amount: totalAmount,
+        orderId,
+        orderName,
+        customerName: orderData.deliveryInfo.recipientName || sessionUser?.name || '고객',
+        customerEmail: sessionUser?.email,
+        successUrl,
+        failUrl
+      });
     } catch (error) {
       if (error.code === 'USER_CANCEL') {
         alert('결제가 취소되었습니다.');
@@ -204,35 +212,6 @@ function Payment() {
                 <span className="final-amount">{orderAmount.finalPrice.toLocaleString()}원</span>
               </div>
             </div>
-          </section>
-
-          <section className="payment-section">
-            <h2 className="section-title">결제 수단</h2>
-            <div className="payment-methods">
-              <label className="payment-method-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="CARD"
-                  checked={paymentMethod === 'CARD'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>신용/체크카드</span>
-              </label>
-              <label className="payment-method-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="TRANSFER"
-                  checked={paymentMethod === 'TRANSFER'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>계좌이체</span>
-              </label>
-            </div>
-            <p className="payment-help-text">
-              선택하신 수단은 토스페이먼츠 결제창에서 안전하게 처리됩니다.
-            </p>
           </section>
 
           <section className="payment-section">

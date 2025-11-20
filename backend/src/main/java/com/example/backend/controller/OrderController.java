@@ -43,6 +43,22 @@ public class OrderController {
         }
         return map;
     }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    public Map<String, Object> cancelOrder(@PathVariable("orderId") int orderId,
+                                           @RequestBody Map<String, Object> request) {
+        Map<String, Object> map = new HashMap<>();
+        try {
+            int userId = ((Number) request.get("userId")).intValue();
+            Map<String, Object> order = orderService.cancelOrder(orderId, userId);
+            map.put("rt", "OK");
+            map.put("item", order);
+        } catch (Exception e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        }
+        return map;
+    }
 }
 
 

@@ -147,12 +147,15 @@ function Order() {
       return;
     }
 
+    // cartItemIds는 장바구니에서 온 경우에만 존재 (바로구매의 경우 없음)
     const cartItemIds = selectedItems
       .map(item => item.cartId)
-      .filter((id) => typeof id === 'number' || typeof id === 'string');
+      .filter((id) => id != null && (typeof id === 'number' || typeof id === 'string'));
 
-    if (cartItemIds.length === 0) {
-      alert('장바구니 정보를 찾을 수 없습니다. 다시 시도해주세요.');
+    // 상품 정보 유효성 검사 (바로구매의 경우 productId가 필수)
+    const hasInvalidItems = selectedItems.some(item => !item.productId);
+    if (hasInvalidItems) {
+      alert('상품 정보가 올바르지 않습니다. 다시 시도해주세요.');
       return;
     }
 
@@ -164,14 +167,14 @@ function Order() {
       productImage: resolveImageUrl(item.imageUrl || item.productImage),
       price: item.price || 0,
       discountPrice: item.discountPrice,
-      quantity: item.quantity,
+      quantity: item.quantity || 1,
       color: item.color,
       productSize: item.productSize
     }));
 
     const orderData = {
       userId: sessionUser.userId,
-      cartItemIds,
+      cartItemIds: cartItemIds.length > 0 ? cartItemIds : null, // 없으면 null로 전달
       items: mappedItems,
       deliveryInfo: { ...deliveryInfo },
       orderAmount: { productTotal, deliveryFee, finalPrice }
