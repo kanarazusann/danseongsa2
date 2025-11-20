@@ -41,4 +41,14 @@ export const getOrderDetail = async (orderId, userId) => {
   return handleResponse(response);
 };
 
+export const getSellerOrders = async (sellerId) => {
+  const params = new URLSearchParams();
+  params.append('sellerId', sellerId);
+  const response = await fetch(`${API_BASE_URL}/seller/orders?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return handleResponse(response);
+};
+
 

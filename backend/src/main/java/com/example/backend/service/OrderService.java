@@ -6,6 +6,7 @@ import com.example.backend.dao.ProductImageDAO;
 import com.example.backend.dao.UserDAO;
 import com.example.backend.dto.OrderCreateRequest;
 import com.example.backend.entity.*;
+import com.example.backend.repository.OrderItemRepository;
 import com.example.backend.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,9 @@ public class OrderService {
 
     @Autowired
     private ProductImageDAO productImageDAO;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     @Transactional
     public Map<String, Object> createOrder(OrderCreateRequest request) {
@@ -254,6 +258,14 @@ public class OrderService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getSellerOrders(int sellerId) {
+        List<OrderItem> orderItems = orderItemRepository.findBySellerIdWithDetails(sellerId);
+        return orderItems.stream()
+                .map(this::buildSellerOrderItemResponse)
+                .collect(Collectors.toList());
+    }
+
     private String generateOrderNumber(int userId) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String suffix = String.format("%04d", userId % 10000);
@@ -317,6 +329,44 @@ public class OrderService {
         if (orderItem.getProductPost() != null) {
             map.put("brand", orderItem.getProductPost().getBrand());
         }
+        return map;
+    }
+
+    private Map<String, Object> buildSellerOrderItemResponse(OrderItem orderItem) {
+        Map<String, Object> map = new HashMap<>();
+        Order order = orderItem.getOrder();
+
+        map.put("orderItemId", orderItem.getOrderItemId());
+        map.put("orderId", order != null ? order.getOrderId() : null);
+        map.put("orderNumber", order != null ? order.getOrderNumber() : null);
+
+        String orderDateStr = null;
+        if (order != null && order.getCreatedAt() != null) {
+            orderDateStr = order.getCreatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+        map.put("orderDate", orderDateStr);
+
+        map.put("status", orderItem.getStatus());
+        map.put("productName", orderItem.getPostName());
+        map.put("productId", orderItem.getProductId());
+        map.put("postId", orderItem.getPostId());
+        map.put("color", orderItem.getColor());
+        map.put("productSize", orderItem.getProductSize());
+        map.put("quantity", orderItem.getQuantity());
+        map.put("price", orderItem.getPrice());
+        Integer price = orderItem.getPrice() != null ? orderItem.getPrice() : 0;
+        Integer qty = orderItem.getQuantity() != null ? orderItem.getQuantity() : 0;
+        map.put("totalPrice", price * qty);
+        map.put("productImage", resolveMainImageUrl(orderItem.getPostId()));
+
+        if (order != null) {
+            map.put("buyerName", order.getRecipientName());
+            map.put("buyerPhone", order.getRecipientPhone());
+            map.put("zipcode", order.getZipcode());
+            map.put("address", order.getAddress());
+            map.put("detailAddress", order.getDetailAddress());
+        }
+
         return map;
     }
 

@@ -1,7 +1,79 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
 import { fetchSessionUser } from '../services/authService';
+import { getSellerOrders } from '../services/orderService';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const resolveImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('/')) return `${API_BASE_URL}${trimmed}`;
+  return `${API_BASE_URL}/${trimmed}`;
+};
+
+const PRODUCT_STATUS_TEXT = {
+  SELLING: '판매',
+  SOLD_OUT: '품절'
+};
+
+const ORDER_STATUS_TEXT = {
+  PAID: '결제완료',
+  DELIVERING: '배송중',
+  DELIVERED: '배송완료',
+  CANCELED: '취소됨',
+  CANCELLED: '취소됨',
+  REFUND_REQUESTED: '환불요청중',
+  REFUNDED: '환불완료',
+  EXCHANGE_REQUESTED: '교환요청중',
+  EXCHANGED: '교환완료'
+};
+
+const getOrderStatusText = (status) => {
+  if (!status) return '결제완료';
+  const key = status.toUpperCase();
+  return ORDER_STATUS_TEXT[key] || status;
+};
+
+const getOrderStatusClass = (status) => {
+  if (!status) return 'paid';
+  const key = status.toLowerCase();
+  switch (key) {
+    case 'paid':
+      return 'paid';
+    case 'delivering':
+      return 'delivering';
+    case 'delivered':
+      return 'delivered';
+    case 'refund_requested':
+      return 'refund-requested';
+    case 'refunded':
+      return 'refunded';
+    case 'exchange_requested':
+      return 'exchange-requested';
+    case 'exchanged':
+      return 'exchanged';
+    case 'canceled':
+    case 'cancelled':
+      return 'cancelled';
+    default:
+      return 'paid';
+  }
+};
+
+const formatDateTime = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
 
 function SellerDashboard() {
   const navigate = useNavigate();
@@ -10,6 +82,7 @@ function SellerDashboard() {
   const [activeTab, setActiveTab] = useState(tabParam || 'dashboard');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [sellerId, setSellerId] = useState(null);
   
   // 세션에서 가져온 사용자 정보
   const [businessInfo, setBusinessInfo] = useState({
@@ -34,52 +107,16 @@ function SellerDashboard() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab]);
-  const [orders, setOrders] = useState([
-    {
-      orderItemId: 1,
-      orderNumber: 'ORD20250114-001',
-      productName: '클래식 오버핏 코트',
-      quantity: 1,
-      price: 89000,
-      status: 'CONFIRMED',
-      orderDate: '2025-01-14',
-      buyerName: '김철수'
-    },
-    {
-      orderItemId: 2,
-      orderNumber: 'ORD20250114-002',
-      productName: '베이직 티셔츠',
-      quantity: 2,
-      price: 58000,
-      status: 'CONFIRMED',
-      orderDate: '2025-01-14',
-      buyerName: '이영희'
-    },
-    {
-      orderItemId: 3,
-      orderNumber: 'ORD20250113-003',
-      productName: '슬림 데님 팬츠',
-      quantity: 1,
-      price: 49000,
-      status: 'CANCELLED',
-      orderDate: '2025-01-13',
-      buyerName: '박민수'
-    }
-  ]);
-
-  // 임시 데이터 (나중에 API로 교체)
-  const stats = {
-    todayOrders: 12,
-    todayRevenue: 1450000,
-    totalProducts: 45,
-    pendingOrders: 8
-  };
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
 
   // 세션에서 사용자 정보 가져오기
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
         const { item } = await fetchSessionUser();
+        setSellerId(item.userId);
         setBusinessInfo({
           name: item.name || '',
           email: item.email || '',
@@ -98,6 +135,27 @@ function SellerDashboard() {
     };
     loadUserInfo();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!sellerId) return;
+
+    const loadSellerOrders = async () => {
+      try {
+        setOrdersLoading(true);
+        setOrdersError('');
+        const data = await getSellerOrders(sellerId);
+        setOrders(data.items || []);
+      } catch (error) {
+        console.error('판매자 주문 조회 오류:', error);
+        setOrders([]);
+        setOrdersError(error.message || '주문 정보를 불러오지 못했습니다.');
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    loadSellerOrders();
+  }, [sellerId]);
 
   const products = [
     {
@@ -152,15 +210,47 @@ function SellerDashboard() {
     }
   ];
 
-  const getStatusText = (status) => {
-    const statusMap = {
-      'SELLING': '판매',
-      'SOLD_OUT': '품절',
-      'CONFIRMED': '주문확인',
-      'CANCELLED': '취소됨',
-      'REFUNDED': '환불됨'
+  const stats = useMemo(() => {
+    if (!orders || orders.length === 0) {
+      return {
+        todayOrders: 0,
+        todayRevenue: 0,
+        totalProducts: products.length,
+        pendingOrders: 0
+      };
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayOrders = orders.filter(order => {
+      if (!order.orderDate) return false;
+      return order.orderDate.startsWith(todayStr);
+    }).length;
+
+    const todayRevenue = orders.reduce((sum, order) => {
+      if (!order.orderDate || !order.orderDate.startsWith(todayStr)) return sum;
+      return sum + (order.totalPrice || 0);
+    }, 0);
+
+    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND_REQUESTED', 'EXCHANGE_REQUESTED'];
+    const pendingOrders = orders.filter(order =>
+      pendingStatuses.includes((order.status || '').toUpperCase())
+    ).length;
+
+    return {
+      todayOrders,
+      todayRevenue,
+      totalProducts: products.length,
+      pendingOrders
     };
-    return statusMap[status] || status;
+  }, [orders]);
+
+  const getStatusText = (status) => {
+    if (!status) return '-';
+    const key = status.toUpperCase();
+    if (PRODUCT_STATUS_TEXT[key]) return PRODUCT_STATUS_TEXT[key];
+    if (ORDER_STATUS_TEXT[key]) return ORDER_STATUS_TEXT[key];
+    if (key === 'CONFIRMED') return '결제완료';
+    return status;
   };
 
   // 취소된 주문 삭제
@@ -170,7 +260,7 @@ function SellerDashboard() {
       // 예: await deleteOrder(orderItemId);
       
       // 임시로 상태 업데이트
-      setOrders(orders.filter(order => order.orderItemId !== orderItemId));
+      setOrders(prev => prev.filter(order => order.orderItemId !== orderItemId));
       alert('주문이 삭제되었습니다.');
     }
   };
@@ -277,8 +367,12 @@ function SellerDashboard() {
                           <span className="product-name">{order.productName}</span>
                         </div>
                         <div>
-                          <span className="order-status">{getStatusText(order.status)}</span>
-                          <span className="order-price">{order.price.toLocaleString()}원</span>
+                          <span className={`order-status ${getOrderStatusClass(order.status)}`}>
+                            {getOrderStatusText(order.status)}
+                          </span>
+                          <span className="order-price">
+                            {(order.price || 0).toLocaleString()}원
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -437,49 +531,99 @@ function SellerDashboard() {
         {activeTab === 'orders' && (
           <div className="tab-content">
             <h2>주문 관리</h2>
-            {orders.length === 0 ? (
+            {ordersLoading ? (
+              <div className="empty-state">
+                <p>주문 정보를 불러오는 중입니다...</p>
+              </div>
+            ) : ordersError ? (
+              <div className="empty-state">
+                <p>{ordersError}</p>
+              </div>
+            ) : orders.length === 0 ? (
               <div className="empty-state">
                 <p>주문 내역이 없습니다.</p>
               </div>
             ) : (
               <div className="orders-list">
-                {orders.map(order => (
-                  <div key={order.orderItemId} className="order-card">
-                    <div className="order-header">
-                      <div>
-                        <span className="order-number">주문번호: {order.orderNumber}</span>
-                        <span className="order-date">{order.orderDate}</span>
-                        <span className="buyer-name">구매자: {order.buyerName}</span>
+                {orders.map(order => {
+                  const statusUpper = (order.status || 'PAID').toUpperCase();
+                  const isPaid = statusUpper === 'PAID';
+                  return (
+                    <div key={order.orderItemId} className="order-card">
+                      <div className="order-header">
+                        <div className="order-header-left">
+                          {isPaid && (
+                            <span className="order-status-badge paid">결제완료</span>
+                          )}
+                          <div className="order-meta">
+                            <span className="order-number">주문번호: {order.orderNumber || '-'}</span>
+                            <span className="order-date">{formatDateTime(order.orderDate)}</span>
+                            <span className="buyer-name">구매자: {order.buyerName || '-'}</span>
+                          </div>
+                        </div>
+                        <span className={`order-status ${getOrderStatusClass(order.status)}`}>
+                          {getOrderStatusText(order.status)}
+                        </span>
                       </div>
-                      <span className={`order-status ${order.status.toLowerCase()}`}>
-                        {getStatusText(order.status)}
-                      </span>
-                    </div>
-                    <div className="order-info">
-                      <div className="order-item-info">
-                        <span className="item-name">{order.productName}</span>
-                        <span className="item-quantity">수량: {order.quantity}</span>
-                        <span className="item-price">{order.price.toLocaleString()}원</span>
+                      <div className="order-body">
+                        <div className="order-product-thumb">
+                          {order.productImage ? (
+                            <img 
+                              src={resolveImageUrl(order.productImage)} 
+                              alt={order.productName}
+                            />
+                          ) : (
+                            <div className="thumb-placeholder">이미지 없음</div>
+                          )}
+                        </div>
+                        <div className="order-body-info">
+                          <div className="order-item-info">
+                            <span className="item-name">{order.productName}</span>
+                            <div className="item-options">
+                              {order.color && <span>색상: {order.color}</span>}
+                              {order.productSize && <span>사이즈: {order.productSize}</span>}
+                            </div>
+                            <span className="item-quantity">수량: {order.quantity || 0}개</span>
+                            <span className="item-price">단가: {(order.price || 0).toLocaleString()}원</span>
+                            <span className="item-total">합계: {(order.totalPrice || 0).toLocaleString()}원</span>
+                          </div>
+                          <div className="order-buyer-info">
+                            <span>연락처: {order.buyerPhone || '-'}</span>
+                            <span>
+                              배송지: {order.zipcode ? `[${order.zipcode}] ` : ''}
+                              {order.address || ''} {order.detailAddress || ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="order-actions">
+                        {statusUpper === 'PAID' && (
+                          <>
+                            <button className="btn-primary" onClick={() => alert('배송 처리 기능은 준비 중입니다.')}>
+                              배송 처리
+                            </button>
+                            <button className="btn-secondary" onClick={() => alert('주문 취소 기능은 준비 중입니다.')}>
+                              주문 취소
+                            </button>
+                          </>
+                        )}
+                        {statusUpper === 'DELIVERING' && (
+                          <button className="btn-primary" onClick={() => alert('배송완료 처리는 준비 중입니다.')}>
+                            배송완료 처리
+                          </button>
+                        )}
+                        {['CANCELED', 'CANCELLED', 'REFUNDED', 'EXCHANGED'].includes(statusUpper) && (
+                          <button 
+                            className="btn-danger"
+                            onClick={() => handleDeleteOrder(order.orderItemId)}
+                          >
+                            삭제
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="order-actions">
-                      {order.status === 'CONFIRMED' && (
-                        <>
-                          <button className="btn-primary">배송 처리</button>
-                          <button className="btn-secondary">주문 취소</button>
-                        </>
-                      )}
-                      {order.status === 'CANCELLED' && (
-                        <button 
-                          className="btn-danger"
-                          onClick={() => handleDeleteOrder(order.orderItemId)}
-                        >
-                          삭제
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

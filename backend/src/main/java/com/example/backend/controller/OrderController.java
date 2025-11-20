@@ -77,6 +77,20 @@ public class OrderController {
         }
         return map;
     }
+
+    @GetMapping("/seller/orders")
+    public Map<String, Object> getSellerOrders(@RequestParam("sellerId") int sellerId) {
+        Map<String, Object> map = new HashMap<>();
+        try {
+            List<Map<String, Object>> orders = orderService.getSellerOrders(sellerId);
+            map.put("rt", "OK");
+            map.put("items", orders);
+        } catch (Exception e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        }
+        return map;
+    }
 }
 
 
