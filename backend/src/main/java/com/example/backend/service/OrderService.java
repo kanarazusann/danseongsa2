@@ -196,6 +196,16 @@ public class OrderService {
         return orderItem;
     }
 
+    // 사용자별 주문 목록 조회
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getOrdersByUserId(int userId) {
+        List<Order> orders = orderRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+        
+        return orders.stream()
+                .map(order -> buildOrderResponse(order, null))
+                .collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getOrderDetail(int orderId, int userId) {
         Order order = orderRepository.findById(orderId)

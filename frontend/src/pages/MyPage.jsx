@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './MyPage.css';
 import { fetchSessionUser, logout } from '../services/authService';
 import { getWishlist, removeWishlist } from '../services/productService';
+import { getOrdersByUserId } from '../services/orderService';
 import ProductCard from '../components/ProductCard';
 
 function MyPage() {
@@ -24,41 +25,8 @@ function MyPage() {
     detailAddress: ''
   });
 
-  const orders = [
-    {
-      orderId: 1,
-      orderNumber: 'ORD20250114-001',
-      orderDate: '2025-01-14',
-      totalPrice: 178000,
-      status: 'PAID',
-      items: [
-        { productName: '클래식 오버핏 코트', quantity: 1, price: 89000 },
-        { productName: '베이직 티셔츠', quantity: 2, price: 58000 }
-      ]
-    },
-    {
-      orderId: 2,
-      orderNumber: 'ORD20250113-002',
-      orderDate: '2025-01-13',
-      totalPrice: 79000,
-      status: 'CONFIRMED',
-      items: [
-        { productName: '레더 스니커즈', quantity: 1, price: 79000 }
-      ]
-    },
-    {
-      orderId: 3,
-      orderNumber: 'ORD20250114-003',
-      orderDate: '2025-01-15',
-      totalPrice: 178000,
-      status: 'DELIVERED',
-      items: [
-        { productName: '클래식 오버핏 코트', quantity: 1, price: 89000 },
-        { productName: '베이직 티셔츠', quantity: 2, price: 58000 }
-      ]
-    },
-  ];
-
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [wishlist, setWishlist] = useState([]);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
 
@@ -143,10 +111,9 @@ function MyPage() {
 
   const getStatusText = (status) => {
     const statusMap = {
-      'CONFIRMED': '주문확인',
       'PAID': '결제완료',
-      'DELIVERED': '배송완료',
-      'CANCELLED': '취소됨'
+      'DELIVERING': '배송중',
+      'DELIVERED': '배송완료'
     };
     return statusMap[status] || status;
   };
@@ -184,6 +151,57 @@ function MyPage() {
     };
     loadUserInfo();
   }, [navigate]);
+
+  // 주문 내역 로드
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (activeTab !== 'orders') return;
+      
+      try {
+        setLoadingOrders(true);
+        const { item: userInfo } = await fetchSessionUser();
+        const response = await getOrdersByUserId(userInfo.userId);
+        
+        if (response.rt === 'OK' && response.items) {
+          // API 응답을 UI 형식에 맞게 변환
+          const formattedOrders = response.items.map(order => {
+            // 주문일자를 날짜 형식으로 변환 (ISO 형식에서 날짜만 추출)
+            let orderDate = '';
+            if (order.orderDate) {
+              const date = new Date(order.orderDate);
+              orderDate = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+            }
+            
+            // 주문 상품 목록 변환
+            const items = order.items ? order.items.map(item => ({
+              productName: item.productName || '',
+              quantity: item.quantity || 1,
+              price: (item.price || 0) * (item.quantity || 1) // 총 가격
+            })) : [];
+            
+            return {
+              orderId: order.orderId,
+              orderNumber: order.orderNumber || '',
+              orderDate: orderDate,
+              totalPrice: order.finalPrice || order.totalPrice || 0,
+              status: order.orderStatus || '',
+              items: items
+            };
+          });
+          setOrders(formattedOrders);
+        } else {
+          setOrders([]);
+        }
+      } catch (error) {
+        console.error('주문 내역 로드 오류:', error);
+        setOrders([]);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    
+    loadOrders();
+  }, [activeTab, navigate]);
 
   // 찜목록 로드
   useEffect(() => {
@@ -408,7 +426,11 @@ function MyPage() {
         {activeTab === 'orders' && (
           <div className="tab-content">
             <h2>주문 내역</h2>
-            {orders.length === 0 ? (
+            {loadingOrders ? (
+              <div className="empty-state">
+                <p>로딩 중...</p>
+              </div>
+            ) : orders.length === 0 ? (
               <div className="empty-state">
                 <p>주문 내역이 없습니다.</p>
               </div>
@@ -445,14 +467,6 @@ function MyPage() {
                         >
                           상세보기
                         </button>
-                        {order.status === 'PAID' && (
-                          <button 
-                            className="btn-secondary"
-                            onClick={() => navigate(`/order/${order.orderId}`, { state: { order } })}
-                          >
-                            환불신청
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -718,4 +732,5 @@ function MyPage() {
 }
 
 export default MyPage;
+
 

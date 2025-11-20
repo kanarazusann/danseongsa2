@@ -226,7 +226,7 @@
   min-width: fit-content;
 }
 
-.order-status.confirmed {
+.order-status.delivering {
   background-color: #e3f2fd;
   color: #1976d2;
 }

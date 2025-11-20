@@ -107,6 +107,32 @@ function OrderDetail() {
     });
   };
 
+  // 환불 요청 핸들러
+  const handleRefundRequest = (item) => {
+    // TODO: 환불 요청 페이지로 이동 또는 모달 표시
+    navigate('/refund/request', {
+      state: {
+        orderId: order.orderId,
+        orderItemId: item.orderItemId,
+        productName: item.productName
+      }
+    });
+  };
+
+  // 교환 요청 핸들러
+  const handleExchangeRequest = (item) => {
+    // TODO: 교환 요청 페이지로 이동 또는 모달 표시
+    alert('교환 요청 기능은 준비 중입니다.');
+  };
+
+  // 구매확정 핸들러
+  const handleConfirmPurchase = (item) => {
+    // TODO: 구매확정 API 호출
+    if (window.confirm('구매를 확정하시겠습니까?')) {
+      alert('구매확정 기능은 준비 중입니다.');
+    }
+  };
+
   const getPaymentMethodText = (method) => {
     const methodMap = {
       'CARD': '신용/체크카드',
@@ -275,14 +301,34 @@ function OrderDetail() {
                     <div className="payment-item-total">
                       <span className="total-label">합계</span>
                       <span className="total-price">{itemTotal.toLocaleString()}원</span>
-                      {(order.orderStatus || order.status)?.toUpperCase() === 'DELIVERED' && (
-                        <button 
-                          className="btn-review"
-                          onClick={() => handleWriteReview(item)}
-                        >
-                          리뷰 작성
-                        </button>
-                      )}
+                      {(() => {
+                        const orderStatus = (order.orderStatus || order.status)?.toUpperCase();
+                        if (orderStatus === 'PAID' || orderStatus === 'DELIVERING') {
+                          return (
+                            <div className="payment-item-actions">
+                              <button className="btn-review" onClick={() => handleRefundRequest(item)}>
+                                환불 요청
+                              </button>
+                              <button className="btn-review" onClick={() => handleExchangeRequest(item)}>
+                                교환 요청
+                              </button>
+                              <button className="btn-review" onClick={() => handleConfirmPurchase(item)}>
+                                구매확정
+                              </button>
+                            </div>
+                          );
+                        } else if (orderStatus === 'DELIVERED') {
+                          return (
+                            <button 
+                              className="btn-review"
+                              onClick={() => handleWriteReview(item)}
+                            >
+                              리뷰 작성
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 );
