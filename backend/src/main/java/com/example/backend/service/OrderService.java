@@ -256,15 +256,13 @@ public class OrderService {
         item.put("orderNumber", order.getOrderNumber());
         item.put("orderStatus", order.getOrderStatus());
         
-        // 주문일시: updatedAt 우선, 없으면 createdAt 사용
+        // 주문일시: createdAt 사용
         String orderDateStr = null;
-        if (order.getUpdatedAt() != null) {
-            orderDateStr = order.getUpdatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        } else if (order.getCreatedAt() != null) {
+        if (order.getCreatedAt() != null) {
             orderDateStr = order.getCreatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         }
         item.put("orderDate", orderDateStr);
-        item.put("updatedAt", orderDateStr);
+        item.put("createdAt", orderDateStr);
         item.put("finalPrice", order.getFinalPrice());
 
         Map<String, Object> deliveryInfo = new HashMap<>();

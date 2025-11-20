@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.UserDTO;
 import com.example.backend.entity.User;
+import com.example.backend.service.SellerService;
 import com.example.backend.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private SellerService sellerService;
 
     // 회원가입 API
     @PostMapping("/auth/signup")
@@ -266,6 +270,24 @@ public class UserController {
         } catch (Exception e) {
             result.put("rt", "FAIL");
             result.put("message", "비밀번호 변경 중 오류가 발생했습니다.");
+        }
+        return result;
+    }
+
+    // 판매자 페이지 정보 조회 API
+    @GetMapping("/api/seller/{sellerId}")
+    public Map<String, Object> getSellerInfo(@PathVariable("sellerId") int sellerId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Map<String, Object> sellerInfo = sellerService.getSellerInfo(sellerId);
+            result.put("rt", "OK");
+            result.put("item", sellerInfo);
+        } catch (IllegalArgumentException e) {
+            result.put("rt", "FAIL");
+            result.put("message", e.getMessage());
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "판매자 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
         return result;
     }

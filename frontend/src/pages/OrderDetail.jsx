@@ -188,7 +188,7 @@ function OrderDetail() {
               <div className="info-item">
                 <span className="info-label">주문일시</span>
                 <span className="info-value">
-                  {formatDate(order.orderDate || order.updatedAt || order.createdAt)}
+                  {formatDate(order.createdAt || order.orderDate)}
                 </span>
               </div>
               <div className="info-item">
@@ -313,7 +313,7 @@ function OrderDetail() {
               <div className="info-item">
                 <span className="info-label">결제일시</span>
                 <span className="info-value">
-                  {formatDate(order.paymentInfo?.paidAt || order.orderDate || order.updatedAt || order.createdAt)}
+                  {formatDate(order.paymentInfo?.paidAt || order.createdAt || order.orderDate)}
                 </span>
               </div>
             </div>
