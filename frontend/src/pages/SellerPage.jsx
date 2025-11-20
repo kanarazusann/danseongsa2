@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { fetchSessionUser } from '../services/authService';
@@ -95,10 +95,11 @@ function SellerPage() {
           
           // 이미지 URL 해결 함수
           const resolveImageUrl = (url) => {
-            if (!url || typeof url !== 'string') return null;
-            if (url.startsWith('http')) return url;
-            if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-            return `${API_BASE_URL}/${url}`;
+            if (!url || typeof url !== 'string' || url.trim() === '') return null;
+            const trimmedUrl = url.trim();
+            if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) return trimmedUrl;
+            if (trimmedUrl.startsWith('/')) return `${API_BASE_URL}${trimmedUrl}`;
+            return `${API_BASE_URL}/${trimmedUrl}`;
           };
           
           // 상품 목록 설정
@@ -106,9 +107,13 @@ function SellerPage() {
             const imageUrl = product.image || product.imageUrl;
             const resolvedImage = imageUrl ? resolveImageUrl(imageUrl) : null;
             console.log('상품 이미지:', { 
-              postId: product.postId || product.id, 
+              postId: product.postId || product.id,
+              name: product.name || product.postName,
+              originalImage: product.image,
+              originalImageUrl: product.imageUrl,
               imageUrl, 
-              resolvedImage 
+              resolvedImage,
+              wishCount: product.wishCount || 0
             }); // 디버깅용
             return {
               id: product.id || product.postId,
@@ -116,12 +121,14 @@ function SellerPage() {
               brand: product.brand,
               price: product.price,
               discountPrice: product.discountPrice,
-              image: resolvedImage,
-              categoryName: product.categoryName
+              image: resolvedImage || (imageUrl ? imageUrl : null), // resolvedImage가 null이어도 원본 URL 시도
+              categoryName: product.categoryName,
+              wishCount: product.wishCount || 0
             };
           });
           
-          console.log('판매자 상품 목록:', sellerProducts); // 디버깅용
+          console.log('판매자 상품 목록 (정렬 전):', sellerProducts); // 디버깅용
+          console.log('wishCount 기준 정렬:', sellerProducts.map(p => ({ name: p.name, wishCount: p.wishCount })).sort((a, b) => b.wishCount - a.wishCount)); // 디버깅용
           setProducts(sellerProducts);
         } else {
           alert(data.message || '판매자 정보를 불러오지 못했습니다.');
@@ -139,14 +146,14 @@ function SellerPage() {
     fetchSellerData();
   }, [sellerId, navigate]);
 
-  // 정렬 함수
-  const sortProducts = (productList, sort) => {
-    const sorted = [...productList];
+  // 정렬 함수 (조건부 return 이전에 정의해야 함)
+  const sortProducts = useCallback((productList, sort) => {
+    const sorted = [...productList]; // 원본 배열 복사
     switch (sort) {
       case 'newest':
-        return sorted.sort((a, b) => b.id - a.id);
+        return sorted.sort((a, b) => (b.id || 0) - (a.id || 0));
       case 'oldest':
-        return sorted.sort((a, b) => a.id - b.id);
+        return sorted.sort((a, b) => (a.id || 0) - (b.id || 0));
       case 'price-low':
         return sorted.sort((a, b) => {
           const priceA = a.discountPrice || a.price || 0;
@@ -159,16 +166,35 @@ function SellerPage() {
           const priceB = b.discountPrice || b.price || 0;
           return priceB - priceA;
         });
+      case 'popular':
+        return sorted.sort((a, b) => {
+          const wishCountA = Number(a.wishCount) || 0;
+          const wishCountB = Number(b.wishCount) || 0;
+          const result = wishCountA - wishCountB; // ASC: 찜 수가 적은 순서대로 (작은 것부터 큰 것)
+          if (result === 0) {
+            // wishCount가 같으면 id로 정렬 (안정적 정렬)
+            return (a.id || 0) - (b.id || 0);
+          }
+          return result;
+        });
       default:
         return sorted;
     }
-  };
+  }, []);
+
+  // 정렬된 상품 목록 (조건부 return 이전에 정의해야 함)
+  const sortedProducts = useMemo(() => {
+    const sorted = sortProducts(products, sortOption);
+    if (sortOption === 'popular') {
+      console.log('인기순 정렬 결과:', sorted.slice(0, 5).map(p => ({ name: p.name, wishCount: p.wishCount }))); // 디버깅용
+    }
+    return sorted;
+  }, [products, sortOption, sortProducts]);
 
   const handleSortChange = (e) => {
     const newSort = e.target.value;
     setSortOption(newSort);
-    const sorted = sortProducts(products, newSort);
-    setProducts(sorted);
+    // 정렬은 useMemo에서 자동으로 처리됨
   };
 
   if (loading) {
@@ -192,9 +218,6 @@ function SellerPage() {
       </div>
     );
   }
-
-  // 정렬된 상품 목록
-  const sortedProducts = sortProducts(products, sortOption);
 
   return (
     <div className="seller-page">
@@ -239,6 +262,7 @@ function SellerPage() {
               >
                 <option value="newest">최신순</option>
                 <option value="oldest">등록순</option>
+                <option value="popular">인기순</option>
                 <option value="price-low">가격 낮은순</option>
                 <option value="price-high">가격 높은순</option>
               </select>

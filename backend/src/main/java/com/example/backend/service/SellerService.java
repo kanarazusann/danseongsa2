@@ -95,6 +95,9 @@ public class SellerService {
         
         product.put("price", minPrice);
         product.put("discountPrice", minDiscountPrice);
+        
+        // 찜 수(wishCount) 추가
+        product.put("wishCount", post.getWishCount() != null ? post.getWishCount() : 0);
 
         // 대표 이미지 가져오기 (갤러리 이미지 중 첫 번째)
         var galleryImages = productImageDAO.findByPostId(post.getPostId()).stream()
