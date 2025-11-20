@@ -13,6 +13,9 @@ public interface ProductPostRepository extends JpaRepository<ProductPost, Intege
     // 상태로 게시물 목록 조회
     List<ProductPost> findByStatus(String status);
     
+    // 브랜드로 게시물 목록 조회
+    List<ProductPost> findByBrand(String brand);
+    
     // 인기순 조회 (찜수 기준) - WISHCOUNT 컬럼 사용
     // 찜수가 많은 순서대로 정렬 (DESC: 내림차순)
     @Query(value = "SELECT pp.* FROM PRODUCTPOST pp " +

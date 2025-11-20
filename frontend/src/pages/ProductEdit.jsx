@@ -1,7 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import categoriesData from '../data/categories.json';
+import { getProductPostDetail } from '../services/productService';
+import { updateProductPost } from '../services/productService';
+import { fetchSessionUser } from '../services/authService';
 import './ProductEdit.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const resolveImageUrl = (url) => {
+  if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+    return null;
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE_URL}${path}`;
+};
 
 function ProductEdit() {
   const { id } = useParams();
@@ -90,57 +106,20 @@ function ProductEdit() {
   // 기존 상품 데이터 불러오기
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) return;
+      
       setLoadingProduct(true);
       
       try {
-        // TODO: 실제 API 연동 필요
-        // const response = await fetch(`http://localhost:8080/api/products/${id}`, {
-        //   method: 'GET',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-        //   }
-        // });
-        // const data = await response.json();
-        // const product = data.data;
-
-        // TODO: 실제 API 연동 필요
-        // const response = await fetch(`/productposts?postId=${id}`, {
-        //   method: 'GET',
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-        //   }
-        // });
-        // const data = await response.json();
-        // const productPost = data.item;
-
-        // 임시 데이터 (실제로는 API에서 가져옴)
-        const productPost = {
-          postId: parseInt(id),
-          postName: '클래식 오버핏 코트',
-          categoryName: '아우터 코트',
-          gender: 'UNISEX',
-          material: 'wool',
-          season: 'FALL',
-          status: 'SELLING',
-          description: '미니멀한 디자인으로 완성된 클래식 오버핏 코트입니다. 고급스러운 소재와 완벽한 핏으로 어떤 스타일에도 잘 어울립니다.',
-          images: [
-            { imageId: 1, imageUrl: 'https://via.placeholder.com/800x1000/000000/FFFFFF?text=COAT+1', isMain: true },
-            { imageId: 2, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+2', isMain: false },
-            { imageId: 3, imageUrl: 'https://via.placeholder.com/800x1000/000000/FFFFFF?text=COAT+3', isMain: false },
-            { imageId: 4, imageUrl: 'https://via.placeholder.com/800x1000/FFFFFF/000000?text=COAT+4', isMain: false },
-          ],
-          descriptionImages: [
-            { imageId: 101, imageUrl: 'https://via.placeholder.com/900x600/000000/FFFFFF?text=DESC+1' },
-            { imageId: 102, imageUrl: 'https://via.placeholder.com/900x600/FFFFFF/000000?text=DESC+2' }
-          ],
-          products: [
-            { productId: 1, color: 'black', productSize: 'S', price: 89000, discountPrice: 69000, stock: 10, status: 'SELLING' },
-            { productId: 2, color: 'black', productSize: 'M', price: 89000, discountPrice: 69000, stock: 15, status: 'SELLING' },
-            { productId: 3, color: 'black', productSize: 'L', price: 89000, discountPrice: 69000, stock: 8, status: 'SELLING' },
-            { productId: 4, color: 'white', productSize: 'M', price: 89000, discountPrice: null, stock: 5, status: 'SELLING' },
-            { productId: 5, color: 'white', productSize: 'L', price: 89000, discountPrice: null, stock: 12, status: 'SELLING' }
-          ]
-        };
+        // 실제 API에서 상품 상세 정보 가져오기 (조회수 증가 없이)
+        const response = await getProductPostDetail(id, null);
+        const productPost = response.item;
+        
+        if (!productPost) {
+          alert('상품 정보를 찾을 수 없습니다.');
+          navigate('/sellerDashboard?tab=products');
+          return;
+        }
 
         // 게시물 정보 채우기
         setFormData({
@@ -197,28 +176,34 @@ function ProductEdit() {
           setProductOptions(options);
         }
 
-        // 기존 이미지 설정
-        if (productPost.images && productPost.images.length > 0) {
-          const existingImagesList = productPost.images.map((img, index) => ({
-            imageId: img.imageId,
-            preview: img.imageUrl,
-            isMain: img.isMain || index === 0,
-            isExisting: true, // 기존 이미지 표시
-            file: null // 기존 이미지는 file이 없음
-          }));
+        // 기존 이미지 설정 (galleryImages 사용)
+        if (productPost.galleryImages && productPost.galleryImages.length > 0) {
+          const existingImagesList = productPost.galleryImages.map((img, index) => {
+            const imageUrl = resolveImageUrl(img.imageUrl);
+            return {
+              imageId: img.imageId,
+              preview: imageUrl || img.imageUrl,
+              isMain: img.isMain === 1 || index === 0,
+              isExisting: true, // 기존 이미지 표시
+              file: null // 기존 이미지는 file이 없음
+            };
+          });
           setImages(existingImagesList);
-          setPreviewUrls(productPost.images.map(img => img.imageUrl));
-          setExistingImages(productPost.images.map(img => img.imageUrl));
+          setPreviewUrls(productPost.galleryImages.map(img => resolveImageUrl(img.imageUrl) || img.imageUrl));
+          setExistingImages(productPost.galleryImages.map(img => resolveImageUrl(img.imageUrl) || img.imageUrl));
         }
 
         // 상품 설명 이미지 설정
         if (productPost.descriptionImages && productPost.descriptionImages.length > 0) {
-          const existingDescription = productPost.descriptionImages.map(img => ({
-            imageId: img.imageId,
-            preview: img.imageUrl,
-            isExisting: true,
-            file: null
-          }));
+          const existingDescription = productPost.descriptionImages.map(img => {
+            const imageUrl = resolveImageUrl(img.imageUrl);
+            return {
+              imageId: img.imageId,
+              preview: imageUrl || img.imageUrl,
+              isExisting: true,
+              file: null
+            };
+          });
           setDescriptionImages(existingDescription);
         }
 
@@ -574,62 +559,42 @@ function ProductEdit() {
       submitData.append('products', JSON.stringify(productsData));
       
       // 기존 이미지 정보 (삭제된 이미지 제외)
-      const keptExistingImages = images
-        .filter(img => img.isExisting)
+      const keptImageIds = images
+        .filter(img => img.isExisting && img.imageId)
         .map(img => img.imageId);
-      submitData.append('keptImageIds', JSON.stringify(keptExistingImages));
       
       // 새로 추가된 이미지 파일들
-      images
-        .filter(img => !img.isExisting && img.file)
-        .forEach((image, index) => {
-          submitData.append('images', image.file);
-          submitData.append(`imageIsMain_${index}`, image.isMain);
-        });
+      const newImages = images.filter(img => !img.isExisting && img.file);
       
       // 기존 상품 설명 이미지 유지
-      const keptExistingDescriptionImages = descriptionImages
-        .filter(img => img.isExisting)
+      const keptDescriptionImageIds = descriptionImages
+        .filter(img => img.isExisting && img.imageId)
         .map(img => img.imageId);
-      submitData.append('keptDescriptionImageIds', JSON.stringify(keptExistingDescriptionImages));
 
       // 새로 추가된 설명 이미지 파일들
-      descriptionImages
-        .filter(img => !img.isExisting && img.file)
-        .forEach((image) => {
-          submitData.append('descriptionImages', image.file);
-        });
+      const newDescriptionImages = descriptionImages.filter(img => !img.isExisting && img.file);
       
-      // 대표 이미지 인덱스
+      // 대표 이미지 인덱스 (기존 이미지 포함 전체 인덱스)
       const mainImageIndex = images.findIndex(img => img.isMain);
-      submitData.append('mainImageIndex', mainImageIndex);
 
-      // API 호출 (임시)
-      // const response = await fetch(`/productposts?postId=${id}`, {
-      //   method: 'PUT',
-      //   body: submitData,
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
-
-      // const data = await response.json();
-      // if (data.rt === 'OK') {
-      //   alert('상품이 성공적으로 수정되었습니다.');
-      //   navigate('/sellerDashboard');
-      // } else {
-      //   alert('상품 수정에 실패했습니다: ' + data.message);
-      // }
-
-      // 임시 성공 처리
-      console.log('수정 데이터:', {
-        postId: id,
-        postData: formData,
-        products: productsData,
-        imagesCount: images.length
-      });
-      alert('상품이 성공적으로 수정되었습니다.');
-      navigate('/sellerDashboard?tab=products');
+      // API 호출
+      const response = await updateProductPost(
+        parseInt(id),
+        formData,
+        normalizedOptions,
+        keptImageIds,
+        newImages,
+        mainImageIndex >= 0 ? mainImageIndex : null,
+        keptDescriptionImageIds,
+        newDescriptionImages
+      );
+      
+      if (response.rt === 'OK') {
+        alert('상품이 성공적으로 수정되었습니다.');
+        navigate('/sellerDashboard?tab=products');
+      } else {
+        alert('상품 수정에 실패했습니다: ' + (response.message || '알 수 없는 오류'));
+      }
       
     } catch (error) {
       console.error('상품 수정 중 오류 발생:', error);

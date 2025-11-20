@@ -7,7 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.File;
 import java.io.IOException;
 
-@SpringBootApplicationd
+@SpringBootApplication
 public class BackendApplication {
 
 	public static void main(String[] args) {
