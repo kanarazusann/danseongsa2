@@ -20,6 +20,17 @@ export const createOrder = async (payload) => {
   return handleResponse(response);
 };
 
+// 사용자별 주문 목록 조회
+export const getOrdersByUserId = async (userId) => {
+  const params = new URLSearchParams();
+  params.append('userId', userId);
+  const response = await fetch(`${API_BASE_URL}/orders?${params.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return handleResponse(response);
+};
+
 export const getOrderDetail = async (orderId, userId) => {
   const params = new URLSearchParams();
   params.append('userId', userId);

@@ -47,6 +47,7 @@
 .seller-stats {
   display: flex;
   gap: 30px;
+  padding-right: 20px; /* 살짝 왼쪽으로 이동 */
 }
 
 .stat-item {
@@ -83,6 +84,7 @@
   font-size: 14px;
   color: #666;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .detail-value {

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,6 +26,23 @@ public class OrderController {
         } catch (Exception e) {
             map.put("rt", "FAIL");
             map.put("message", e.getMessage());
+        }
+        return map;
+    }
+
+    // 사용자별 주문 목록 조회
+    @GetMapping("/orders")
+    public Map<String, Object> getOrders(@RequestParam("userId") int userId) {
+        Map<String, Object> map = new HashMap<>();
+        try {
+            List<Map<String, Object>> orders = orderService.getOrdersByUserId(userId);
+            map.put("rt", "OK");
+            map.put("items", orders);
+            System.out.println(map);
+        } catch (Exception e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+            System.out.println(map);
         }
         return map;
     }

@@ -76,7 +76,6 @@ public class WishlistController {
             map.put("rt", "FAIL");
             map.put("message", "찜목록 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
-        System.out.println(map);
         return map;
     }
 }

@@ -8,9 +8,34 @@ function ProductCard({ product }) {
   return (
     <Link to={`/product/${product.id}`} className="product-card">
       <div className="product-image">
-        {product.image ? (
-          <img src={product.image} alt={product.name} />
-        ) : (
+        {product.image && 
+         typeof product.image === 'string' && 
+         product.image.trim() !== '' && 
+         product.image !== 'null' && 
+         product.image !== 'undefined' ? (
+          <img 
+            src={product.image} 
+            alt={product.name || '상품 이미지'}
+            onError={(e) => {
+              console.error('이미지 로드 실패:', product.image);
+              e.target.style.display = 'none';
+              const placeholder = e.target.parentElement.querySelector('.product-image-placeholder');
+              if (placeholder) {
+                placeholder.style.display = 'flex';
+              } else {
+                const newPlaceholder = document.createElement('div');
+                newPlaceholder.className = 'product-image-placeholder';
+                newPlaceholder.textContent = '이미지 없음';
+                e.target.parentElement.appendChild(newPlaceholder);
+              }
+            }}
+          />
+        ) : null}
+        {(!product.image || 
+          typeof product.image !== 'string' || 
+          product.image.trim() === '' || 
+          product.image === 'null' || 
+          product.image === 'undefined') && (
           <div className="product-image-placeholder">이미지 없음</div>
         )}
         <div className="product-overlay">

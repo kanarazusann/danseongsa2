@@ -196,6 +196,16 @@ public class OrderService {
         return orderItem;
     }
 
+    // 사용자별 주문 목록 조회
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getOrdersByUserId(int userId) {
+        List<Order> orders = orderRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+        
+        return orders.stream()
+                .map(order -> buildOrderResponse(order, null))
+                .collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getOrderDetail(int orderId, int userId) {
         Order order = orderRepository.findById(orderId)
@@ -256,15 +266,13 @@ public class OrderService {
         item.put("orderNumber", order.getOrderNumber());
         item.put("orderStatus", order.getOrderStatus());
         
-        // 주문일시: updatedAt 우선, 없으면 createdAt 사용
+        // 주문일시: createdAt 사용
         String orderDateStr = null;
-        if (order.getUpdatedAt() != null) {
-            orderDateStr = order.getUpdatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        } else if (order.getCreatedAt() != null) {
+        if (order.getCreatedAt() != null) {
             orderDateStr = order.getCreatedAt().toLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         }
         item.put("orderDate", orderDateStr);
-        item.put("updatedAt", orderDateStr);
+        item.put("createdAt", orderDateStr);
         item.put("finalPrice", order.getFinalPrice());
 
         Map<String, Object> deliveryInfo = new HashMap<>();
