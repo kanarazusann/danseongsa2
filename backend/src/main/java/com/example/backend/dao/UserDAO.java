@@ -46,5 +46,10 @@ public class UserDAO {
     public Optional<User> findByNameAndEmail(String name, String email) {
         return userRepository.findByNameAndEmail(name, email);
     }
+
+    // 유저 삭제
+    public void delete(User user) {
+        userRepository.delete(user);
+    }
 }
 

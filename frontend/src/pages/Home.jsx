@@ -113,6 +113,8 @@ function Home() {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      alert('검색어를 입력해주세요.');
     }
   };
 

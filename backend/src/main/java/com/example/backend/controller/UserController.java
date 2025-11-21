@@ -291,5 +291,27 @@ public class UserController {
         }
         return result;
     }
+
+    // 회원 탈퇴 API
+    @PostMapping("/api/users/{userId}/delete")
+    public Map<String, Object> deleteUser(
+            @PathVariable("userId") int userId,
+            HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            userService.deleteUser(userId);
+            // 세션 무효화
+            session.invalidate();
+            result.put("rt", "OK");
+            result.put("message", "회원탈퇴가 완료되었습니다.");
+        } catch (IllegalArgumentException e) {
+            result.put("rt", "FAIL");
+            result.put("message", e.getMessage());
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "회원탈퇴 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return result;
+    }
 }
 

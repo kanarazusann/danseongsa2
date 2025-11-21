@@ -223,6 +223,11 @@ function ProductList() {
   // 검색 처리
   const handleSearch = (e) => {
     e.preventDefault();
+    if (!searchInput.trim()) {
+      alert('검색어를 입력해주세요.');
+      return;
+    }
+    
     const params = new URLSearchParams(searchParams);
     // 검색 시 카테고리와 필터 제거 (독립적으로 작동)
     params.delete('category');
@@ -231,11 +236,7 @@ function ProductList() {
     params.delete('size');
     params.delete('season');
     
-    if (searchInput.trim()) {
-      params.set('search', searchInput.trim());
-    } else {
-      params.delete('search');
-    }
+    params.set('search', searchInput.trim());
     setSearchParams(params);
   };
 

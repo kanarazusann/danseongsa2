@@ -1,6 +1,9 @@
 package com.example.backend.service;
 
 import com.example.backend.dao.UserDAO;
+import com.example.backend.dao.CartDAO;
+import com.example.backend.dao.WishlistDAO;
+import com.example.backend.dao.ReviewDAO;
 import com.example.backend.dto.UserDTO;
 import com.example.backend.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,15 @@ public class UserService {
 
     @Autowired
     private UserDAO userDAO;
+
+    @Autowired
+    private CartDAO cartDAO;
+
+    @Autowired
+    private WishlistDAO wishlistDAO;
+
+    @Autowired
+    private ReviewDAO reviewDAO;
 
     // 회원가입 처리
     @Transactional
@@ -170,5 +182,38 @@ public class UserService {
         
         user.setPassword(newPassword);
         return userDAO.save(user);
+    }
+
+    // 회원 탈퇴 (사용자 삭제)
+    @Transactional
+    public void deleteUser(int userId) {
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        
+        // 관련 데이터 삭제 (외래키 제약조건 해결)
+        // 1. 장바구니 삭제
+        List<com.example.backend.entity.Cart> carts = cartDAO.findByUserId(userId);
+        if (carts != null && !carts.isEmpty()) {
+            cartDAO.deleteAll(carts);
+        }
+        
+        // 2. 찜 목록 삭제
+        List<com.example.backend.entity.Wishlist> wishlists = wishlistDAO.findByUserIdOrderByCreatedAtDesc(userId);
+        if (wishlists != null && !wishlists.isEmpty()) {
+            for (com.example.backend.entity.Wishlist wishlist : wishlists) {
+                wishlistDAO.delete(wishlist);
+            }
+        }
+        
+        // 3. 리뷰 삭제
+        List<com.example.backend.entity.Review> reviews = reviewDAO.findByUserId(userId);
+        if (reviews != null && !reviews.isEmpty()) {
+            for (com.example.backend.entity.Review review : reviews) {
+                reviewDAO.deleteById(review.getReviewId());
+            }
+        }
+        
+        // 4. 사용자 삭제
+        userDAO.delete(user);
     }
 }

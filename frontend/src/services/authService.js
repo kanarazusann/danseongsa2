@@ -253,3 +253,27 @@ export const changePassword = async (userId, newPassword) => {
   }
 };
 
+// 회원 탈퇴 API 호출
+export const deleteUser = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}/delete`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.rt !== 'OK') {
+      throw new Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+    }
+
+    // 로컬 스토리지에서 사용자 정보 제거
+    removeStoredUser();
+
+    return data;
+  } catch (error) {
+    console.error('회원 탈퇴 API 호출 오류:', error);
+    throw error;
+  }
+};
+
