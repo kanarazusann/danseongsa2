@@ -245,6 +245,7 @@ function SellerDashboard() {
           discountPrice: item.discountPrice || null,
           status: item.status || 'SELLING',
           viewCount: item.viewCount || 0,
+          wishCount: item.wishCount || 0,
           createdAt: item.createdAt ? item.createdAt.split('T')[0] : '', // 날짜만 추출
           // 이미지 URL 처리
           image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
@@ -261,12 +262,11 @@ function SellerDashboard() {
     }
   }, []);
 
-  // 상품 관리 탭이 활성화될 때 상품 목록 로드
+  // 사업자명이 준비되면 상품 목록 로드
   useEffect(() => {
-    if (activeTab === 'products' && businessInfo.businessName) {
-      loadProductsByBrand(businessInfo.businessName);
-    }
-  }, [activeTab, businessInfo.businessName, loadProductsByBrand]);
+    if (!businessInfo.businessName) return;
+    loadProductsByBrand(businessInfo.businessName);
+  }, [businessInfo.businessName, loadProductsByBrand]);
 
   const reviews = [
     {
@@ -288,38 +288,49 @@ function SellerDashboard() {
   ];
 
   const stats = useMemo(() => {
-    if (!orders || orders.length === 0) {
+    const orderList = Array.isArray(orders) ? orders : [];
+    const requestedRefundCount = refunds.filter(
+      refund => refund.status?.toUpperCase() === 'REQUESTED'
+    ).length;
+    const paidOrdersCount = orderList.filter(
+      order => (order.status || '').toUpperCase() === 'PAID'
+    ).length;
+    const pendingTaskCount = requestedRefundCount + paidOrdersCount;
+
+    if (!orderList || orderList.length === 0) {
       return {
         todayOrders: 0,
         todayRevenue: 0,
         totalProducts: products.length,
-        pendingOrders: 0
+        pendingTasks: pendingTaskCount
       };
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter(order => {
+    const todayOrders = orderList.filter(order => {
       if (!order.orderDate) return false;
       return order.orderDate.startsWith(todayStr);
     }).length;
 
-    const todayRevenue = orders.reduce((sum, order) => {
+    const todayRevenue = orderList.reduce((sum, order) => {
       if (!order.orderDate || !order.orderDate.startsWith(todayStr)) return sum;
       return sum + (order.totalPrice || 0);
     }, 0);
-
-    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND', 'REFUND_REQUESTED'];
-    const pendingOrders = orders.filter(order =>
-      pendingStatuses.includes((order.status || '').toUpperCase())
-    ).length;
 
     return {
       todayOrders,
       todayRevenue,
       totalProducts: products.length,
-      pendingOrders
+      pendingTasks: pendingTaskCount
     };
-  }, [orders, products.length]);
+  }, [orders, products.length, refunds]);
+
+  const popularProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    return [...products].sort(
+      (a, b) => (b.wishCount || 0) - (a.wishCount || 0)
+    );
+  }, [products]);
 
   const { activeOrders, afterSalesOrders, processedRefunds } = useMemo(() => {
     if (!orders) {
@@ -555,7 +566,7 @@ function SellerDashboard() {
               </div>
               <div className="stat-card">
                 <div className="stat-label">처리 대기 주문</div>
-                <div className="stat-value">{stats.pendingOrders}건</div>
+                <div className="stat-value">{stats.pendingTasks}건</div>
               </div>
             </div>
 
@@ -570,16 +581,18 @@ function SellerDashboard() {
                   <div className="recent-orders">
                     {orders.slice(0, 5).map(order => (
                       <div key={order.orderItemId} className="recent-order-item">
-                        <div>
-                          <span className="order-number">{order.orderNumber}</span>
+                        <div className="recent-order-text">
                           <span className="product-name">{order.productName}</span>
+                          <span className="order-meta">
+                            {order.orderNumber || '-'} · {(order.price || 0).toLocaleString()}원
+                          </span>
                         </div>
-                        <div>
-                          <span className={`order-status ${getOrderStatusClass(order.status)}`}>
+                        <div className="recent-order-actions">
+                          <span className={`order-status-chip ${getOrderStatusClass(order.status)}`}>
                             {getOrderStatusText(order.status)}
                           </span>
-                          <span className="order-price">
-                            {(order.price || 0).toLocaleString()}원
+                          <span className="order-meta-secondary">
+                            {formatDateTime(order.orderDate)}
                           </span>
                         </div>
                       </div>
@@ -590,17 +603,31 @@ function SellerDashboard() {
 
               <div className="section-card">
                 <h3>인기 상품</h3>
-                {products.slice(0, 5).length === 0 ? (
+                {popularProducts.slice(0, 5).length === 0 ? (
                   <div className="empty-state">
                     <p>등록된 상품이 없습니다.</p>
                   </div>
                 ) : (
-                  <div className="popular-products">
-                    {products.slice(0, 5).map(product => (
-                      <div key={product.productId} className="popular-product-item">
+                  <div className="recent-orders">
+                    {popularProducts.slice(0, 5).map(product => (
+                      <div
+                        key={product.productId}
+                        className="recent-order-item"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/product/${product.productId}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate(`/product/${product.productId}`);
+                          }
+                        }}
+                      >
                         <div>
                           <span className="product-name">{product.productName}</span>
-                          <span className="view-count">조회수: {product.viewCount}</span>
+                          <span className="view-count">
+                            찜 {product.wishCount || 0} · 조회수 {product.viewCount}
+                          </span>
                         </div>
                         <span className={`product-status ${product.status.toLowerCase()}`}>
                           {getStatusText(product.status)}

@@ -66,7 +66,7 @@
 .tab-content h3 {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   color: #000000;
 }
 
@@ -100,22 +100,24 @@
 /* 대시보드 섹션 */
 .dashboard-sections {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 32px;
+  margin-top: 10px;
 }
 
 .section-card {
-  background-color: #f9f9f9;
-  padding: 25px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid #e7e7e7;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
 }
 
 .recent-orders,
 .popular-products {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 18px;
 }
 
 .recent-order-item,
@@ -123,10 +125,23 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid #f2f2f2;
+  background: linear-gradient(145deg, #ffffff, #f8f9ff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.popular-product-item {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popular-product-item:focus,
+.popular-product-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(30, 136, 229, 0.15);
+  outline: none;
 }
 
 .recent-order-item > div,
@@ -157,22 +172,51 @@
 }
 
 .order-status.confirmed,
-.product-status.selling {
+.product-status.selling,
+.order-status-chip.paid,
+.order-status-chip.confirmed {
   background-color: #e3f2fd;
   color: #1976d2;
-  width: 43px;
 }
 
 .order-status.cancelled,
-.product-status.sold_out {
+.order-status.canceled,
+.product-status.sold_out,
+.order-status-chip.cancelled,
+.order-status-chip.canceled {
   background-color: #ffebee;
   color: #d32f2f;
-  width: 43px;
 }
 
 .order-price {
   font-weight: 600;
   color: #000000;
+}
+
+.recent-order-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recent-order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.order-meta,
+.order-meta-secondary {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+.order-status-chip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* 상품 관리 */
@@ -400,58 +444,71 @@
 }
 
 .order-status.paid,
-.order-status.confirmed {
+.order-status.confirmed,
+.order-status-chip.paid,
+.order-status-chip.confirmed {
   background-color: #e3f2fd;
   color: #1976d2;
 }
 
-.order-status.delivering {
+.order-status.delivering,
+.order-status-chip.delivering {
   background-color: #fff3e0;
   color: #ef6c00;
 }
 
-.order-status.delivered {
+.order-status.delivered,
+.order-status-chip.delivered {
   background-color: #e8f5e9;
   color: #2e7d32;
 }
 
 .order-status.cancelled,
-.order-status.canceled {
+.order-status.canceled,
+.order-status-chip.cancelled,
+.order-status-chip.canceled {
   background-color: #ffebee;
   color: #d32f2f;
 }
 
-.order-status.refund-requested {
+.order-status.refund-requested,
+.order-status-chip.refund-requested {
   background-color: #fff8e1;
   color: #f9a825;
 }
 
-.order-status.refunded {
+.order-status.refunded,
+.order-status-chip.refunded {
   background-color: #e1f5fe;
   color: #0277bd;
 }
 
-.order-status.exchange-requested {
+.order-status.exchange-requested,
+.order-status-chip.exchange-requested {
   background-color: #e0f7fa;
   color: #00838f;
 }
 
-.order-status.exchanged {
+.order-status.exchanged,
+.order-status-chip.exchanged {
   background-color: #ede7f6;
   color: #6a1b9a;
 }
 
-.order-status.rejected {
+.order-status.rejected,
+.order-status-chip.rejected {
   background-color: #fff3e0;
   color: #e65100;
 }
 
-.order-status.completed {
+.order-status.completed,
+.order-status-chip.completed {
   background-color: #e1f5fe;
   color: #0277bd;
 }
 
-.order-status.processing {
+.order-status.processing,
+.order-status-chip.processing {
   background-color: #fff3e0;
   color: #f57c00;
 }
@@ -824,7 +881,7 @@
   }
 
   .dashboard-sections {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .products-list {
