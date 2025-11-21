@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 
@@ -48,10 +49,20 @@ public class Refund {
     private User user;  // 사용자 (FK -> User)
 
     @Column(name = "STATUS", length = 20)
-    private String status;  // REQUESTED, APPROVED, COMPLETED
+    private String status;  // REQUESTED, APPROVED, REJECTED, COMPLETED
+
+    @Column(name = "PREVIOUSSTATUS", length = 20)
+    private String previousStatus;  // orderItem status before request
+
+    @Column(name = "SELLERRESPONSE", length = 200)
+    private String sellerResponse;
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)
     private Timestamp createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "UPDATEDAT")
+    private Timestamp updatedAt;
 }
 
