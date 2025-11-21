@@ -33,16 +33,16 @@ const ORDER_STATUS_TEXT = {
   DELIVERED: '배송완료',
   CANCELED: '취소됨',
   CANCELLED: '취소됨',
-  REFUND: '환불/교환',
-  REFUND_REQUESTED: '환불요청중',
+  REFUND: '환불',
+  REFUND_REQUESTED: '환불신청함',
   REFUNDED: '환불완료',
-  EXCHANGE_REQUESTED: '교환요청중',
-  EXCHANGED: '교환완료'
+  REJECTED: '거절됨',
+  COMPLETED: '처리완료',
+  PROCESSING: '처리중'
 };
 
 const REFUND_TYPE_TEXT = {
   REFUND: '환불',
-  EXCHANGE: '교환',
   CANCEL: '취소'
 };
 
@@ -86,13 +86,15 @@ const getOrderStatusClass = (status) => {
       return 'refunded';
     case 'refund':
       return 'refund-requested';
-    case 'exchange_requested':
-      return 'exchange-requested';
-    case 'exchanged':
-      return 'exchanged';
     case 'canceled':
     case 'cancelled':
       return 'cancelled';
+    case 'rejected':
+      return 'rejected';
+    case 'completed':
+      return 'completed';
+    case 'processing':
+      return 'processing';
     default:
       return 'paid';
   }
@@ -306,7 +308,7 @@ function SellerDashboard() {
       return sum + (order.totalPrice || 0);
     }, 0);
 
-    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND', 'REFUND_REQUESTED', 'EXCHANGE_REQUESTED'];
+    const pendingStatuses = ['PAID', 'DELIVERING', 'REFUND', 'REFUND_REQUESTED'];
     const pendingOrders = orders.filter(order =>
       pendingStatuses.includes((order.status || '').toUpperCase())
     ).length;
@@ -319,9 +321,9 @@ function SellerDashboard() {
     };
   }, [orders, products.length]);
 
-  const { activeOrders, afterSalesOrders } = useMemo(() => {
+  const { activeOrders, afterSalesOrders, processedRefunds } = useMemo(() => {
     if (!orders) {
-      return { activeOrders: [], afterSalesOrders: [] };
+      return { activeOrders: [], afterSalesOrders: [], processedRefunds: [] };
     }
     const active = [];
     const afterSales = [];
@@ -329,16 +331,38 @@ function SellerDashboard() {
       const status = (item.status || '').toUpperCase();
       if (
         status.includes('CANCEL') ||
-        status.includes('REFUND') ||
-        status.includes('EXCHANGE')
+        status.includes('REFUND')
       ) {
         afterSales.push(item);
       } else {
         active.push(item);
       }
     });
-    return { activeOrders: active, afterSalesOrders: afterSales };
-  }, [orders]);
+    
+    // 처리된 refund (REQUESTED가 아닌 것들)를 order 형태로 변환
+    const processed = refunds
+      .filter(r => r.status?.toUpperCase() !== 'REQUESTED')
+      .map(refund => ({
+        orderItemId: refund.orderItemId || refund.refundId,
+        orderNumber: refund.orderNumber || '-',
+        orderDate: refund.updatedAt || refund.createdAt,
+        buyerName: refund.buyerName || '-',
+        productName: refund.productName || '-',
+        productImage: refund.productImage || null,
+        quantity: refund.quantity || 1,
+        price: refund.price || 0,
+        totalPrice: refund.refundAmount || refund.price || 0,
+        buyerPhone: refund.buyerPhone || '-',
+        zipcode: refund.zipcode || '',
+        address: refund.address || '',
+        detailAddress: refund.detailAddress || '',
+        status: refund.status === 'COMPLETED' ? 'REFUNDED' : refund.status,
+        color: refund.color || '',
+        productSize: refund.productSize || ''
+      }));
+    
+    return { activeOrders: active, afterSalesOrders: afterSales, processedRefunds: processed };
+  }, [orders, refunds]);
 
   const getStatusText = (status) => {
     if (!status) return '-';
@@ -810,7 +834,7 @@ function SellerDashboard() {
                             </button>
                           </>
                         )}
-                        {['CANCELED', 'CANCELLED', 'REFUNDED', 'EXCHANGED'].includes(statusUpper) && (
+                        {['CANCELED', 'CANCELLED', 'REFUNDED'].includes(statusUpper) && (
                           <button
                             className="btn-danger"
                             onClick={() => handleDeleteOrder(order.orderItemId)}
@@ -840,19 +864,16 @@ function SellerDashboard() {
                 <div className="empty-state">
                   <p>{refundsError}</p>
                 </div>
-              ) : refunds.length === 0 ? (
+              ) : refunds.filter(r => r.status?.toUpperCase() === 'REQUESTED').length === 0 ? (
                 <div className="empty-state">
                   <p>대기 중인 신청이 없습니다.</p>
                 </div>
               ) : (
                 <div className="refunds-list">
-                  {refunds.map(refund => (
+                  {refunds.filter(r => r.status?.toUpperCase() === 'REQUESTED').map(refund => (
                     <div key={refund.refundId} className="refund-card">
                       <div className="refund-header">
-                        <div className="refund-type-badge">
-                          {mapRefundTypeText(refund.refundType)}
-                        </div>
-                        <span className={`refund-status ${refund.status?.toLowerCase() || ''}`}>
+                        <span className={`order-status ${getOrderStatusClass(refund.status)}`}>
                           {mapRefundStatusText(refund.status)}
                         </span>
                       </div>
@@ -910,13 +931,13 @@ function SellerDashboard() {
 
             <section className="refund-section">
               <h3>취소/환불 처리된 주문</h3>
-              {afterSalesOrders.length === 0 ? (
+              {afterSalesOrders.length === 0 && processedRefunds.length === 0 ? (
                 <div className="empty-state">
-                  <p>취소/환불/교환 처리된 주문이 없습니다.</p>
+                  <p>취소/환불 처리된 주문이 없습니다.</p>
                 </div>
               ) : (
                 <div className="orders-list">
-                  {afterSalesOrders.map(order => (
+                  {[...afterSalesOrders, ...processedRefunds].map(order => (
                     <div key={order.orderItemId} className="order-card cancelled">
                       <div className="order-header">
                         <div className="order-header-left">

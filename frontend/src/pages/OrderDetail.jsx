@@ -124,11 +124,11 @@ function OrderDetail() {
       'DELIVERED': '배송완료',
       'CANCELED': '취소됨',
       'CANCELLED': '취소됨',
-      'REFUND': '환불/교환',
-      'REFUND_REQUESTED': '환불요청중',
+      'REFUND': '환불',
+      'REFUND_REQUESTED': '환불신청함',
       'REFUNDED': '환불완료',
-      'EXCHANGE_REQUESTED': '교환요청중',
-      'EXCHANGED': '교환완료'
+      'PROCESSING': '처리중',
+      'COMPLETED': '처리완료'
     };
     if (!status) return statusMap['PAID'];
     const key = status.toUpperCase();
@@ -181,22 +181,21 @@ function OrderDetail() {
     }
   };
 
-  const handleRefundRequest = async (item, type = 'REFUND') => {
+  const handleRefundRequest = async (item) => {
     if (!userId) return;
-    const defaultMessage = type === 'EXCHANGE' ? '교환 사유를 입력해주세요.' : '환불 사유를 입력해주세요.';
-    const reason = window.prompt(defaultMessage, '');
+    const reason = window.prompt('환불 사유를 입력해주세요.', '');
     if (reason === null) return;
     try {
       await createRefundRequest({
         orderItemId: item.orderItemId,
         userId,
-        refundType: type,
-        reason: reason || defaultMessage,
+        refundType: 'REFUND',
+        reason: reason || '환불 요청',
         reasonDetail: '',
         refundAmount: item.price ? item.price * (item.quantity || 1) : null
       });
       await refreshOrderData();
-      alert(type === 'EXCHANGE' ? '교환 요청이 접수되었습니다.' : '환불 요청이 접수되었습니다.');
+      alert('환불 요청이 접수되었습니다.');
     } catch (error) {
       alert(error.message || '요청 처리 중 오류가 발생했습니다.');
     }
@@ -382,14 +381,6 @@ function OrderDetail() {
                                   판매자 메모: {refundInfo.sellerResponse}
                                 </div>
                               )}
-                              {refundStatus === 'REQUESTED' && (
-                                <button
-                                  className="btn-secondary"
-                                  onClick={() => handleRefundCancel(refundInfo.refundId)}
-                                >
-                                  신청 취소
-                                </button>
-                              )}
                             </div>
                           );
                         }
@@ -407,20 +398,21 @@ function OrderDetail() {
                           );
                         }
                         if (itemStatus === 'DELIVERING') {
+                          // 환불 거절된 경우 구매확정 버튼만 표시
+                          const refundInfo = refunds.find((ref) => ref.orderItemId === item.orderItemId);
+                          const refundStatus = refundInfo?.status?.toUpperCase();
+                          const isRejected = refundStatus === 'REJECTED';
+                          
                           return (
                             <div className="payment-item-actions">
-                              <button
-                                className="btn-review"
-                                onClick={() => handleRefundRequest(item, 'REFUND')}
-                              >
-                                환불 요청
-                              </button>
-                              <button
-                                className="btn-review"
-                                onClick={() => handleRefundRequest(item, 'EXCHANGE')}
-                              >
-                                교환 요청
-                              </button>
+                              {!isRejected && (
+                                <button
+                                  className="btn-review"
+                                  onClick={() => handleRefundRequest(item)}
+                                >
+                                  환불 요청
+                                </button>
+                              )}
                               <button
                                 className="btn-review"
                                 onClick={() => handleConfirmPurchase(item.orderItemId)}
@@ -431,6 +423,7 @@ function OrderDetail() {
                           );
                         }
                         if (itemStatus === 'DELIVERED') {
+                          // DELIVERED 상태는 이미 구매확정된 상태이므로 구매확정 버튼 표시 안 함
                           return (
                             <div className="payment-item-actions">
                               {item.hasReview ? (

@@ -156,21 +156,6 @@ public class OrderController {
         return map;
     }
 
-    @PostMapping("/orders/items/{orderItemId}/exchange")
-    public Map<String, Object> requestExchange(@PathVariable("orderItemId") int orderItemId,
-                                               @RequestBody Map<String, Object> request) {
-        Map<String, Object> map = new HashMap<>();
-        try {
-            int userId = ((Number) request.get("userId")).intValue();
-            Map<String, Object> result = orderService.requestExchange(orderItemId, userId);
-            map.put("rt", "OK");
-            map.put("item", result);
-        } catch (Exception e) {
-            map.put("rt", "FAIL");
-            map.put("message", e.getMessage());
-        }
-        return map;
-    }
 
     @PostMapping("/orders/items/{orderItemId}/confirm")
     public Map<String, Object> confirmOrderItem(@PathVariable("orderItemId") int orderItemId,

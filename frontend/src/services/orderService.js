@@ -193,15 +193,4 @@ export const requestRefund = async (orderItemId, userId) => {
   });
 };
 
-export const requestExchange = async (orderItemId, userId) => {
-  return createRefundRequest({
-    orderItemId,
-    userId,
-    refundType: 'EXCHANGE',
-    reason: '교환 요청',
-    reasonDetail: '',
-    refundAmount: null
-  });
-};
-
 

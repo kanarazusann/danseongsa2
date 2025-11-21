@@ -196,6 +196,30 @@
   background-color: #ffffff;
 }
 
+.order-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-item-detail-row {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.order-item-detail-row .detail-label {
+  min-width: 60px;
+  color: #666;
+  font-weight: 500;
+  margin-right: 12px;
+}
+
+.order-item-detail-row .detail-value {
+  color: #333;
+  flex: 1;
+}
+
 .order-header {
   display: flex;
   justify-content: space-between;
@@ -241,9 +265,45 @@
   color: #ffffff;
 }
 
-.order-status.cancelled {
+.order-status.cancelled,
+.order-status.canceled {
   background-color: #ffebee;
   color: #d32f2f;
+}
+
+.order-status.requested {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.order-status.approved {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.order-status.rejected {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.order-status.completed {
+  background-color: #e1f5fe;
+  color: #0277bd;
+}
+
+.order-status.refunded {
+  background-color: #e1f5fe;
+  color: #0277bd;
+}
+
+.order-status.processing {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.order-status.completed {
+  background-color: #e1f5fe;
+  color: #0277bd;
 }
 
 .order-items {

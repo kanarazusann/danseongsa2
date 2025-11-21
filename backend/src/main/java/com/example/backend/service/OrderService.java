@@ -351,10 +351,6 @@ public class OrderService {
         return createRefundRequest(orderItemId, userId, "REFUND", "사용자 환불 요청", null, null);
     }
 
-    @Transactional
-    public Map<String, Object> requestExchange(int orderItemId, int userId) {
-        return createRefundRequest(orderItemId, userId, "EXCHANGE", "사용자 교환 요청", null, null);
-    }
 
     @Transactional
     public Map<String, Object> confirmOrderItem(int orderItemId, int userId) {
@@ -410,11 +406,7 @@ public class OrderService {
         refund.setStatus("REQUESTED");
         refund.setPreviousStatus(orderItem.getStatus());
 
-        String requestStatus = "REFUND_REQUESTED";
-        if ("EXCHANGE".equalsIgnoreCase(refundType)) {
-            requestStatus = "EXCHANGE_REQUESTED";
-        }
-        orderItem.setStatus(requestStatus);
+        orderItem.setStatus("REFUND_REQUESTED");
         orderItemRepository.save(orderItem);
 
         Refund saved = refundRepository.save(refund);
@@ -466,23 +458,17 @@ public class OrderService {
             throw new IllegalStateException("이미 처리된 요청입니다.");
         }
 
-        String type = refund.getRefundType() != null ? refund.getRefundType().toUpperCase() : "REFUND";
+        // 교환 기능 제거 - 환불만 처리
         refund.setSellerResponse(sellerResponse);
-        if ("EXCHANGE".equals(type)) {
-            refund.setStatus("APPROVED");
-            orderItem.setStatus("EXCHANGE_APPROVED");
-            orderItemRepository.save(orderItem);
-        } else {
-            refund.setStatus("COMPLETED");
-            if (orderItem.getProduct() != null) {
-                Integer qty = Optional.ofNullable(orderItem.getQuantity()).orElse(0);
-                Integer stock = Optional.ofNullable(orderItem.getProduct().getStock()).orElse(0);
-                orderItem.getProduct().setStock(stock + qty);
-                productDAO.save(orderItem.getProduct());
-            }
-            orderItem.setStatus("CANCELED");
-            orderItemRepository.save(orderItem);
+        refund.setStatus("COMPLETED");
+        if (orderItem.getProduct() != null) {
+            Integer qty = Optional.ofNullable(orderItem.getQuantity()).orElse(0);
+            Integer stock = Optional.ofNullable(orderItem.getProduct().getStock()).orElse(0);
+            orderItem.getProduct().setStock(stock + qty);
+            productDAO.save(orderItem.getProduct());
         }
+        orderItem.setStatus("REFUNDED"); // 환불 완료로 변경
+        orderItemRepository.save(orderItem);
         refundRepository.save(refund);
 
         updateOrderStatusBasedOnItems(orderItem.getOrder());
@@ -544,7 +530,7 @@ public class OrderService {
                     throw new IllegalStateException("결제 완료 상태에서만 취소 요청이 가능합니다.");
                 }
             }
-            case "EXCHANGE", "REFUND" -> {
+            case "REFUND" -> {
                 if (!"DELIVERING".equals(currentStatus) && !"DELIVERED".equals(currentStatus)) {
                     throw new IllegalStateException("배송중 또는 배송완료 상태에서만 요청할 수 있습니다.");
                 }
@@ -555,7 +541,7 @@ public class OrderService {
 
     private Refund getRefundOrThrow(int refundId) {
         return refundRepository.findById(refundId)
-                .orElseThrow(() -> new IllegalArgumentException("환불/교환 요청을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("환불 요청을 찾을 수 없습니다."));
     }
 
     private Map<String, Object> buildRefundResponse(Refund refund) {
@@ -579,6 +565,10 @@ public class OrderService {
             map.put("productId", orderItem.getProductId());
             map.put("quantity", orderItem.getQuantity());
             map.put("price", orderItem.getPrice());
+            map.put("color", orderItem.getColor());
+            map.put("productSize", orderItem.getProductSize());
+            String productImage = resolveMainImageUrl(orderItem.getPostId());
+            map.put("productImage", productImage != null ? productImage : "");
             Order order = orderItem.getOrder();
             if (order != null) {
                 map.put("orderId", order.getOrderId());
@@ -725,32 +715,36 @@ public class OrderService {
             return;
         }
 
-        boolean allDelivered = items.stream()
-                .allMatch(item -> "DELIVERED".equalsIgnoreCase(
-                        Optional.ofNullable(item.getStatus()).orElse("")));
+        // 모든 orderItem의 status 확인
+        boolean allCompleted = items.stream()
+                .allMatch(item -> {
+                    String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
+                    // 구매확정(DELIVERED), 환불완료(REFUNDED), 취소완료(CANCELED/CANCELLED)인 경우 완료로 간주
+                    return "DELIVERED".equals(status) || 
+                           "REFUNDED".equals(status) || 
+                           "CANCELED".equals(status) || 
+                           "CANCELLED".equals(status);
+                });
 
-        boolean allCanceled = items.stream()
-                .allMatch(item -> "CANCELED".equalsIgnoreCase(
-                        Optional.ofNullable(item.getStatus()).orElse("")));
+        // 처리 중인 상태: 환불요청중, 배송중, 결제완료 등
+        boolean anyProcessing = items.stream()
+                .anyMatch(item -> {
+                    String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
+                    return "PAID".equals(status) || 
+                           "DELIVERING".equals(status) || 
+                           "REFUND_REQUESTED".equals(status);
+                });
 
-        boolean anyRefund = items.stream().anyMatch(item -> {
-            String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
-            return status.contains("REFUND") || status.contains("EXCHANGE") || status.contains("CANCEL");
-        });
-
-        boolean anyDelivering = items.stream()
-                .anyMatch(item -> "DELIVERING".equalsIgnoreCase(
-                        Optional.ofNullable(item.getStatus()).orElse("")));
-
-        String newStatus = "PAID";
-        if (allCanceled) {
-            newStatus = "CANCELED";
-        } else if (allDelivered) {
-            newStatus = "DELIVERED";
-        } else if (anyRefund) {
-            newStatus = "REFUND";
-        } else if (anyDelivering) {
-            newStatus = "DELIVERING";
+        String newStatus;
+        if (allCompleted) {
+            // 모든 orderItem이 완료 상태면 처리완료
+            newStatus = "COMPLETED";
+        } else if (anyProcessing) {
+            // 하나라도 처리 중이면 처리중
+            newStatus = "PROCESSING";
+        } else {
+            // 기본값
+            newStatus = "PAID";
         }
 
         order.setOrderStatus(newStatus);

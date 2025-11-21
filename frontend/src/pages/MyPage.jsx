@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyPage.css';
 import { fetchSessionUser, logout, deleteUser } from '../services/authService';
 import { getWishlist, removeWishlist } from '../services/productService';
-import { getOrdersByUserId, getUserRefunds, cancelRefundRequest } from '../services/orderService';
+import { getOrdersByUserId, getUserRefunds, cancelRefundRequest, getOrderDetail, confirmOrderItem } from '../services/orderService';
 import { getReviewsByUserId, updateReview, deleteReview } from '../services/reviewService';
 import ProductCard from '../components/ProductCard';
 
@@ -37,6 +37,10 @@ function MyPage() {
   const [loadingRefunds, setLoadingRefunds] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [orderDetail, setOrderDetail] = useState(null);
+  const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
 
 
   
@@ -71,19 +75,35 @@ function MyPage() {
       'DELIVERED': '배송완료',
       'CANCEL': '취소됨',
       'CANCELLED': '취소됨',
+      'CANCELED': '취소완료',
       'REFUND': '환불',
-      'REFUND_REQUESTED': '환불요청중',
+      'REFUND_REQUESTED': '환불신청함',
       'REFUNDED': '환불완료',
-      'EXCHANGE_REQUESTED': '교환요청중',
-      'EXCHANGED': '교환완료'
+      'COMPLETED': '처리완료',
+      'PROCESSING': '처리중'
     };
-    return statusMap[status] || status;
+    return statusMap[status?.toUpperCase()] || status || '';
   };
 
-  // 주문 목록 필터링: 진행 중인 주문만 (PAID, DELIVERING, DELIVERED)
+  // 주문 목록 필터링: 진행 중인 주문만 (PAID, DELIVERING, DELIVERED, PROCESSING)
+  // order의 status 또는 orderItem 중 하나라도 진행 중인 상태면 포함
   const activeOrders = orders.filter(order => {
-    const status = (order.status || '').toUpperCase();
-    return status === 'PAID' || status === 'DELIVERING' || status === 'DELIVERED';
+    const orderStatus = (order.status || '').toUpperCase();
+    
+    // order status가 진행 중인 상태면 포함
+    if (orderStatus === 'PAID' || orderStatus === 'DELIVERING' || orderStatus === 'DELIVERED' || orderStatus === 'PROCESSING') {
+      return true;
+    }
+    
+    // orderItem 중 하나라도 진행 중인 상태면 포함
+    if (order.items && order.items.length > 0) {
+      return order.items.some(item => {
+        const itemStatus = (item.status || '').toUpperCase();
+        return itemStatus === 'PAID' || itemStatus === 'DELIVERING' || itemStatus === 'DELIVERED';
+      });
+    }
+    
+    return false;
   });
 
   // 취소/반품된 주문만
@@ -91,14 +111,94 @@ function MyPage() {
     const status = (order.status || '').toUpperCase();
     return status === 'CANCEL' || status === 'CANCELLED' || status === 'CANCELED' ||
            status === 'REFUND' || status === 'REFUND_REQUESTED' || 
-           status === 'REFUNDED' || status === 'EXCHANGE_REQUESTED' || 
-           status === 'EXCHANGED';
+           status === 'REFUNDED';
   });
+
+  // 상품별 취소/반품 내역 (refunds + 결제 취소한 주문)
+  const cancelledOrderItems = useMemo(() => {
+    const items = [];
+    const refundOrderItemIds = new Set();
+    
+    // refunds를 상품별로 변환 (환불/교환 신청이 있는 것만, 거절된 것은 제외)
+    refunds.forEach(refund => {
+      // 환불 거절된 것은 제외 (주문내역에서만 표시)
+      const refundStatus = (refund.status || '').toUpperCase();
+      if (refundStatus === 'REJECTED') {
+        return; // 거절된 환불은 취소/반품 내역에 표시하지 않음
+      }
+      
+      // orderItemId가 유효한 경우만 추가
+      if (refund.orderItemId) {
+        refundOrderItemIds.add(refund.orderItemId);
+        // orderItemStatus를 우선 사용, 없으면 refund.status 사용
+        const displayStatus = refund.orderItemStatus || refund.status || 'REQUESTED';
+        // 이미지 URL 처리: productImage가 있으면 사용, 없으면 빈 문자열
+        const productImage = refund.productImage || refund.imageUrl || '';
+        items.push({
+          type: 'refund',
+          refundId: refund.refundId,
+          orderItemId: refund.orderItemId,
+          orderId: refund.orderId,
+          orderNumber: refund.orderNumber || '-',
+          productName: refund.productName || '-',
+          productImage: productImage,
+          quantity: refund.quantity || 1,
+          price: refund.refundAmount || refund.price || 0,
+          status: displayStatus, // orderItemStatus 우선 사용
+          orderItemStatus: refund.orderItemStatus, // 원본 보관
+          refundStatus: refund.status, // refund status 보관
+          refundType: refund.refundType,
+          reason: refund.reason,
+          reasonDetail: refund.reasonDetail,
+          refundAmount: refund.refundAmount,
+          sellerResponse: refund.sellerResponse,
+          createdAt: refund.createdAt,
+          updatedAt: refund.updatedAt,
+          color: refund.color || '',
+          productSize: refund.productSize || ''
+        });
+      }
+    });
+    
+    // orders에서 결제 취소한 item 추가 (refunds에 없는 것만)
+    orders.forEach(order => {
+      if (order.items && order.items.length > 0) {
+        order.items.forEach(item => {
+          // refunds에 이미 포함된 item은 제외
+          if (!item.orderItemId || refundOrderItemIds.has(item.orderItemId)) {
+            return;
+          }
+          
+          const itemStatus = (item.status || '').toUpperCase();
+          
+          // 결제 취소된 item만 추가 (CANCEL, CANCELLED, CANCELED)
+          if (itemStatus === 'CANCEL' || itemStatus === 'CANCELLED' || itemStatus === 'CANCELED') {
+            const productImage = item.productImage || item.imageUrl || '';
+            items.push({
+              type: 'order',
+              orderItemId: item.orderItemId,
+              orderId: order.orderId,
+              orderNumber: order.orderNumber || '-',
+              productName: item.productName || '-',
+              productImage: productImage,
+              quantity: item.quantity || 1,
+              price: item.price || 0,
+              status: item.status,
+              orderDate: order.orderDate,
+              color: item.color || '',
+              productSize: item.productSize || ''
+            });
+          }
+        });
+      }
+    });
+    
+    return items;
+  }, [refunds, orders]);
 
   const getRefundTypeText = (type) => {
     const typeMap = {
       'REFUND': '환불',
-      'EXCHANGE': '교환',
       'CANCEL': '취소'
     };
     return typeMap[type] || type;
@@ -162,6 +262,16 @@ function MyPage() {
     const loadOrders = async () => {
       if (activeTab !== 'orders' && activeTab !== 'refunds') return;
       
+      // 주문내역 탭에서도 환불 내역을 로드해야 환불 거절 여부를 확인할 수 있음
+      if (activeTab === 'orders' && userId) {
+        try {
+          const refundResponse = await getUserRefunds(userId);
+          setRefunds(refundResponse.items || []);
+        } catch (error) {
+          console.error('환불 내역 로드 오류:', error);
+        }
+      }
+      
       try {
         setLoadingOrders(true);
         const { item: userInfo } = await fetchSessionUser();
@@ -179,9 +289,14 @@ function MyPage() {
             
             // 주문 상품 목록 변환
             const items = order.items ? order.items.map(item => ({
+              orderItemId: item.orderItemId || item.id,
               productName: item.productName || '',
               quantity: item.quantity || 1,
-              price: (item.price || 0) * (item.quantity || 1) // 총 가격
+              price: (item.price || 0) * (item.quantity || 1), // 총 가격
+              status: item.status || order.orderStatus || '',
+              productImage: item.productImage || item.imageUrl || '',
+              color: item.color || '',
+              productSize: item.productSize || item.size || ''
             })) : [];
             
             return {
@@ -293,6 +408,18 @@ function MyPage() {
       try {
         setLoadingRefunds(true);
         const response = await getUserRefunds(userId);
+        console.log('Refunds response:', response);
+        if (response.items) {
+          console.log('Refunds items:', response.items);
+          response.items.forEach((refund, idx) => {
+            console.log(`Refund ${idx}:`, {
+              refundId: refund.refundId,
+              productName: refund.productName,
+              productImage: refund.productImage,
+              orderItemId: refund.orderItemId
+            });
+          });
+        }
         setRefunds(response.items || []);
       } catch (error) {
         console.error('취소/반품 내역 로드 오류:', error);
@@ -321,6 +448,60 @@ function MyPage() {
     } catch (error) {
       console.error('찜 삭제 오류:', error);
       alert('찜 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 구매확정 처리
+  const handleConfirmPurchase = async (orderItemId) => {
+    if (!userId) {
+      alert('사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('구매를 확정하시겠습니까? 구매확정 후에는 환불 신청이 제한될 수 있습니다.')) {
+      return;
+    }
+
+    try {
+      await confirmOrderItem(orderItemId, userId);
+      
+      // 주문 내역 새로고침
+      const response = await getOrdersByUserId(userId);
+      if (response.rt === 'OK' && response.items) {
+        const formattedOrders = response.items.map(order => {
+          let orderDate = '';
+          if (order.orderDate) {
+            const date = new Date(order.orderDate);
+            orderDate = date.toISOString().split('T')[0];
+          }
+          
+          const items = order.items ? order.items.map(item => ({
+            orderItemId: item.orderItemId || item.id,
+            productName: item.productName || '',
+            quantity: item.quantity || 1,
+            price: (item.price || 0) * (item.quantity || 1),
+            status: item.status || order.orderStatus || '',
+            productImage: item.productImage || item.imageUrl || '',
+            color: item.color || '',
+            productSize: item.productSize || item.size || ''
+          })) : [];
+          
+          return {
+            orderId: order.orderId,
+            orderNumber: order.orderNumber || '',
+            orderDate: orderDate,
+            totalPrice: order.finalPrice || order.totalPrice || 0,
+            status: order.orderStatus || '',
+            items: items
+          };
+        });
+        setOrders(formattedOrders);
+      }
+      
+      alert('구매확정이 완료되었습니다.');
+    } catch (error) {
+      console.error('구매확정 오류:', error);
+      alert(error.message || '구매확정 중 오류가 발생했습니다.');
     }
   };
 
@@ -544,18 +725,46 @@ function MyPage() {
                         <span className="order-number">주문번호: {order.orderNumber}</span>
                         <span className="order-date">{order.orderDate}</span>
                       </div>
-                      <span className={`order-status ${order.status.toLowerCase()}`}>
+                      <span className={`order-status ${(order.status || '').toLowerCase()}`}>
                         {getStatusText(order.status)}
                       </span>
                     </div>
                     <div className="order-items">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="order-item">
-                          <span className="item-name">{item.productName}</span>
-                          <span className="item-quantity">수량: {item.quantity}</span>
-                          <span className="item-price">{item.price.toLocaleString()}원</span>
-                        </div>
-                      ))}
+                      {order.items.map((item, idx) => {
+                        const itemStatus = (item.status || '').toUpperCase();
+                        // 환불 거절 여부 확인
+                        const refundInfo = refunds.find(ref => ref.orderItemId === item.orderItemId);
+                        const refundStatus = refundInfo?.status?.toUpperCase();
+                        const isRejected = refundStatus === 'REJECTED';
+                        
+                        // 구매확정 가능 여부: DELIVERING 상태이거나, 환불 거절 후 DELIVERING 상태 (DELIVERED는 이미 구매확정된 상태이므로 버튼 숨김)
+                        const canConfirm = itemStatus === 'DELIVERING' || 
+                                          (isRejected && itemStatus === 'DELIVERING');
+                        
+                        return (
+                          <div key={idx} className="order-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: idx < order.items.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                            <div style={{ flex: 1 }}>
+                              <span className="item-name" style={{ display: 'block', marginBottom: '5px' }}>{item.productName}</span>
+                              <span className="item-quantity" style={{ fontSize: '14px', color: '#666' }}>수량: {item.quantity}</span>
+                              <span className="item-price" style={{ fontSize: '14px', color: '#666', marginLeft: '10px' }}>{item.price.toLocaleString()}원</span>
+                              {isRejected && (
+                                <span style={{ display: 'block', fontSize: '12px', color: '#d32f2f', marginTop: '4px' }}>
+                                  환불 신청이 거절되었습니다.
+                                </span>
+                              )}
+                            </div>
+                            {canConfirm && (
+                              <button
+                                className="btn-primary"
+                                onClick={() => handleConfirmPurchase(item.orderItemId)}
+                                style={{ marginLeft: '10px', padding: '6px 12px', fontSize: '13px' }}
+                              >
+                                구매확정
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="order-footer">
                       <div className="order-total">
@@ -618,127 +827,188 @@ function MyPage() {
             <h2>취소/반품 내역</h2>
             {loadingRefunds ? (
               <div className="loading">로딩 중...</div>
-            ) : refunds.length === 0 && cancelledOrders.length === 0 ? (
+            ) : cancelledOrderItems.length === 0 ? (
               <div className="empty-state">
                 <p>취소/반품 내역이 없습니다.</p>
               </div>
             ) : (
-              <>
-                {/* 환불/교환 신청 내역 */}
-                {refunds.length > 0 && (
-                  <div className="refunds-list">
-                    {refunds.map(refund => (
-                  <div key={refund.refundId} className="refund-card">
-                    <div className="refund-header">
-                      <div className="refund-type-badge">
-                        {getRefundTypeText(refund.refundType)}
+              <div className="orders-list">
+                {cancelledOrderItems.map((item, idx) => (
+                  <div key={item.orderItemId || item.refundId || idx} className="order-card">
+                    <div className="order-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span className="order-number">주문번호: {item.orderNumber}</span>
+                        <span className="order-date">
+                          {item.orderDate || (item.createdAt ? item.createdAt.split('T')[0] : '-')}
+                        </span>
                       </div>
-                      <span className={`refund-status ${refund.status?.toLowerCase() || ''}`}>
-                        {getRefundStatusText(refund.status)}
+                      <span className={`order-status ${(item.status || '').toLowerCase()}`} style={{ padding: '6px 14px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                        {getStatusText(item.status)}
                       </span>
                     </div>
-                    <div className="refund-info">
-                      <div className="refund-row">
-                        <label>주문번호</label>
-                        <div className="refund-value">{refund.orderNumber || '-'}</div>
+                    <div className="order-body" style={{ display: 'flex', gap: '20px', padding: '15px' }}>
+                      <div className="order-product-thumb" style={{ width: '100px', height: '100px', flexShrink: 0 }}>
+                        <img 
+                          src={resolveImageUrl(item.productImage)} 
+                          alt={item.productName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                          onError={(e) => {
+                            console.error('Image load error for item:', {
+                              productName: item.productName,
+                              productImage: item.productImage,
+                              type: item.type,
+                              orderItemId: item.orderItemId,
+                              refundId: item.refundId,
+                              resolvedUrl: resolveImageUrl(item.productImage)
+                            });
+                            e.target.src = 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
+                          }}
+                          onLoad={() => {
+                            console.log('Image loaded successfully:', {
+                              productName: item.productName,
+                              productImage: item.productImage,
+                              resolvedUrl: resolveImageUrl(item.productImage)
+                            });
+                          }}
+                        />
                       </div>
-                      <div className="refund-row">
-                        <label>상품명</label>
-                        <div className="refund-value">{refund.productName || '-'}</div>
-                      </div>
-                      <div className="refund-row">
-                        <label>신청일</label>
-                        <div className="refund-value">{refund.createdAt ? refund.createdAt.split('T')[0] : '-'}</div>
-                      </div>
-                      {refund.updatedAt && (
-                        <div className="refund-row">
-                          <label>최근 업데이트</label>
-                          <div className="refund-value">{refund.updatedAt.split('T')[0]}</div>
-                        </div>
-                      )}
-                      <div className="refund-row">
-                        <label>사유</label>
-                        <div className="refund-value">{refund.reason || '-'}</div>
-                      </div>
-                      {refund.reasonDetail && (
-                        <div className="refund-row">
-                          <label>상세사유</label>
-                          <div className="refund-value refund-detail">{refund.reasonDetail}</div>
-                        </div>
-                      )}
-                      {refund.refundAmount !== null && refund.refundAmount !== undefined && (
-                        <div className="refund-row">
-                          <label>환불금액</label>
-                          <div className="refund-value refund-amount">
-                            {Number(refund.refundAmount).toLocaleString()}원
-                          </div>
-                        </div>
-                      )}
-                      {refund.sellerResponse && (
-                        <div className="refund-row">
-                          <label>판매자 메모</label>
-                          <div className="refund-value">{refund.sellerResponse}</div>
-                        </div>
-                      )}
-                    </div>
-                    {refund.status?.toUpperCase() === 'REQUESTED' && (
-                      <div className="refund-actions">
-                        <button
-                          className="btn-secondary"
-                          onClick={() => handleCancelRefundRequest(refund.refundId)}
-                        >
-                          신청 취소
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* 취소된 주문 내역 */}
-                {cancelledOrders.length > 0 && (
-                  <div className="orders-list" style={{ marginTop: refunds.length > 0 ? '40px' : '0' }}>
-                    <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>취소된 주문</h3>
-                    {cancelledOrders.map(order => (
-                      <div key={order.orderId} className="order-card">
-                        <div className="order-header">
-                          <div>
-                            <span className="order-number">주문번호: {order.orderNumber}</span>
-                            <span className="order-date">{order.orderDate}</span>
-                          </div>
-                          <span className={`order-status ${order.status.toLowerCase()}`}>
-                            {getStatusText(order.status)}
+                      <div className="order-body-info" style={{ flex: 1 }}>
+                        <div className="order-item-info">
+                          <span className="item-name" style={{ fontSize: '16px', fontWeight: '600', display: 'block', marginBottom: '12px' }}>
+                            {item.productName}
                           </span>
+                          <div className="order-item-details" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {item.color && (
+                              <div className="order-item-detail-row">
+                                <span className="detail-label">색상</span>
+                                <span className="detail-value">{item.color}</span>
+                              </div>
+                            )}
+                            {item.productSize && (
+                              <div className="order-item-detail-row">
+                                <span className="detail-label">사이즈</span>
+                                <span className="detail-value">{item.productSize}</span>
+                              </div>
+                            )}
+                            <div className="order-item-detail-row">
+                              <span className="detail-label">수량</span>
+                              <span className="detail-value">{item.quantity || 1}개</span>
+                            </div>
+                            <div className="order-item-detail-row">
+                              <span className="detail-label">가격</span>
+                              <span className="detail-value">{(item.price || 0).toLocaleString()}원</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="order-items">
-                          {order.items.map((item, idx) => (
-                            <div key={idx} className="order-item">
-                              <span className="item-name">{item.productName}</span>
-                              <span className="item-quantity">수량: {item.quantity}</span>
-                              <span className="item-price">{item.price.toLocaleString()}원</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 주문 상세 모달 */}
+        {showOrderDetailModal && selectedOrder && (
+          <div className="modal-overlay" onClick={() => {
+            setShowOrderDetailModal(false);
+            setOrderDetail(null);
+            setSelectedOrder(null);
+          }}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3>주문 상세</h3>
+              <div className="modal-body">
+                {loadingOrderDetail ? (
+                  <div className="loading">로딩 중...</div>
+                ) : orderDetail ? (
+                  <>
+                    <div className="refund-detail-section">
+                      <div className="refund-detail-row">
+                        <label>주문번호</label>
+                        <span>{orderDetail.orderNumber || '-'}</span>
+                      </div>
+                      <div className="refund-detail-row">
+                        <label>주문일</label>
+                        <span>{formatDate(orderDetail.orderDate || orderDetail.createdAt)}</span>
+                      </div>
+                      <div className="refund-detail-row">
+                        <label>주문 상태</label>
+                        <span className={`order-status ${(orderDetail.orderStatus || orderDetail.status || '').toLowerCase()}`}>
+                          {getStatusText(orderDetail.orderStatus || orderDetail.status)}
+                        </span>
+                      </div>
+                    </div>
+                    {orderDetail.items && orderDetail.items.length > 0 && (
+                      <div style={{ marginTop: '20px' }}>
+                        <h4 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: '600' }}>주문 상품</h4>
+                        <div className="orders-list">
+                          {orderDetail.items.map((orderItem, idx) => (
+                            <div key={orderItem.orderItemId || idx} className="order-card" style={{ marginBottom: '15px' }}>
+                              <div className="order-header">
+                                <div>
+                                  <span className="item-name" style={{ fontSize: '16px', fontWeight: '600' }}>
+                                    {orderItem.productName || '-'}
+                                  </span>
+                                </div>
+                                <span className={`order-status ${(orderItem.status || '').toLowerCase()}`}>
+                                  {getStatusText(orderItem.status)}
+                                </span>
+                              </div>
+                              <div className="order-body" style={{ padding: '15px' }}>
+                                {orderItem.productImage && (
+                                  <div style={{ marginBottom: '10px' }}>
+                                    <img 
+                                      src={resolveImageUrl(orderItem.productImage)} 
+                                      alt={orderItem.productName}
+                                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                                    />
+                                  </div>
+                                )}
+                                <div className="order-item-info">
+                                  {orderItem.color && (
+                                    <div style={{ marginBottom: '5px' }}>색상: {orderItem.color}</div>
+                                  )}
+                                  {orderItem.productSize && (
+                                    <div style={{ marginBottom: '5px' }}>사이즈: {orderItem.productSize}</div>
+                                  )}
+                                  <div style={{ marginBottom: '5px' }}>수량: {orderItem.quantity || 1}개</div>
+                                  <div style={{ marginBottom: '5px' }}>
+                                    가격: {((orderItem.price || 0) * (orderItem.quantity || 1)).toLocaleString()}원
+                                  </div>
+                                  <div style={{ marginTop: '10px' }}>
+                                    <strong>상태: </strong>
+                                    <span className={`order-status ${(orderItem.status || '').toLowerCase()}`}>
+                                      {getStatusText(orderItem.status)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
-                        <div className="order-footer">
-                          <div className="order-total">
-                            총 결제금액: <strong>{order.totalPrice.toLocaleString()}원</strong>
-                          </div>
-                          <div className="order-actions">
-                            <button 
-                              className="btn-secondary"
-                              onClick={() => navigate(`/order/${order.orderId}`, { state: { order } })}
-                            >
-                              상세보기
-                            </button>
-                          </div>
-                        </div>
                       </div>
-                    ))}
+                    )}
+                  </>
+                ) : (
+                  <div className="empty-state">
+                    <p>주문 상세 정보를 불러올 수 없습니다.</p>
                   </div>
                 )}
-              </>
-            )}
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowOrderDetailModal(false);
+                    setOrderDetail(null);
+                    setSelectedOrder(null);
+                  }}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -7,7 +7,7 @@ function RefundRequest() {
   const location = useLocation();
   const { orderId, orderItemId, order } = location.state || {};
 
-  const [refundType, setRefundType] = useState('REFUND'); // REFUND or EXCHANGE
+  const [refundType, setRefundType] = useState('REFUND'); // REFUND only
   const [reason, setReason] = useState('');
   const [reasonDetail, setReasonDetail] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -110,7 +110,7 @@ function RefundRequest() {
           <button onClick={() => navigate(-1)} className="btn-back">
             ← 이전으로
           </button>
-          <h1 className="refund-request-title">환불/교환 신청</h1>
+          <h1 className="refund-request-title">환불 신청</h1>
         </div>
 
         <div className="refund-request-content">
@@ -129,9 +129,9 @@ function RefundRequest() {
             </div>
           </section>
 
-          {/* 환불/교환할 상품 */}
+          {/* 환불할 상품 */}
           <section className="refund-section">
-            <h2 className="section-title">환불/교환 상품</h2>
+            <h2 className="section-title">환불 상품</h2>
             <div className="refund-item">
               <div className="refund-item-image">
                 <img src={refundItem.productImage || 'https://via.placeholder.com/300x400/CCCCCC/666666?text=PRODUCT'} alt={refundItem.productName} />
@@ -156,36 +156,9 @@ function RefundRequest() {
             </div>
           </section>
 
-          {/* 환불/교환 유형 */}
-          <section className="refund-section">
-            <h2 className="section-title">환불/교환 유형</h2>
-            <div className="refund-type-options">
-              <label className="refund-type-option">
-                <input
-                  type="radio"
-                  name="refundType"
-                  value="REFUND"
-                  checked={refundType === 'REFUND'}
-                  onChange={(e) => setRefundType(e.target.value)}
-                />
-                <span>환불</span>
-              </label>
-              <label className="refund-type-option">
-                <input
-                  type="radio"
-                  name="refundType"
-                  value="EXCHANGE"
-                  checked={refundType === 'EXCHANGE'}
-                  onChange={(e) => setRefundType(e.target.value)}
-                />
-                <span>교환</span>
-              </label>
-            </div>
-          </section>
-
           {/* 환불 사유 */}
           <section className="refund-section">
-            <h2 className="section-title">환불/교환 사유</h2>
+            <h2 className="section-title">환불 사유</h2>
             <div className="refund-reason-options">
               {refundReasons.map((reasonOption) => (
                 <label key={reasonOption} className="refund-reason-option">
@@ -205,7 +178,7 @@ function RefundRequest() {
               <textarea
                 value={reasonDetail}
                 onChange={(e) => setReasonDetail(e.target.value)}
-                placeholder="환불/교환 사유를 상세히 입력해주세요."
+                placeholder="환불 사유를 상세히 입력해주세요."
                 rows={5}
                 required
               />
@@ -272,10 +245,9 @@ function RefundRequest() {
           <section className="refund-section notice">
             <h3 className="notice-title">안내 사항</h3>
             <ul className="notice-list">
-              <li>환불/교환 신청 후 판매자 확인까지 1-2일 소요됩니다.</li>
+              <li>환불 신청 후 판매자 확인까지 1-2일 소요됩니다.</li>
               <li>반품 배송비는 고객 부담입니다. (상품 불량의 경우 제외)</li>
               <li>환불 금액은 승인 후 3-5일 내에 입금됩니다.</li>
-              <li>교환의 경우, 반품 상품 확인 후 교환 상품이 발송됩니다.</li>
             </ul>
           </section>
 
