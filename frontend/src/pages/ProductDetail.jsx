@@ -372,7 +372,7 @@ function ProductDetail() {
             <div className="product-header">
               <p className="product-brand">{detail.brand || '브랜드 미지정'}</p>
               <h1 className="product-name">{detail.postName}</h1>
-              <div className="product-meta">
+              <div className="meta">
                 <span className="view-count">조회수 {detail.viewCount?.toLocaleString() || 0}</span>
                 <span className="category-name">{detail.categoryName}</span>
               </div>
@@ -390,7 +390,7 @@ function ProductDetail() {
               </div>
             </div>
 
-            <div className="product-details">
+            <div className="details">
               <div className="detail-row">
                 <span className="detail-label">성별</span>
                 <span className="detail-value">{genderText}</span>
@@ -498,7 +498,7 @@ function ProductDetail() {
               </span>
             </div>
 
-            <div className="product-actions">
+            <div className="actions">
               <div className="wish-wrapper">
               <button 
                 className={`btn-wish ${isWished ? 'active' : ''} ${isSellerUser ? 'disabled-button' : ''}`}
