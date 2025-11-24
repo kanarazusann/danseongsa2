@@ -59,6 +59,23 @@ function MyPage() {
       return dateString;
     }
   };
+
+  // 날짜+시간 포맷팅 함수 (YYYY-MM-DD HH:MM)
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch {
+      return dateString;
+    }
+  };
   
   // 이미지 URL 처리
   const resolveImageUrl = (url) => {
@@ -383,8 +400,18 @@ function MyPage() {
             content: review.content || '',
             createdAt: formatDate(review.createdAt),
             updatedAt: formatDate(review.updatedAt),
-            orderNumber: review.orderNumber || ''
-          }));
+            orderNumber: review.orderNumber || '',
+            sellerReply: review.sellerReply || null,
+            sellerReplyAt: review.sellerReplyAt ? formatDateTime(review.sellerReplyAt) : null,
+            images: review.images ? review.images.map(img => resolveImageUrl(img.imageUrl || img)) : [],
+            createdAtRaw: review.createdAt // 정렬을 위한 원본 날짜
+          }))
+          .sort((a, b) => {
+            // 최신순 정렬 (내림차순)
+            const dateA = new Date(a.createdAtRaw || 0);
+            const dateB = new Date(b.createdAtRaw || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
           setReviews(formattedReviews);
         } else {
           setReviews([]);
@@ -581,8 +608,17 @@ function MyPage() {
           content: review.content || '',
           createdAt: formatDate(review.createdAt),
           updatedAt: formatDate(review.updatedAt),
-          orderNumber: review.orderNumber || ''
-        }));
+          orderNumber: review.orderNumber || '',
+          sellerReply: review.sellerReply || null,
+          sellerReplyAt: review.sellerReplyAt ? formatDateTime(review.sellerReplyAt) : null,
+          createdAtRaw: review.createdAt // 정렬을 위한 원본 날짜
+        }))
+        .sort((a, b) => {
+          // 최신순 정렬 (내림차순)
+          const dateA = new Date(a.createdAtRaw || 0);
+          const dateB = new Date(b.createdAtRaw || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
         setReviews(formattedReviews);
       }
 
@@ -1029,7 +1065,7 @@ function MyPage() {
                 {reviews.map(review => (
                   <div key={review.reviewId} className="review-card">
                     <div className="review-product-info">
-                      <Link to={`/product?productId=${review.postId}`} className="review-product-image">
+                      <Link to={`/product/${review.postId}`} className="review-product-image">
                         <img 
                           src={review.productImage} 
                           alt={review.productName}
@@ -1039,7 +1075,7 @@ function MyPage() {
                         />
                       </Link>
                       <div className="review-product-details">
-                        <Link to={`/product?productId=${review.postId}`} className="review-product-name">
+                        <Link to={`/product/${review.postId}`} className="review-product-name">
                           {review.productName}
                         </Link>
                         {review.brand && (
@@ -1048,9 +1084,6 @@ function MyPage() {
                         <div className="review-order-info">
                           {review.orderNumber && <span>주문번호: {review.orderNumber}</span>}
                           <span>작성일: {review.createdAt}</span>
-                          {review.updatedAt && review.updatedAt !== review.createdAt && (
-                            <span className="review-updated">수정됨</span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1099,10 +1132,60 @@ function MyPage() {
                         <div className="review-content-display">
                           {review.content}
                         </div>
+                        
+                        {/* 리뷰 이미지 표시 */}
+                        {review.images && review.images.length > 0 && (
+                          <div className="review-images">
+                            {review.images.map((imageUrl, index) => (
+                              <img
+                                key={`${review.reviewId}-${index}`}
+                                src={imageUrl}
+                                alt={`리뷰 이미지 ${index + 1}`}
+                                className="review-image"
+                                onError={(e) => {
+                                  e.target.src = 'https://via.placeholder.com/300x300/CCCCCC/666666?text=No+Image';
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* 판매자 답글 표시 */}
+                        {review.sellerReply && (
+                          <div className="seller-reply">
+                            <div className="seller-reply-header">
+                              <div className="seller-reply-title-section">
+                                {review.brand && (
+                                  <span className="seller-reply-brand">{review.brand}</span>
+                                )}
+                                <span className="seller-reply-label">판매자 답변</span>
+                              </div>
+                              {review.sellerReplyAt && (
+                                <span className="seller-reply-date">{review.sellerReplyAt}</span>
+                              )}
+                            </div>
+                            <div className="seller-reply-content">
+                              {review.sellerReply}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="review-actions">
                           <button 
                             className="btn-secondary"
-                            onClick={() => handleStartEdit(review)}
+                            onClick={() => {
+                              navigate('/review/edit', {
+                                state: {
+                                  reviewId: review.reviewId,
+                                  postId: review.postId,
+                                  productId: review.productId,
+                                  productName: review.productName,
+                                  productImage: review.productImage,
+                                  brand: review.brand,
+                                  orderNumber: review.orderNumber
+                                }
+                              });
+                            }}
                           >
                             수정
                           </button>

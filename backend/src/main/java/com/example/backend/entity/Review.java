@@ -57,6 +57,12 @@ public class Review {
     @Column(name = "CONTENT", columnDefinition = "CLOB")
     private String content;
 
+    @Column(name = "SELLERREPLY", length = 2000)
+    private String sellerReply;  // 판매자 답글
+
+    @Column(name = "SELLERREPLYAT")
+    private Timestamp sellerReplyAt;  // 판매자 답글 작성일시
+
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)
     private Timestamp createdAt;

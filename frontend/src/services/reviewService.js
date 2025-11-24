@@ -78,6 +78,21 @@ export const getReviewsByUserId = async (userId) => {
   }
 };
 
+// 판매자 ID로 리뷰 목록 조회
+export const getReviewsBySellerId = async (sellerId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reviews?sellerId=${sellerId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    return handleResponse(response);
+  } catch (error) {
+    console.error('리뷰 목록 조회 API 호출 오류:', error);
+    throw error;
+  }
+};
+
 // 리뷰 ID로 조회
 export const getReviewById = async (reviewId) => {
   try {
@@ -101,6 +116,13 @@ export const updateReview = async (reviewId, reviewData) => {
     formData.append('userId', reviewData.userId.toString());
     formData.append('rating', reviewData.rating.toString());
     formData.append('content', reviewData.content);
+    
+    // 유지할 기존 이미지 ID 목록
+    if (reviewData.keepImageIds && reviewData.keepImageIds.length > 0) {
+      reviewData.keepImageIds.forEach((imageId) => {
+        formData.append('keepImageIds', imageId.toString());
+      });
+    }
     
     // 이미지 파일들 (새 이미지가 있는 경우)
     if (reviewData.images && reviewData.images.length > 0) {
@@ -135,6 +157,41 @@ export const deleteReview = async (reviewId, userId) => {
     return handleResponse(response);
   } catch (error) {
     console.error('리뷰 삭제 API 호출 오류:', error);
+    throw error;
+  }
+};
+
+// 판매자 답글 작성/수정
+export const addSellerReply = async (reviewId, sellerId, reply) => {
+  try {
+    const formData = new FormData();
+    formData.append('sellerId', sellerId.toString());
+    formData.append('reply', reply);
+    
+    const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/reply`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    
+    return handleResponse(response);
+  } catch (error) {
+    console.error('답글 작성 API 호출 오류:', error);
+    throw error;
+  }
+};
+
+// 판매자 답글 삭제
+export const deleteSellerReply = async (reviewId, sellerId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/reply?sellerId=${sellerId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    
+    return handleResponse(response);
+  } catch (error) {
+    console.error('답글 삭제 API 호출 오류:', error);
     throw error;
   }
 };

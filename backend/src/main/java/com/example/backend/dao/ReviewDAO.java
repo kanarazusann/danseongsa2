@@ -23,6 +23,11 @@ public class ReviewDAO {
         return reviewRepository.findById(reviewId);
     }
     
+    // 리뷰 ID로 조회 (ProductPost와 함께 로드)
+    public Optional<Review> findByIdWithProductPost(int reviewId) {
+        return reviewRepository.findByIdWithProductPost(reviewId);
+    }
+    
     // 게시물 ID로 리뷰 목록 조회
     public List<Review> findByPostId(int postId) {
         return reviewRepository.findByPostId(postId);

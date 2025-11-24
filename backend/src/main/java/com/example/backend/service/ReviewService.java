@@ -146,7 +146,7 @@ public class ReviewService {
     
     // ReviewImage 엔티티 생성
     private ReviewImage createReviewImage(Review review, MultipartFile file) throws IOException {
-        String imageUrl = imageService.saveImageFile(file);
+        String imageUrl = imageService.saveReviewImageFile(file);
         
         ReviewImage reviewImage = new ReviewImage();
         reviewImage.setReview(review);
@@ -165,15 +165,36 @@ public class ReviewService {
         return reviewDAO.findByUserId(userId);
     }
     
+    // 판매자 ID로 리뷰 목록 조회 (판매자의 상품에 대한 리뷰)
+    public List<Review> getReviewsBySellerId(int sellerId) {
+        // 판매자의 상품 게시물 목록 조회
+        List<ProductPost> productPosts = productPostDAO.findBySellerId(sellerId);
+        
+        // 각 게시물의 리뷰를 조회하여 합치기
+        List<Review> allReviews = new ArrayList<>();
+        for (ProductPost post : productPosts) {
+            List<Review> postReviews = reviewDAO.findByPostId(post.getPostId());
+            allReviews.addAll(postReviews);
+        }
+        
+        return allReviews;
+    }
+    
     // 리뷰 ID로 조회
     public Review getReviewById(int reviewId) {
         return reviewDAO.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
     }
     
+    // 리뷰 ID로 조회 (ProductPost와 함께 로드 - 답글 작성 시 사용)
+    public Review getReviewByIdWithProductPost(int reviewId) {
+        return reviewDAO.findByIdWithProductPost(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+    }
+    
     // 리뷰 수정
     @Transactional
-    public Review updateReview(int reviewId, int userId, int rating, String content, List<MultipartFile> imageFiles) throws IOException {
+    public Review updateReview(int reviewId, int userId, int rating, String content, List<MultipartFile> imageFiles, List<Integer> keepImageIds) throws IOException {
         Review review = getReviewById(reviewId);
         
         // 본인의 리뷰인지 확인
@@ -185,14 +206,25 @@ public class ReviewService {
         review.setRating(rating);
         review.setContent(content);
         
-        // 기존 이미지 삭제 (새 이미지가 있는 경우)
-        if (imageFiles != null && !imageFiles.isEmpty()) {
-            List<ReviewImage> existingImages = reviewImageDAO.findByReviewId(reviewId);
+        // 이미지 처리
+        List<ReviewImage> existingImages = reviewImageDAO.findByReviewId(reviewId);
+        
+        // 유지할 이미지 ID 목록이 있으면 해당하지 않는 이미지 삭제
+        if (keepImageIds != null && !keepImageIds.isEmpty()) {
+            for (ReviewImage image : existingImages) {
+                if (!keepImageIds.contains(image.getReviewImageId())) {
+                    reviewImageDAO.deleteById(image.getReviewImageId());
+                }
+            }
+        } else if (imageFiles != null && !imageFiles.isEmpty()) {
+            // 새 이미지가 있고 유지할 이미지 목록이 없으면 기존 이미지 모두 삭제
             for (ReviewImage image : existingImages) {
                 reviewImageDAO.deleteById(image.getReviewImageId());
             }
-            
-            // 새 이미지 저장
+        }
+        
+        // 새 이미지 저장
+        if (imageFiles != null && !imageFiles.isEmpty()) {
             saveReviewImages(review, imageFiles);
         }
         
@@ -217,6 +249,40 @@ public class ReviewService {
         
         // 리뷰 삭제
         reviewDAO.deleteById(reviewId);
+    }
+    
+    // 판매자 답글 작성/수정
+    @Transactional
+    public Review addSellerReply(int reviewId, int sellerId, String reply) {
+        Review review = getReviewByIdWithProductPost(reviewId);
+        
+        // 해당 리뷰의 상품 게시물 판매자인지 확인
+        if (review.getProductPost() == null || review.getProductPost().getSellerId() != sellerId) {
+            throw new IllegalArgumentException("해당 상품의 판매자만 답글을 작성할 수 있습니다.");
+        }
+        
+        // 답글 내용 설정
+        review.setSellerReply(reply);
+        review.setSellerReplyAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        
+        return reviewDAO.save(review);
+    }
+    
+    // 판매자 답글 삭제
+    @Transactional
+    public Review deleteSellerReply(int reviewId, int sellerId) {
+        Review review = getReviewByIdWithProductPost(reviewId);
+        
+        // 해당 리뷰의 상품 게시물 판매자인지 확인
+        if (review.getProductPost() == null || review.getProductPost().getSellerId() != sellerId) {
+            throw new IllegalArgumentException("해당 상품의 판매자만 답글을 삭제할 수 있습니다.");
+        }
+        
+        // 답글 삭제
+        review.setSellerReply(null);
+        review.setSellerReplyAt(null);
+        
+        return reviewDAO.save(review);
     }
 }
 

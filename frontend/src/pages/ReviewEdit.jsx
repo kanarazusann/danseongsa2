@@ -2,37 +2,26 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './ReviewWrite.css';
 import { fetchSessionUser } from '../services/authService';
-import { createReview } from '../services/reviewService';
+import { getReviewById, updateReview } from '../services/reviewService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-function ReviewWrite() {
+function ReviewEdit() {
   const navigate = useNavigate();
   const location = useLocation();
   
   // location.state에서 전달받은 데이터
   const stateData = location.state || {};
+  const reviewId = stateData.reviewId;
   
-  // 필수 정보 확인
-  const postId = stateData.postId;
-  const orderItemId = stateData.orderItemId;
-  const productId = stateData.productId || null;
-  
-  const productInfo = {
-    productId: productId || stateData.productId || 1,
-    postId: postId || stateData.postId || 1,
-    productName: stateData.productName || stateData.postName || '클래식 오버핏 코트',
-    productImage: stateData.productImage || stateData.imageUrl || 'https://via.placeholder.com/200x250/000000/FFFFFF?text=COAT',
-    brand: stateData.brand || 'DANSUNGSA',
-    orderNumber: stateData.orderNumber || 'ORD20250114-001'
-  };
-  
-  // 리뷰 작성 상태
+  // 리뷰 상태
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingReview, setLoadingReview] = useState(true);
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // { file?, preview, isExisting: boolean, imageUrl? }
+  const [reviewData, setReviewData] = useState(null);
   
   // 세션에서 사용자 정보 가져오기
   useEffect(() => {
@@ -49,18 +38,61 @@ function ReviewWrite() {
     loadUserInfo();
   }, [navigate]);
   
-  // 필수 정보 확인
+  // 리뷰 데이터 로드
   useEffect(() => {
-    if (!postId || !orderItemId) {
-      alert('리뷰 작성에 필요한 정보가 없습니다.');
-      navigate(-1);
+    const loadReview = async () => {
+      if (!reviewId) {
+        alert('리뷰 정보가 없습니다.');
+        navigate('/mypage');
+        return;
+      }
+      
+      try {
+        setLoadingReview(true);
+        const response = await getReviewById(reviewId);
+        
+        if (response.rt === 'OK' && response.item) {
+          const review = response.item;
+          setReviewData(review);
+          setRating(review.rating || 5);
+          setContent(review.content || '');
+          
+          // 기존 이미지 로드
+          if (review.images && review.images.length > 0) {
+            const existingImages = review.images.map(img => ({
+              isExisting: true,
+              imageId: img.imageId, // 이미지 ID 저장 (유지할 이미지 식별용)
+              imageUrl: img.imageUrl || img,
+              preview: img.imageUrl?.startsWith('http') 
+                ? img.imageUrl 
+                : `${API_BASE_URL}${img.imageUrl}`
+            }));
+            setImages(existingImages);
+          }
+        } else {
+          alert('리뷰를 찾을 수 없습니다.');
+          navigate('/mypage');
+        }
+      } catch (error) {
+        console.error('리뷰 로드 오류:', error);
+        alert('리뷰를 불러오는 중 오류가 발생했습니다.');
+        navigate('/mypage');
+      } finally {
+        setLoadingReview(false);
+      }
+    };
+    
+    if (reviewId) {
+      loadReview();
     }
-  }, [postId, orderItemId, navigate]);
+  }, [reviewId, navigate]);
   
   // 이미지 선택
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
-    if (images.length + files.length > 5) {
+    const currentNewImages = images.filter(img => !img.isExisting).length;
+    
+    if (currentNewImages + files.length > 5) {
       alert('이미지는 최대 5개까지 업로드 가능합니다.');
       return;
     }
@@ -74,18 +106,22 @@ function ReviewWrite() {
     
     const newImages = files.map(file => ({
       file,
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file),
+      isExisting: false
     }));
     setImages([...images, ...newImages]);
   };
   
   // 이미지 삭제
   const handleImageRemove = (index) => {
-    URL.revokeObjectURL(images[index].preview);
+    const image = images[index];
+    if (!image.isExisting && image.preview) {
+      URL.revokeObjectURL(image.preview);
+    }
     setImages(images.filter((_, i) => i !== index));
   };
   
-  // 리뷰 작성
+  // 리뷰 수정
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -100,45 +136,83 @@ function ReviewWrite() {
       return;
     }
     
-    if (!postId || !orderItemId) {
-      alert('리뷰 작성에 필요한 정보가 없습니다.');
+    if (!reviewId) {
+      alert('리뷰 정보가 없습니다.');
       return;
     }
     
     setLoading(true);
     
     try {
+      // 유지할 기존 이미지 ID 목록 (isExisting이 true인 이미지)
+      const keepImageIds = images
+        .filter(img => img.isExisting && img.imageId)
+        .map(img => img.imageId);
+      
+      // 새로 추가된 이미지만 필터링 (file이 있는 것만)
+      const newImageFiles = images.filter(img => img.file && !img.isExisting);
+      
       const reviewData = {
         userId,
-        postId,
-        productId,
-        orderItemId,
         rating,
         content: content.trim(),
-        images
+        images: newImageFiles,
+        keepImageIds: keepImageIds
       };
       
-      await createReview(reviewData);
+      await updateReview(reviewId, reviewData);
       
-      // 이미지 미리보기 URL 정리
+      // 새 이미지 미리보기 URL 정리
       images.forEach(image => {
-        URL.revokeObjectURL(image.preview);
+        if (!image.isExisting && image.preview) {
+          URL.revokeObjectURL(image.preview);
+        }
       });
       
-      alert('리뷰가 작성되었습니다.');
-      navigate('/mypage');
+      alert('리뷰가 수정되었습니다.');
+      navigate('/mypage', { state: { activeTab: 'reviews' } });
     } catch (error) {
-      console.error('리뷰 작성 오류:', error);
-      alert(error.message || '리뷰 작성 중 오류가 발생했습니다.');
+      console.error('리뷰 수정 오류:', error);
+      alert(error.message || '리뷰 수정 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
   };
   
+  if (loadingReview) {
+    return (
+      <div className="review-write">
+        <div className="container">
+          <div className="loading">리뷰를 불러오는 중...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!reviewData) {
+    return null;
+  }
+  
+  // 상품 정보 구성
+  const productInfo = {
+    postId: reviewData.postId || stateData.postId,
+    productName: reviewData.productName || stateData.productName || '',
+    productImage: reviewData.productImage || stateData.productImage || '',
+    brand: reviewData.brand || stateData.brand || '',
+    orderNumber: reviewData.orderNumber || stateData.orderNumber || ''
+  };
+  
+  const resolveImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
+  
   return (
     <div className="review-write">
       <div className="container">
-        <h1 className="review-write-title">리뷰 작성</h1>
+        <h1 className="review-write-title">리뷰 수정</h1>
         
         {/* 상품 정보 */}
         <div className="product-info-section">
@@ -146,7 +220,7 @@ function ReviewWrite() {
           <div className="product-info-card">
             <Link to={`/product/${productInfo.postId}`} className="product-image-link">
               <img 
-                src={productInfo.productImage.startsWith('http') ? productInfo.productImage : `${API_BASE_URL}${productInfo.productImage}`}
+                src={resolveImageUrl(productInfo.productImage)}
                 alt={productInfo.productName}
                 className="product-image"
                 onError={(e) => {
@@ -158,13 +232,13 @@ function ReviewWrite() {
               <Link to={`/product/${productInfo.postId}`} className="product-name">
                 {productInfo.productName}
               </Link>
-              <p className="product-brand">{productInfo.brand}</p>
-              <p className="order-number">주문번호: {productInfo.orderNumber}</p>
+              {productInfo.brand && <p className="product-brand">{productInfo.brand}</p>}
+              {productInfo.orderNumber && <p className="order-number">주문번호: {productInfo.orderNumber}</p>}
             </div>
           </div>
         </div>
         
-        {/* 리뷰 작성 폼 */}
+        {/* 리뷰 수정 폼 */}
         <form onSubmit={handleSubmit} className="review-form">
           {/* 별점 선택 */}
           <div className="form-section">
@@ -239,6 +313,9 @@ function ReviewWrite() {
                     >
                       ✕
                     </button>
+                    {image.isExisting && (
+                      <span className="existing-image-badge">기존 이미지</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -276,7 +353,7 @@ function ReviewWrite() {
             <button
               type="button"
               className="btn-cancel"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/mypage', { state: { activeTab: 'reviews' } })}
             >
               취소
             </button>
@@ -285,7 +362,7 @@ function ReviewWrite() {
               className="btn-submit"
               disabled={!content.trim() || loading}
             >
-              {loading ? '작성 중...' : '리뷰 작성'}
+              {loading ? '수정 중...' : '리뷰 수정'}
             </button>
           </div>
         </form>
@@ -294,5 +371,5 @@ function ReviewWrite() {
   );
 }
 
-export default ReviewWrite;
+export default ReviewEdit;
 

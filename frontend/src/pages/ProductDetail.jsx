@@ -8,32 +8,10 @@ import {
   removeWishlist
 } from '../services/productService';
 import { addCartItem as addCartItemApi } from '../services/cartService';
+import { getReviewsByPostId } from '../services/reviewService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
-const reviewSamples = [
-  {
-    reviewId: 1,
-    userName: '김**',
-    rating: 5,
-    content: '정말 만족스러운 상품입니다. 품질도 좋고 디자인도 깔끔해요!',
-    createdAt: '2025-01-12',
-    images: [
-      'https://via.placeholder.com/300x300/000000/FFFFFF?text=Review+1',
-      'https://via.placeholder.com/300x300/FFFFFF/000000?text=Review+2'
-    ]
-  },
-  {
-    reviewId: 2,
-    userName: '이**',
-    rating: 4,
-    content: '가격 대비 괜찮은 것 같아요. 사이즈는 생각보다 크게 나왔네요.',
-    createdAt: '2025-01-11',
-    images: [
-      'https://via.placeholder.com/300x300/CCCCCC/000000?text=Review+3'
-    ]
-  }
-];
 
 function ProductDetail() {
   const { id } = useParams();
@@ -52,6 +30,8 @@ function ProductDetail() {
   const [isWished, setIsWished] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cartProcessing, setCartProcessing] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // 페이지 진입 시 스크롤 최상단
   useEffect(() => {
@@ -78,6 +58,21 @@ function ProductDetail() {
     if (url.startsWith('http')) return url;
     if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
     return `${API_BASE_URL}/${url}`;
+  };
+
+  // 날짜 포맷팅 함수 (YYYY-MM-DD)
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return dateString;
+    }
   };
 
   const loadDetail = useCallback(async () => {
@@ -115,6 +110,48 @@ function ProductDetail() {
     if (!sessionChecked) return;
     loadDetail();
   }, [sessionChecked, loadDetail]);
+
+  // 리뷰 목록 로드
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (!id) return;
+      
+      try {
+        setReviewsLoading(true);
+        const response = await getReviewsByPostId(id);
+        
+        if (response.rt === 'OK' && response.items) {
+          const formattedReviews = response.items.map(review => ({
+            reviewId: review.reviewId,
+            userName: review.user?.name ? `${review.user.name.charAt(0)}**` : '고객',
+            rating: review.rating,
+            content: review.content || '',
+            createdAt: formatDate(review.createdAt),
+            createdAtRaw: review.createdAt, // 정렬을 위한 원본 날짜
+            images: review.images ? review.images.map(img => resolveImageUrl(img.imageUrl || img)) : []
+          }))
+          .sort((a, b) => {
+            // 최신순 정렬 (내림차순)
+            const dateA = new Date(a.createdAtRaw || a.createdAt);
+            const dateB = new Date(b.createdAtRaw || b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+          });
+          setReviews(formattedReviews);
+        } else {
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error('리뷰 목록 로드 오류:', error);
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+    
+    if (id) {
+      loadReviews();
+    }
+  }, [id]);
 
   const colors = detail?.colors || [];
   const categoryName = detail?.categoryName || '';
@@ -559,41 +596,64 @@ function ProductDetail() {
         <div className="product-reviews">
           <div className="reviews-header">
             <h2 className="section-title">리뷰</h2>
-            <div className="reviews-summary">
-              <span className="average-rating">
-                평점: {(reviewSamples.reduce((sum, r) => sum + r.rating, 0) / reviewSamples.length).toFixed(1)}
-              </span>
-              <span className="reviews-count">({reviewSamples.length}개)</span>
-            </div>
-          </div>
-          <div className="reviews-list">
-            {reviewSamples.map(review => (
-              <div key={review.reviewId} className="review-item">
-                <div className="review-header">
-                  <div className="review-user">
-                    <span className="user-name">{review.userName}</span>
-                    <div className="review-rating">
-                      {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                    </div>
-                  </div>
-                  <span className="review-date">{review.createdAt}</span>
-                </div>
-                {review.images && review.images.length > 0 && (
-                  <div className="review-images">
-                    {review.images.map((imageUrl, index) => (
-                      <img
-                        key={`${review.reviewId}-${index}`}
-                        src={imageUrl}
-                        alt={`${review.userName} 리뷰 ${index + 1}`}
-                        className="review-image"
-                      />
-                    ))}
-                  </div>
-                )}
-                <p className="review-content">{review.content}</p>
+            {reviewsLoading ? (
+              <div className="reviews-summary">
+                <span>로딩 중...</span>
               </div>
-            ))}
+            ) : reviews.length > 0 ? (
+              <div className="reviews-summary">
+                <span className="average-rating">
+                  평점: {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)}
+                </span>
+                <span className="reviews-count">({reviews.length}개)</span>
+              </div>
+            ) : (
+              <div className="reviews-summary">
+                <span className="reviews-count">(0개)</span>
+              </div>
+            )}
           </div>
+          {reviewsLoading ? (
+            <div className="empty-state">
+              <p>리뷰를 불러오는 중...</p>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="empty-state">
+              <p>아직 작성된 리뷰가 없습니다.</p>
+            </div>
+          ) : (
+            <div className="reviews-list">
+              {reviews.map(review => (
+                <div key={review.reviewId} className="review-item">
+                  <div className="review-header">
+                    <div className="review-user">
+                      <span className="user-name">{review.userName}</span>
+                      <div className="review-rating">
+                        {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                      </div>
+                    </div>
+                    <span className="review-date">{review.createdAt}</span>
+                  </div>
+                  {review.images && review.images.length > 0 && (
+                    <div className="review-images">
+                      {review.images.map((imageUrl, index) => (
+                        <img
+                          key={`${review.reviewId}-${index}`}
+                          src={imageUrl}
+                          alt={`${review.userName} 리뷰 ${index + 1}`}
+                          className="review-image"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/300x300/CCCCCC/666666?text=No+Image';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <p className="review-content">{review.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
