@@ -490,6 +490,10 @@
   justify-items: center;
 }
 
+.product-grid .product-card .product-price-wrapper {
+  justify-content: center;
+}
+
 @media (max-width: 1024px) {
   .product-grid {
     grid-template-columns: repeat(3, 1fr);

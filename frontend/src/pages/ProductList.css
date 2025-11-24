@@ -570,6 +570,10 @@
   gap: 30px;
 }
 
+.product-list .product-card .product-price-wrapper {
+  justify-content: center;
+}
+
 .empty-state {
   text-align: center;
   padding: 100px 20px;

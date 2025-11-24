@@ -50,6 +50,8 @@ function Signup() {
     detailAddress: ''
   });
 
+  const isValidPassword = (password) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/.test(password);
+
   useEffect(() => {
     if (window.daum && window.daum.Postcode) {
       return;
@@ -108,6 +110,25 @@ function Signup() {
       return;
     }
 
+    // 이메일 인증코드는 숫자 6자리만 허용
+    if (name === 'emailCode') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 6);
+      setGeneralForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 11);
+      setGeneralForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
     setGeneralForm(prev => ({
       ...prev,
       [name]: value
@@ -124,6 +145,34 @@ function Signup() {
         email: value,
         emailCode: '',
         emailVerified: false
+      }));
+      return;
+    }
+
+    // 이메일 인증코드는 숫자 6자리만 허용
+    if (name === 'emailCode') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 6);
+      setBusinessForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 11);
+      setBusinessForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
+    if (name === 'businessNumber') {
+      const numericValue = value.replace(/[^0-9]/g, '');
+      setBusinessForm(prev => ({
+        ...prev,
+        [name]: numericValue
       }));
       return;
     }
@@ -191,6 +240,12 @@ function Signup() {
       return;
     }
 
+    // 인증코드는 숫자 6자리만 허용
+    if (!/^\d{6}$/.test(targetForm.emailCode.trim())) {
+      alert('인증 코드는 숫자 6자리만 입력 가능합니다.');
+      return;
+    }
+
     if (!verification.verificationId) {
       alert('먼저 인증 코드를 발송해주세요.');
       return;
@@ -227,16 +282,24 @@ function Signup() {
       alert('이메일 인증을 완료해주세요.');
       return;
     }
+    if (!generalForm.name || !generalForm.name.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
     if (!generalForm.password || !generalForm.password.trim()) {
       alert('비밀번호를 입력해주세요.');
       return;
     }
-    if (generalForm.password !== generalForm.passwordConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
+    if (generalForm.password.trim().length < 8) {
+      alert('비밀번호는 8자리 이상이어야 합니다.');
       return;
     }
-    if (!generalForm.name || !generalForm.name.trim()) {
-      alert('이름을 입력해주세요.');
+    if (!isValidPassword(generalForm.password)) {
+      alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
+      return;
+    }
+    if (generalForm.password !== generalForm.passwordConfirm) {
+      alert('비밀번호가 일치하지 않습니다.');
       return;
     }
     if (!generalForm.phone || !generalForm.phone.trim()) {
@@ -245,6 +308,10 @@ function Signup() {
     }
     if (!generalForm.zipcode || !generalForm.address) {
       alert('주소를 검색하여 입력해주세요.');
+      return;
+    }
+    if (!generalForm.detailAddress || !generalForm.detailAddress.trim()) {
+      alert('상세 주소를 입력해주세요.');
       return;
     }
     const submitData = {
@@ -285,18 +352,34 @@ function Signup() {
       alert('이메일 인증을 완료해주세요.');
       return;
     }
-    if (!businessForm.password || !businessForm.password.trim()) {
-      alert('비밀번호를 입력해주세요.');
+    if (!businessForm.brand || !businessForm.brand.trim()) {
+      alert('상호명을 입력해주세요.');
       return;
     }
-    if (businessForm.password !== businessForm.passwordConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
+    if (!businessForm.businessNumber || !businessForm.businessNumber.trim()) {
+      alert('사업자등록번호를 입력해주세요.');
       return;
     }
     if (!businessForm.managerName || !businessForm.managerName.trim()) {
       alert('담당자 이름을 입력해주세요.');
       return;
     }
+    if (!businessForm.password || !businessForm.password.trim()) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+    if (businessForm.password.trim().length < 8) {
+      alert('비밀번호는 8자리 이상이어야 합니다.');
+      return;
+    }
+    if (!isValidPassword(businessForm.password)) {
+      alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
+      return;
+    }
+    if (businessForm.password !== businessForm.passwordConfirm) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    } 
     if (!businessForm.phone || !businessForm.phone.trim()) {
       alert('전화번호를 입력해주세요.');
       return;
@@ -305,12 +388,8 @@ function Signup() {
       alert('주소를 검색하여 입력해주세요.');
       return;
     }
-    if (!businessForm.brand || !businessForm.brand.trim()) {
-      alert('상호명을 입력해주세요.');
-      return;
-    }
-    if (!businessForm.businessNumber || !businessForm.businessNumber.trim()) {
-      alert('사업자등록번호를 입력해주세요.');
+    if (!businessForm.detailAddress || !businessForm.detailAddress.trim()) {
+      alert('상세 주소를 입력해주세요.');
       return;
     }
     const submitData = {
@@ -395,10 +474,12 @@ function Signup() {
                     <input
                       type="text"
                       name="emailCode"
-                      placeholder="인증 코드 입력"
+                      placeholder="인증 코드 입력 (6자리 숫자)"
                       value={generalForm.emailCode}
                       onChange={handleGeneralChange}
                       className="form-input"
+                      maxLength={6}
+                      inputMode="numeric"
                     />
                     <button
                       type="button"
@@ -453,6 +534,8 @@ function Signup() {
                   value={generalForm.phone}
                   onChange={handleGeneralChange}
                   className="form-input"
+                  maxLength={11}
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -532,10 +615,12 @@ function Signup() {
                     <input
                       type="text"
                       name="emailCode"
-                      placeholder="인증 코드 입력"
+                      placeholder="인증 코드 입력 (6자리 숫자)"
                       value={businessForm.emailCode}
                       onChange={handleBusinessChange}
                       className="form-input"
+                      maxLength={6}
+                      inputMode="numeric"
                     />
                     <button
                       type="button"
@@ -570,6 +655,7 @@ function Signup() {
                   value={businessForm.businessNumber}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -610,6 +696,8 @@ function Signup() {
                   value={businessForm.phone}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  maxLength={11}
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -645,7 +733,7 @@ function Signup() {
                 <input
                   type="text"
                   name="detailAddress"
-                  placeholder="상세 주소"
+                  placeholder="상세 주소 *"
                   value={businessForm.detailAddress}
                   onChange={handleBusinessChange}
                   className="form-input"

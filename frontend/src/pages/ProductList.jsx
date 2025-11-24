@@ -156,6 +156,7 @@ function ProductList() {
       'gray': '그레이',
       'red': '레드',
       'beige': '베이지',
+      'brown': '브라운',
       'pink': '핑크'
     };
     const seasonMap = {
@@ -399,6 +400,7 @@ function ProductList() {
                   { value: 'gray', label: '그레이' },
                   { value: 'red', label: '레드' },
                   { value: 'beige', label: '베이지' },
+                  { value: 'brown', label: '브라운' },
                   { value: 'pink', label: '핑크' }
                 ].map(c => (
                   <label key={c.value} className="filter-option">

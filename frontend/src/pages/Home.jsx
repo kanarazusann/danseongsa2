@@ -195,10 +195,13 @@ function Home() {
           {/* 배너 이미지들 */}
           <div 
             className="banner-slides" 
-            style={{ transform: `translateX(-${currentSlide * 25}%)` }}
-          >
+            style={{ transform: `translateX(-${current	diff
             {bannerImages.map((banner, index) => (
-              <div key={index} className="banner-slide">
+              <div 
+                key={index} 
+                className="banner-slide"
+                style={{ width: `${slideWidthPercent}%`, flex: `0 0 ${slideWidthPercent}%` }}
+              >
                 {banner.link ? (
                   <Link to={banner.link} style={{ display: 'block', width: '100%', height: '100%' }}>
                     <img src={banner.image} alt={`배너 ${index + 1}`} style={{ cursor: 'pointer' }} />
