@@ -4,6 +4,14 @@ import com.example.backend.dao.UserDAO;
 import com.example.backend.dao.CartDAO;
 import com.example.backend.dao.WishlistDAO;
 import com.example.backend.dao.ReviewDAO;
+import com.example.backend.dao.ReviewImageDAO;
+import com.example.backend.dao.ProductPostDAO;
+import com.example.backend.dao.ProductDAO;
+import com.example.backend.dao.ProductImageDAO;
+import com.example.backend.repository.OrderRepository;
+import com.example.backend.repository.OrderItemRepository;
+import com.example.backend.repository.RefundRepository;
+import com.example.backend.repository.PaymentRepository;
 import com.example.backend.dto.UserDTO;
 import com.example.backend.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +38,30 @@ public class UserService {
 
     @Autowired
     private ReviewDAO reviewDAO;
+
+    @Autowired
+    private ReviewImageDAO reviewImageDAO;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private RefundRepository refundRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private ProductPostDAO productPostDAO;
+
+    @Autowired
+    private ProductDAO productDAO;
+
+    @Autowired
+    private ProductImageDAO productImageDAO;
 
     // 회원가입 처리
     @Transactional
@@ -191,13 +223,129 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         
         // 관련 데이터 삭제 (외래키 제약조건 해결)
-        // 1. 장바구니 삭제
+        // 삭제 순서: 자식 테이블부터 부모 테이블 순서로 삭제
+        
+        // 1. 리뷰 이미지 삭제 (리뷰 삭제 전에)
+        List<com.example.backend.entity.Review> userReviews = reviewDAO.findByUserId(userId);
+        if (userReviews != null && !userReviews.isEmpty()) {
+            for (com.example.backend.entity.Review review : userReviews) {
+                List<com.example.backend.entity.ReviewImage> reviewImages = reviewImageDAO.findByReviewId(review.getReviewId());
+                if (reviewImages != null && !reviewImages.isEmpty()) {
+                    for (com.example.backend.entity.ReviewImage reviewImage : reviewImages) {
+                        reviewImageDAO.deleteById(reviewImage.getReviewImageId());
+                    }
+                }
+            }
+        }
+        
+        // 2. 리뷰 삭제 (user로 연결된 것들)
+        if (userReviews != null && !userReviews.isEmpty()) {
+            for (com.example.backend.entity.Review review : userReviews) {
+                reviewDAO.deleteById(review.getReviewId());
+            }
+        }
+        
+        // 3. 환불/교환 삭제 (user로 연결)
+        List<com.example.backend.entity.Refund> refunds = refundRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+        if (refunds != null && !refunds.isEmpty()) {
+            refundRepository.deleteAll(refunds);
+        }
+        
+        // 4. 주문 관련 삭제
+        List<com.example.backend.entity.Order> orders = orderRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+        if (orders != null && !orders.isEmpty()) {
+            for (com.example.backend.entity.Order order : orders) {
+                // 4-1. 결제 삭제 (order로 연결)
+                List<com.example.backend.entity.Payment> payments = paymentRepository.findByOrder_OrderId(order.getOrderId());
+                if (payments != null && !payments.isEmpty()) {
+                    paymentRepository.deleteAll(payments);
+                }
+                
+                // 4-2. 주문상세 삭제 (order로 연결)
+                List<com.example.backend.entity.OrderItem> orderItems = orderItemRepository.findByOrder_OrderId(order.getOrderId());
+                if (orderItems != null && !orderItems.isEmpty()) {
+                    orderItemRepository.deleteAll(orderItems);
+                }
+            }
+            // 4-3. 주문 삭제
+            orderRepository.deleteAll(orders);
+        }
+        
+        // 5. 판매자로 등록한 상품게시물 관련 삭제 (seller로 연결)
+        List<com.example.backend.entity.ProductPost> productPosts = productPostDAO.findBySellerId(userId);
+        if (productPosts != null && !productPosts.isEmpty()) {
+            for (com.example.backend.entity.ProductPost productPost : productPosts) {
+                int postId = productPost.getPostId();
+                
+                // 5-1. 게시물에 대한 리뷰 삭제 (productPost로 연결)
+                List<com.example.backend.entity.Review> postReviews = reviewDAO.findByPostId(postId);
+                if (postReviews != null && !postReviews.isEmpty()) {
+                    for (com.example.backend.entity.Review review : postReviews) {
+                        // 리뷰 이미지 삭제
+                        List<com.example.backend.entity.ReviewImage> reviewImages = reviewImageDAO.findByReviewId(review.getReviewId());
+                        if (reviewImages != null && !reviewImages.isEmpty()) {
+                            for (com.example.backend.entity.ReviewImage reviewImage : reviewImages) {
+                                reviewImageDAO.deleteById(reviewImage.getReviewImageId());
+                            }
+                        }
+                        reviewDAO.deleteById(review.getReviewId());
+                    }
+                }
+                
+                // 5-2. 게시물에 대한 찜 목록 삭제 (productPost로 연결)
+                // Wishlist는 user와 productPost 둘 다 연결되어 있으므로 이미 처리됨
+                
+                // 5-3. 게시물에 대한 주문상세 삭제 (productPost로 연결)
+                // ProductPost를 삭제하기 전에 해당 게시물에 대한 OrderItem을 먼저 삭제
+                List<com.example.backend.entity.OrderItem> postOrderItems = orderItemRepository.findByPostId(postId);
+                if (postOrderItems != null && !postOrderItems.isEmpty()) {
+                    // 각 OrderItem에 연결된 Refund와 Review도 삭제
+                    for (com.example.backend.entity.OrderItem orderItem : postOrderItems) {
+                        // Refund 삭제
+                        List<com.example.backend.entity.Refund> orderItemRefunds = refundRepository.findByOrderItem_OrderItemId(orderItem.getOrderItemId());
+                        if (orderItemRefunds != null && !orderItemRefunds.isEmpty()) {
+                            refundRepository.deleteAll(orderItemRefunds);
+                        }
+                        // Review 삭제
+                        com.example.backend.entity.Review orderItemReview = reviewDAO.findByOrderItemId(orderItem.getOrderItemId());
+                        if (orderItemReview != null) {
+                            // ReviewImage 삭제
+                            List<com.example.backend.entity.ReviewImage> reviewImages = reviewImageDAO.findByReviewId(orderItemReview.getReviewId());
+                            if (reviewImages != null && !reviewImages.isEmpty()) {
+                                for (com.example.backend.entity.ReviewImage reviewImage : reviewImages) {
+                                    reviewImageDAO.deleteById(reviewImage.getReviewImageId());
+                                }
+                            }
+                            reviewDAO.deleteById(orderItemReview.getReviewId());
+                        }
+                    }
+                    orderItemRepository.deleteAll(postOrderItems);
+                }
+                
+                // 5-4. 상품 이미지 삭제 (productPost로 연결)
+                List<com.example.backend.entity.ProductImage> productImages = productImageDAO.findByPostId(postId);
+                if (productImages != null && !productImages.isEmpty()) {
+                    productImageDAO.deleteAll(productImages);
+                }
+                
+                // 5-5. 상품 삭제 (productPost로 연결)
+                List<com.example.backend.entity.Product> products = productDAO.findByPostId(postId);
+                if (products != null && !products.isEmpty()) {
+                    productDAO.deleteAll(products);
+                }
+                
+                // 5-6. 상품게시물 삭제
+                productPostDAO.delete(productPost);
+            }
+        }
+        
+        // 6. 장바구니 삭제 (user로 연결)
         List<com.example.backend.entity.Cart> carts = cartDAO.findByUserId(userId);
         if (carts != null && !carts.isEmpty()) {
             cartDAO.deleteAll(carts);
         }
         
-        // 2. 찜 목록 삭제
+        // 7. 찜 목록 삭제 (user로 연결)
         List<com.example.backend.entity.Wishlist> wishlists = wishlistDAO.findByUserIdOrderByCreatedAtDesc(userId);
         if (wishlists != null && !wishlists.isEmpty()) {
             for (com.example.backend.entity.Wishlist wishlist : wishlists) {
@@ -205,15 +353,7 @@ public class UserService {
             }
         }
         
-        // 3. 리뷰 삭제
-        List<com.example.backend.entity.Review> reviews = reviewDAO.findByUserId(userId);
-        if (reviews != null && !reviews.isEmpty()) {
-            for (com.example.backend.entity.Review review : reviews) {
-                reviewDAO.deleteById(review.getReviewId());
-            }
-        }
-        
-        // 4. 사용자 삭제
+        // 8. 사용자 삭제
         userDAO.delete(user);
     }
 }

@@ -18,5 +18,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
     List<OrderItem> findBySellerIdWithDetails(@Param("sellerId") int sellerId);
 
     List<OrderItem> findByOrder_OrderId(int orderId);
+    
+    // 게시물 ID로 주문상세 목록 조회
+    List<OrderItem> findByPostId(int postId);
 }
 

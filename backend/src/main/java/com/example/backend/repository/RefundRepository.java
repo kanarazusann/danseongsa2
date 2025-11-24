@@ -16,6 +16,9 @@ public interface RefundRepository extends JpaRepository<Refund, Integer> {
     List<Refund> findBySellerId(@Param("sellerId") int sellerId);
 
     Optional<Refund> findByOrderItem_OrderItemIdAndStatusIn(int orderItemId, List<String> statuses);
+    
+    // 주문상세 ID로 환불 목록 조회
+    List<Refund> findByOrderItem_OrderItemId(int orderItemId);
 }
 
 
