@@ -34,7 +34,7 @@ public class Refund {
     @Column(name = "REASON", nullable = false, length = 100)
     private String reason;
 
-    @Column(name = "REASONDETAIL", columnDefinition = "CLOB")
+    @Column(name = "REASONDETAIL", length = 2000)
     private String reasonDetail;
 
     @Column(name = "REFUNDAMOUNT")
@@ -49,7 +49,7 @@ public class Refund {
     private User user;  // 사용자 (FK -> User)
 
     @Column(name = "STATUS", length = 20)
-    private String status;  // REQUESTED, APPROVED, REJECTED, COMPLETED
+    private String status;  // REQ, APR, REJ, COM, CAN
 
     @Column(name = "PREVIOUSSTATUS", length = 20)
     private String previousStatus;  // orderItem status before request

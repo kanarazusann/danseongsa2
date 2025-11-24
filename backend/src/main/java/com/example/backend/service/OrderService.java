@@ -22,6 +22,12 @@ import java.util.stream.Collectors;
 @Service
 public class OrderService {
 
+    private static final String REFUND_STATUS_REQUESTED = "REQ";
+    private static final String REFUND_STATUS_APPROVED = "APR";
+    private static final String REFUND_STATUS_COMPLETED = "COM";
+    private static final String REFUND_STATUS_REJECTED = "REJ";
+    private static final String REFUND_STATUS_CANCELED = "CAN";
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -391,7 +397,7 @@ public class OrderService {
 
         refundRepository.findByOrderItem_OrderItemIdAndStatusIn(
                 orderItemId,
-                Arrays.asList("REQUESTED", "APPROVED")
+                Arrays.asList(REFUND_STATUS_REQUESTED, REFUND_STATUS_APPROVED, "REQUESTED", "APPROVED")
         ).ifPresent(r -> {
             throw new IllegalStateException("이미 처리 중인 신청이 있습니다.");
         });
@@ -403,7 +409,7 @@ public class OrderService {
         refund.setReason(reason);
         refund.setReasonDetail(reasonDetail);
         refund.setRefundAmount(refundAmount);
-        refund.setStatus("REQUESTED");
+        refund.setStatus(REFUND_STATUS_REQUESTED);
         refund.setPreviousStatus(orderItem.getStatus());
 
         orderItem.setStatus("REFUND_REQUESTED");
@@ -426,7 +432,7 @@ public class OrderService {
         if (refund.getUser() == null || refund.getUser().getUserId() != userId) {
             throw new IllegalArgumentException("신청을 취소할 수 없습니다.");
         }
-        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+        if (!isRefundStatusRequested(refund.getStatus())) {
             throw new IllegalStateException("이미 처리된 요청입니다.");
         }
 
@@ -434,7 +440,7 @@ public class OrderService {
         orderItem.setStatus(refund.getPreviousStatus());
         orderItemRepository.save(orderItem);
 
-        refund.setStatus("CANCELED");
+        refund.setStatus(REFUND_STATUS_CANCELED);
         refundRepository.save(refund);
 
         updateOrderStatusBasedOnItems(orderItem.getOrder());
@@ -454,13 +460,13 @@ public class OrderService {
         if (orderItem.getSellerId() != sellerId) {
             throw new IllegalArgumentException("해당 요청을 처리할 수 없습니다.");
         }
-        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+        if (!isRefundStatusRequested(refund.getStatus())) {
             throw new IllegalStateException("이미 처리된 요청입니다.");
         }
 
         // 교환 기능 제거 - 환불만 처리
         refund.setSellerResponse(sellerResponse);
-        refund.setStatus("COMPLETED");
+        refund.setStatus(REFUND_STATUS_COMPLETED);
         if (orderItem.getProduct() != null) {
             Integer qty = Optional.ofNullable(orderItem.getQuantity()).orElse(0);
             Integer stock = Optional.ofNullable(orderItem.getProduct().getStock()).orElse(0);
@@ -488,11 +494,11 @@ public class OrderService {
         if (orderItem.getSellerId() != sellerId) {
             throw new IllegalArgumentException("해당 요청을 처리할 수 없습니다.");
         }
-        if (!"REQUESTED".equalsIgnoreCase(refund.getStatus())) {
+        if (!isRefundStatusRequested(refund.getStatus())) {
             throw new IllegalStateException("이미 처리된 요청입니다.");
         }
 
-        refund.setStatus("REJECTED");
+        refund.setStatus(REFUND_STATUS_REJECTED);
         refund.setSellerResponse(sellerResponse);
         orderItem.setStatus(refund.getPreviousStatus());
         orderItemRepository.save(orderItem);
@@ -548,7 +554,7 @@ public class OrderService {
         Map<String, Object> map = new HashMap<>();
         map.put("refundId", refund.getRefundId());
         map.put("refundType", refund.getRefundType());
-        map.put("status", refund.getStatus());
+        map.put("status", normalizeRefundStatus(refund.getStatus()));
         map.put("reason", refund.getReason());
         map.put("reasonDetail", refund.getReasonDetail());
         map.put("refundAmount", refund.getRefundAmount());
@@ -761,6 +767,37 @@ public class OrderService {
                 .map(ProductImage::getImageUrl)
                 .findFirst()
                 .orElse(images.get(0).getImageUrl());
+    }
+
+    private boolean isRefundStatusRequested(String status) {
+        return REFUND_STATUS_REQUESTED.equals(normalizeRefundStatus(status));
+    }
+
+    private String normalizeRefundStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+        String upper = status.trim().toUpperCase(Locale.ROOT);
+        switch (upper) {
+            case "REQUESTED":
+            case REFUND_STATUS_REQUESTED:
+                return REFUND_STATUS_REQUESTED;
+            case "APPROVED":
+            case REFUND_STATUS_APPROVED:
+                return REFUND_STATUS_APPROVED;
+            case "COMPLETED":
+            case REFUND_STATUS_COMPLETED:
+                return REFUND_STATUS_COMPLETED;
+            case "REJECTED":
+            case REFUND_STATUS_REJECTED:
+                return REFUND_STATUS_REJECTED;
+            case "CANCELED":
+            case "CANCELLED":
+            case REFUND_STATUS_CANCELED:
+                return REFUND_STATUS_CANCELED;
+            default:
+                return upper;
+        }
     }
 }
 

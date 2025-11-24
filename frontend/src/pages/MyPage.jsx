@@ -9,6 +9,47 @@ import ProductCard from '../components/ProductCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+const REFUND_STATUS = {
+  REQUESTED: 'REQ',
+  APPROVED: 'APR',
+  COMPLETED: 'COM',
+  REJECTED: 'REJ',
+  CANCELED: 'CAN'
+};
+
+const REFUND_STATUS_TEXT = {
+  [REFUND_STATUS.REQUESTED]: '승인 대기',
+  [REFUND_STATUS.APPROVED]: '승인됨',
+  [REFUND_STATUS.COMPLETED]: '처리 완료',
+  [REFUND_STATUS.REJECTED]: '거절됨',
+  [REFUND_STATUS.CANCELED]: '사용자 취소'
+};
+
+const normalizeRefundStatus = (status) => {
+  if (!status) return '';
+  const upper = status.toUpperCase();
+  switch (upper) {
+    case 'REQUESTED':
+    case REFUND_STATUS.REQUESTED:
+      return REFUND_STATUS.REQUESTED;
+    case 'APPROVED':
+    case REFUND_STATUS.APPROVED:
+      return REFUND_STATUS.APPROVED;
+    case 'COMPLETED':
+    case REFUND_STATUS.COMPLETED:
+      return REFUND_STATUS.COMPLETED;
+    case 'REJECTED':
+    case REFUND_STATUS.REJECTED:
+      return REFUND_STATUS.REJECTED;
+    case 'CANCELED':
+    case 'CANCELLED':
+    case REFUND_STATUS.CANCELED:
+      return REFUND_STATUS.CANCELED;
+    default:
+      return upper;
+  }
+};
+
 function MyPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
@@ -139,8 +180,8 @@ function MyPage() {
     // refunds를 상품별로 변환 (환불/교환 신청이 있는 것만, 거절된 것은 제외)
     refunds.forEach(refund => {
       // 환불 거절된 것은 제외 (주문내역에서만 표시)
-      const refundStatus = (refund.status || '').toUpperCase();
-      if (refundStatus === 'REJECTED') {
+      const normalizedRefundStatus = normalizeRefundStatus(refund.status);
+      if (normalizedRefundStatus === REFUND_STATUS.REJECTED) {
         return; // 거절된 환불은 취소/반품 내역에 표시하지 않음
       }
       
@@ -148,7 +189,8 @@ function MyPage() {
       if (refund.orderItemId) {
         refundOrderItemIds.add(refund.orderItemId);
         // orderItemStatus를 우선 사용, 없으면 refund.status 사용
-        const displayStatus = refund.orderItemStatus || refund.status || 'REQUESTED';
+        const fallbackStatus = normalizedRefundStatus || REFUND_STATUS.REQUESTED;
+        const displayStatus = refund.orderItemStatus || fallbackStatus;
         // 이미지 URL 처리: productImage가 있으면 사용, 없으면 빈 문자열
         const productImage = refund.productImage || refund.imageUrl || '';
         items.push({
@@ -163,7 +205,7 @@ function MyPage() {
           price: refund.refundAmount || refund.price || 0,
           status: displayStatus, // orderItemStatus 우선 사용
           orderItemStatus: refund.orderItemStatus, // 원본 보관
-          refundStatus: refund.status, // refund status 보관
+          refundStatus: fallbackStatus, // refund status 보관
           refundType: refund.refundType,
           reason: refund.reason,
           reasonDetail: refund.reasonDetail,
@@ -222,14 +264,9 @@ function MyPage() {
   };
 
   const getRefundStatusText = (status) => {
-    const statusMap = {
-      'REQUESTED': '승인 대기',
-      'APPROVED': '승인됨',
-      'REJECTED': '거절됨',
-      'COMPLETED': '처리 완료',
-      'CANCELED': '사용자 취소'
-    };
-    return statusMap[status?.toUpperCase()] || status || '';
+    const normalized = normalizeRefundStatus(status);
+    if (!normalized) return status || '';
+    return REFUND_STATUS_TEXT[normalized] || status || '';
   };
 
   const handleCancelRefundRequest = async (refundId) => {

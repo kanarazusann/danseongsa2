@@ -80,7 +80,7 @@ function RefundRequest() {
       reasonDetail,
       refundAmount: (refundItem?.discountPrice || refundItem?.price || 0) * (refundItem?.quantity || 1),
       accountId: refundType === 'REFUND' ? selectedAccountId : null,
-      status: 'REQUESTED'
+      status: 'REQ'
     };
 
     // 나중에 API 호출로 교체
