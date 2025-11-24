@@ -24,7 +24,7 @@ function Footer() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2024 MUSINSA Clone. All rights reserved.</p>
+          <p>© 2025 DANSUNGSA Clone. All rights reserved.</p>
         </div>
       </div>
     </footer>
