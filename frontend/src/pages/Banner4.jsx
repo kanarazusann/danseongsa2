@@ -54,34 +54,29 @@ function Banner4() {
         <div className="banner-slider">
           <div className="banner-slides">
             <div className="banner-slide">
-              <img src="/bannerImage/패딩배너.png" alt="패딩배너" />
+              <img src="/bannerImage/7.png" alt="숏폼배너" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* 패딩 상품 */}
-      <section className="popular-products">
+      {/* 단성사 천만릴스 챌린지 배너 */}
+      <section className="challenge-banner">
         <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">패딩</h2>
-            <Link to="/products?category=아우터&search=패딩" className="section-more">
-              더보기 →
-            </Link>
-          </div>
-          <div className="product-grid">
-            {loadingPopular ? (
-              <div>로딩 중...</div>
-            ) : popularProducts.length > 0 ? (
-              popularProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))
-            ) : (
-              <div>패딩 상품이 없습니다.</div>
-            )}
+          <img src="/bannerImage/단성사 천만릴스 챌린지.png" alt="단성사 천만릴스 챌린지" />
+          <div className="challenge-button-wrapper">
+            <a 
+              href="https://forms.gle/vGSeMLxXtgqXusZ3A" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="challenge-button"
+            >
+              구글폼으로 이동
+            </a>
           </div>
         </div>
       </section>
+
     </div>
   );
 }

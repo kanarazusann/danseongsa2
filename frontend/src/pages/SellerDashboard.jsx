@@ -33,9 +33,11 @@ const ORDER_STATUS_TEXT = {
   DELIVERED: '배송완료',
   CANCELED: '취소됨',
   CANCELLED: '취소됨',
-  REFUND: '환불',
-  REFUND_REQUESTED: '환불신청함',
+  REFUND: '환불/교환',
+  REFUND_REQUESTED: '환불요청중',
   REFUNDED: '환불완료',
+  EXCHANGE_REQUESTED: '교환요청중',
+  EXCHANGED: '교환완료',
   REJECTED: '거절됨',
   COMPLETED: '처리완료',
   PROCESSING: '처리중'
@@ -43,6 +45,7 @@ const ORDER_STATUS_TEXT = {
 
 const REFUND_TYPE_TEXT = {
   REFUND: '환불',
+  EXCHANGE: '교환',
   CANCEL: '취소'
 };
 
@@ -86,6 +89,10 @@ const getOrderStatusClass = (status) => {
       return 'refunded';
     case 'refund':
       return 'refund-requested';
+    case 'exchange_requested':
+      return 'exchange-requested';
+    case 'exchanged':
+      return 'exchanged';
     case 'canceled':
     case 'cancelled':
       return 'cancelled';

@@ -23,8 +23,8 @@ function Home() {
     { image: '/bannerImage/겨울배너.png', title: '첫 번째 배너', text: '첫 번째 배너 텍스트입니다', link: '/banner1' },
     { image: '/bannerImage/패딩배너.png', title: '두 번째 배너', text: '두 번째 배너 텍스트입니다', link: '/banner2' },
     { image: '/bannerImage/방한배너.png', title: '세 번째 배너', text: '세 번째 배너 텍스트입니다', link: '/banner3' },
-    { image: '/bannerImage/패딩배너.png', title: '네 번째 배너', text: '네 번째 배너 텍스트입니다', link: '/banner4' },
-    { image: '/bannerImage/패딩배너.png', title: '다섯 번째 배너', text: '다섯 번째 배너 텍스트입니다', link: '/banner5' }
+    { image: '/bannerImage/7.png', title: '네 번째 배너', text: '네 번째 배너 텍스트입니다', link: '/banner4' },
+    { image: '/bannerImage/11.png', title: '다섯 번째 배너', text: '다섯 번째 배너 텍스트입니다', link: '/banner5' }
   ];
 
   // 이전 슬라이드

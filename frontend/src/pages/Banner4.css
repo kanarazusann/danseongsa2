@@ -11,6 +11,7 @@
   position: relative;
   overflow: hidden;
   background-color: #000000;
+  margin-bottom: 60px;
 }
 
 .banner4-page .banner-slider {
@@ -43,4 +44,47 @@
 .banner4-page .popular-products {
   background-color: #ffffff;
   padding: 60px 0;
+}
+
+/* 이벤트 배너 섹션 */
+.banner4-page .challenge-banner {
+  width: 100%;
+  background-color: #f8f9fa;
+  padding: 80px 0;
+  margin-top: 0;
+}
+
+.banner4-page .challenge-banner .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.banner4-page .challenge-banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.banner4-page .challenge-banner img:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.banner4-page .challenge-button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.banner4-page .challenge-button {
+  padding: 16px 40px;
+  background-color: #bf00ff;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 8px;
 }

@@ -54,7 +54,7 @@ function Banner2() {
         <div className="banner-slider">
           <div className="banner-slides">
             <div className="banner-slide">
-              <img src="/bannerImage/패딩배너.png" alt="패딩배너" />
+              <img src="/bannerImage/8.png" alt="패딩배너" />
             </div>
           </div>
         </div>
