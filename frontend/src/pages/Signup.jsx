@@ -120,6 +120,15 @@ function Signup() {
       return;
     }
 
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 11);
+      setGeneralForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
     setGeneralForm(prev => ({
       ...prev,
       [name]: value
@@ -143,6 +152,24 @@ function Signup() {
     // 이메일 인증코드는 숫자 6자리만 허용
     if (name === 'emailCode') {
       const numericValue = value.replace(/[^0-9]/g, '').slice(0, 6);
+      setBusinessForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 11);
+      setBusinessForm(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+
+    if (name === 'businessNumber') {
+      const numericValue = value.replace(/[^0-9]/g, '');
       setBusinessForm(prev => ({
         ...prev,
         [name]: numericValue
@@ -263,6 +290,10 @@ function Signup() {
       alert('비밀번호를 입력해주세요.');
       return;
     }
+    if (generalForm.password.trim().length < 8) {
+      alert('비밀번호는 8자리 이상이어야 합니다.');
+      return;
+    }
     if (!isValidPassword(generalForm.password)) {
       alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
       return;
@@ -335,6 +366,10 @@ function Signup() {
     }
     if (!businessForm.password || !businessForm.password.trim()) {
       alert('비밀번호를 입력해주세요.');
+      return;
+    }
+    if (businessForm.password.trim().length < 8) {
+      alert('비밀번호는 8자리 이상이어야 합니다.');
       return;
     }
     if (!isValidPassword(businessForm.password)) {
@@ -499,6 +534,8 @@ function Signup() {
                   value={generalForm.phone}
                   onChange={handleGeneralChange}
                   className="form-input"
+                  maxLength={11}
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -618,6 +655,7 @@ function Signup() {
                   value={businessForm.businessNumber}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -658,6 +696,8 @@ function Signup() {
                   value={businessForm.phone}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  maxLength={11}
+                  inputMode="numeric"
                 />
               </div>
               <div className="form-group">
@@ -693,7 +733,7 @@ function Signup() {
                 <input
                   type="text"
                   name="detailAddress"
-                  placeholder="상세 주소"
+                  placeholder="상세 주소 *"
                   value={businessForm.detailAddress}
                   onChange={handleBusinessChange}
                   className="form-input"
