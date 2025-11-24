@@ -23,6 +23,7 @@ import ChangePassword from './pages/ChangePassword';
 import SellerDashboard from './pages/SellerDashboard';
 import SellerPage from './pages/SellerPage';
 import ReviewWrite from './pages/ReviewWrite';
+import ReviewEdit from './pages/ReviewEdit';
 import ProductRegister from './pages/ProductRegister';
 import ProductEdit from './pages/ProductEdit';
 import Banner1 from './pages/Banner1';
@@ -61,6 +62,7 @@ function App() {
           <Route path="/sellerDashboard" element={<SellerDashboard />} />
           <Route path="/seller" element={<SellerPage />} />
           <Route path="/review/write" element={<ReviewWrite />} />
+          <Route path="/review/edit" element={<ReviewEdit />} />
           <Route path="/product/register" element={<ProductRegister />} />
           <Route path="/product/edit/:id" element={<ProductEdit />} />
           <Route path="/banner1" element={<Banner1 />} />

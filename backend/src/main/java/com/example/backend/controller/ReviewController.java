@@ -1,8 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.dao.ProductImageDAO;
+import com.example.backend.dao.ReviewImageDAO;
 import com.example.backend.entity.Review;
 import com.example.backend.entity.ProductImage;
+import com.example.backend.entity.ReviewImage;
 import com.example.backend.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,9 @@ public class ReviewController {
     
     @Autowired
     private ProductImageDAO productImageDAO;
+    
+    @Autowired
+    private ReviewImageDAO reviewImageDAO;
     
     // 리뷰 작성
     @PostMapping("/reviews")
@@ -47,6 +52,8 @@ public class ReviewController {
             item.put("orderItemId", review.getOrderItemId());
             item.put("rating", review.getRating());
             item.put("content", review.getContent());
+            item.put("sellerReply", review.getSellerReply());
+            item.put("sellerReplyAt", review.getSellerReplyAt());
             item.put("createdAt", review.getCreatedAt());
             item.put("updatedAt", review.getUpdatedAt());
             
@@ -70,7 +77,8 @@ public class ReviewController {
     @GetMapping("/reviews")
     public Map<String, Object> getReviews(
             @RequestParam(value = "postId", required = false) Integer postId,
-            @RequestParam(value = "userId", required = false) Integer userId) {
+            @RequestParam(value = "userId", required = false) Integer userId,
+            @RequestParam(value = "sellerId", required = false) Integer sellerId) {
         
         Map<String, Object> map = new HashMap<>();
         
@@ -81,9 +89,11 @@ public class ReviewController {
                 reviews = reviewService.getReviewsByPostId(postId);
             } else if (userId != null) {
                 reviews = reviewService.getReviewsByUserId(userId);
+            } else if (sellerId != null) {
+                reviews = reviewService.getReviewsBySellerId(sellerId);
             } else {
                 map.put("rt", "FAIL");
-                map.put("message", "postId 또는 userId를 입력해주세요.");
+                map.put("message", "postId, userId 또는 sellerId를 입력해주세요.");
                 return map;
             }
             
@@ -98,6 +108,8 @@ public class ReviewController {
                         reviewMap.put("orderItemId", review.getOrderItemId());
                         reviewMap.put("rating", review.getRating());
                         reviewMap.put("content", review.getContent());
+                        reviewMap.put("sellerReply", review.getSellerReply());
+                        reviewMap.put("sellerReplyAt", review.getSellerReplyAt());
                         reviewMap.put("createdAt", review.getCreatedAt());
                         reviewMap.put("updatedAt", review.getUpdatedAt());
                         
@@ -120,6 +132,18 @@ public class ReviewController {
                             userMap.put("name", review.getUser().getName());
                             reviewMap.put("user", userMap);
                         }
+                        
+                        // 리뷰 이미지 추가
+                        List<ReviewImage> reviewImages = reviewImageDAO.findByReviewId(review.getReviewId());
+                        List<Map<String, Object>> imageList = reviewImages.stream()
+                                .map(img -> {
+                                    Map<String, Object> imageMap = new HashMap<>();
+                                    imageMap.put("imageId", img.getReviewImageId());
+                                    imageMap.put("imageUrl", img.getImageUrl());
+                                    return imageMap;
+                                })
+                                .collect(java.util.stream.Collectors.toList());
+                        reviewMap.put("images", imageList);
                         
                         return reviewMap;
                     })
@@ -153,8 +177,34 @@ public class ReviewController {
             item.put("orderItemId", review.getOrderItemId());
             item.put("rating", review.getRating());
             item.put("content", review.getContent());
+            item.put("sellerReply", review.getSellerReply());
+            item.put("sellerReplyAt", review.getSellerReplyAt());
             item.put("createdAt", review.getCreatedAt());
             item.put("updatedAt", review.getUpdatedAt());
+            
+            // 상품 정보 추가
+            if (review.getProductPost() != null) {
+                item.put("productName", review.getProductPost().getPostName());
+                item.put("brand", review.getProductPost().getBrand());
+                item.put("productImage", resolveMainImageUrl(review.getPostId()));
+            }
+            
+            // 주문 정보 추가
+            if (review.getOrderItem() != null && review.getOrderItem().getOrder() != null) {
+                item.put("orderNumber", review.getOrderItem().getOrder().getOrderNumber());
+            }
+            
+            // 리뷰 이미지 추가
+            List<ReviewImage> reviewImages = reviewImageDAO.findByReviewId(review.getReviewId());
+            List<Map<String, Object>> imageList = reviewImages.stream()
+                    .map(img -> {
+                        Map<String, Object> imageMap = new HashMap<>();
+                        imageMap.put("imageId", img.getReviewImageId());
+                        imageMap.put("imageUrl", img.getImageUrl());
+                        return imageMap;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            item.put("images", imageList);
             
             map.put("rt", "OK");
             map.put("item", item);
@@ -178,12 +228,13 @@ public class ReviewController {
             @RequestParam("userId") int userId,
             @RequestParam("rating") int rating,
             @RequestParam("content") String content,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "keepImageIds", required = false) List<Integer> keepImageIds) {
         
         Map<String, Object> map = new HashMap<>();
         
         try {
-            Review review = reviewService.updateReview(reviewId, userId, rating, content, images);
+            Review review = reviewService.updateReview(reviewId, userId, rating, content, images, keepImageIds);
             
             Map<String, Object> item = new HashMap<>();
             item.put("reviewId", review.getReviewId());
@@ -193,6 +244,8 @@ public class ReviewController {
             item.put("orderItemId", review.getOrderItemId());
             item.put("rating", review.getRating());
             item.put("content", review.getContent());
+            item.put("sellerReply", review.getSellerReply());
+            item.put("sellerReplyAt", review.getSellerReplyAt());
             item.put("createdAt", review.getCreatedAt());
             item.put("updatedAt", review.getUpdatedAt());
             
@@ -233,6 +286,65 @@ public class ReviewController {
             e.printStackTrace();
             map.put("rt", "FAIL");
             map.put("message", "리뷰 삭제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
+    
+    // 판매자 답글 작성/수정
+    @PostMapping("/reviews/{reviewId}/reply")
+    public Map<String, Object> addSellerReply(
+            @PathVariable("reviewId") int reviewId,
+            @RequestParam("sellerId") int sellerId,
+            @RequestParam("reply") String reply) {
+        
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            Review review = reviewService.addSellerReply(reviewId, sellerId, reply);
+            
+            Map<String, Object> item = new HashMap<>();
+            item.put("reviewId", review.getReviewId());
+            item.put("sellerReply", review.getSellerReply());
+            item.put("sellerReplyAt", review.getSellerReplyAt());
+            
+            map.put("rt", "OK");
+            map.put("item", item);
+            map.put("message", "답글이 성공적으로 작성되었습니다.");
+            
+        } catch (IllegalArgumentException e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "답글 작성 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return map;
+    }
+    
+    // 판매자 답글 삭제
+    @DeleteMapping("/reviews/{reviewId}/reply")
+    public Map<String, Object> deleteSellerReply(
+            @PathVariable("reviewId") int reviewId,
+            @RequestParam("sellerId") int sellerId) {
+        
+        Map<String, Object> map = new HashMap<>();
+        
+        try {
+            Review review = reviewService.deleteSellerReply(reviewId, sellerId);
+            
+            map.put("rt", "OK");
+            map.put("message", "답글이 성공적으로 삭제되었습니다.");
+            
+        } catch (IllegalArgumentException e) {
+            map.put("rt", "FAIL");
+            map.put("message", e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            map.put("rt", "FAIL");
+            map.put("message", "답글 삭제 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return map;

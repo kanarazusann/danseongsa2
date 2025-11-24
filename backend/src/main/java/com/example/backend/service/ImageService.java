@@ -14,8 +14,9 @@ import java.util.UUID;
 public class ImageService {
     
     private static final String UPLOAD_DIR = "uploads/images/";
+    private static final String REVIEW_IMAGE_DIR = "uploads/reviewImages/";
     
-    // 이미지 파일 저장
+    // 이미지 파일 저장 (상품 이미지용)
     public String saveImageFile(MultipartFile file) throws IOException {
         File uploadDir = new File(UPLOAD_DIR);
         if (!uploadDir.exists()) {
@@ -32,6 +33,25 @@ public class ImageService {
         Files.write(filePath, file.getBytes());
         
         return "/images/" + fileName;
+    }
+    
+    // 리뷰 이미지 파일 저장
+    public String saveReviewImageFile(MultipartFile file) throws IOException {
+        File uploadDir = new File(REVIEW_IMAGE_DIR);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
+        }
+        
+        String originalFileName = file.getOriginalFilename();
+        String extension = originalFileName != null && originalFileName.contains(".") 
+            ? originalFileName.substring(originalFileName.lastIndexOf(".")) 
+            : "";
+        String fileName = UUID.randomUUID().toString() + extension;
+        
+        Path filePath = Paths.get(REVIEW_IMAGE_DIR + fileName);
+        Files.write(filePath, file.getBytes());
+        
+        return "/reviewImages/" + fileName;
     }
 }
 

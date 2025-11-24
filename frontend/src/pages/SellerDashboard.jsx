@@ -11,6 +11,7 @@ import {
   rejectRefundRequest
 } from '../services/orderService';
 import { getProductPostsByBrand, deleteProductPost } from '../services/productService';
+import { getReviewsBySellerId, addSellerReply, deleteSellerReply } from '../services/reviewService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -147,6 +148,10 @@ function SellerDashboard() {
   const [refunds, setRefunds] = useState([]);
   const [refundsLoading, setRefundsLoading] = useState(false);
   const [refundsError, setRefundsError] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [editingReplyId, setEditingReplyId] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
 
   // URL 파라미터가 변경되면 activeTab 업데이트
   useEffect(() => {
@@ -275,24 +280,50 @@ function SellerDashboard() {
     loadProductsByBrand(businessInfo.businessName);
   }, [businessInfo.businessName, loadProductsByBrand]);
 
-  const reviews = [
-    {
-      reviewId: 1,
-      productName: '클래식 오버핏 코트',
-      userName: '김철수',
-      rating: 5,
-      content: '정말 좋은 상품입니다! 품질도 좋고 사이즈도 딱 맞아요.',
-      createdAt: '2025-01-15'
-    },
-    {
-      reviewId: 2,
-      productName: '베이직 티셔츠',
-      userName: '이영희',
-      rating: 4,
-      content: '가격 대비 만족스럽습니다.',
-      createdAt: '2025-01-14'
-    }
-  ];
+  // 리뷰 목록 로드
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (activeTab !== 'reviews' || !sellerId) return;
+      
+      try {
+        setReviewsLoading(true);
+        const response = await getReviewsBySellerId(sellerId);
+        
+        if (response.rt === 'OK' && response.items) {
+          const formattedReviews = response.items.map(review => ({
+            reviewId: review.reviewId,
+            postId: review.postId,
+            productName: review.productName || '',
+            brand: review.brand || '',
+            userName: review.user?.name || '고객',
+            rating: review.rating,
+            content: review.content || '',
+            sellerReply: review.sellerReply || null,
+            sellerReplyAt: review.sellerReplyAt ? formatDateTime(review.sellerReplyAt) : null,
+            createdAt: formatDateTime(review.createdAt),
+            images: review.images ? review.images.map(img => resolveImageUrl(img.imageUrl || img)) : [],
+            createdAtRaw: review.createdAt // 정렬을 위한 원본 날짜
+          }))
+          .sort((a, b) => {
+            // 최신순 정렬 (내림차순)
+            const dateA = new Date(a.createdAtRaw || 0);
+            const dateB = new Date(b.createdAtRaw || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          setReviews(formattedReviews);
+        } else {
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error('리뷰 목록 로드 오류:', error);
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+    
+    loadReviews();
+  }, [activeTab, sellerId]);
 
   const stats = useMemo(() => {
     const orderList = Array.isArray(orders) ? orders : [];
@@ -482,6 +513,105 @@ function SellerDashboard() {
     } catch (error) {
       console.error('환불 거절 오류:', error);
       alert(error.message || '거절 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 답글 작성 시작
+  const handleStartReply = (review) => {
+    setEditingReplyId(review.reviewId);
+    setReplyContent(review.sellerReply || '');
+  };
+
+  // 답글 작성 취소
+  const handleCancelReply = () => {
+    setEditingReplyId(null);
+    setReplyContent('');
+  };
+
+  // 답글 저장
+  const handleSaveReply = async (reviewId) => {
+    if (!sellerId) return;
+    if (!replyContent.trim()) {
+      alert('답글 내용을 입력해주세요.');
+      return;
+    }
+    
+    try {
+      await addSellerReply(reviewId, sellerId, replyContent.trim());
+      
+      // 리뷰 목록 다시 로드
+      const response = await getReviewsBySellerId(sellerId);
+      if (response.rt === 'OK' && response.items) {
+        const formattedReviews = response.items.map(review => ({
+          reviewId: review.reviewId,
+          postId: review.postId,
+          productName: review.productName || '',
+          brand: review.brand || '',
+          userName: review.user?.name || '고객',
+          rating: review.rating,
+          content: review.content || '',
+          sellerReply: review.sellerReply || null,
+          sellerReplyAt: review.sellerReplyAt ? formatDateTime(review.sellerReplyAt) : null,
+          createdAt: formatDateTime(review.createdAt),
+          createdAtRaw: review.createdAt // 정렬을 위한 원본 날짜
+        }))
+        .sort((a, b) => {
+          // 최신순 정렬 (내림차순)
+          const dateA = new Date(a.createdAtRaw || 0);
+          const dateB = new Date(b.createdAtRaw || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        setReviews(formattedReviews);
+      }
+      
+      setEditingReplyId(null);
+      setReplyContent('');
+      alert('답글이 작성되었습니다.');
+    } catch (error) {
+      console.error('답글 작성 오류:', error);
+      alert(error.message || '답글 작성 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 답글 삭제
+  const handleDeleteReply = async (reviewId) => {
+    if (!sellerId) return;
+    if (!window.confirm('답글을 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      await deleteSellerReply(reviewId, sellerId);
+      
+      // 리뷰 목록 다시 로드
+      const response = await getReviewsBySellerId(sellerId);
+      if (response.rt === 'OK' && response.items) {
+        const formattedReviews = response.items.map(review => ({
+          reviewId: review.reviewId,
+          postId: review.postId,
+          productName: review.productName || '',
+          brand: review.brand || '',
+          userName: review.user?.name || '고객',
+          rating: review.rating,
+          content: review.content || '',
+          sellerReply: review.sellerReply || null,
+          sellerReplyAt: review.sellerReplyAt ? formatDateTime(review.sellerReplyAt) : null,
+          createdAt: formatDateTime(review.createdAt),
+          createdAtRaw: review.createdAt // 정렬을 위한 원본 날짜
+        }))
+        .sort((a, b) => {
+          // 최신순 정렬 (내림차순)
+          const dateA = new Date(a.createdAtRaw || 0);
+          const dateB = new Date(b.createdAtRaw || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        setReviews(formattedReviews);
+      }
+      
+      alert('답글이 삭제되었습니다.');
+    } catch (error) {
+      console.error('답글 삭제 오류:', error);
+      alert(error.message || '답글 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -1022,7 +1152,11 @@ function SellerDashboard() {
         {activeTab === 'reviews' && (
           <div className="tab-content">
             <h2>리뷰 관리</h2>
-            {reviews.length === 0 ? (
+            {reviewsLoading ? (
+              <div className="empty-state">
+                <p>리뷰를 불러오는 중...</p>
+              </div>
+            ) : reviews.length === 0 ? (
               <div className="empty-state">
                 <p>리뷰가 없습니다.</p>
               </div>
@@ -1031,21 +1165,121 @@ function SellerDashboard() {
                 {reviews.map(review => (
                   <div key={review.reviewId} className="review-card">
                     <div className="review-header">
-                      <div>
-                        <span className="product-name">{review.productName}</span>
-                        <span className="user-name">작성자: {review.userName}</span>
-                        <span className="review-date">{review.createdAt}</span>
-                      </div>
-                      <div className="review-rating">
-                        {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                      <div className="review-header-info">
+                        <span className="review-info-item">
+                          <span className="review-info-label">상품명 : </span>
+                          <Link to={`/product/${review.postId}`} className="review-info-value product-name-link">
+                            {review.productName}
+                          </Link>
+                        </span>
+                        <span className="review-info-item">
+                          <span className="review-info-label">별점 : </span>
+                          <span className="review-info-value review-rating">
+                            {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                          </span>
+                        </span>
+                        <span className="review-info-item">
+                          <span className="review-info-label">작성자 : </span>
+                          <span className="review-info-value">{review.userName}</span>
+                        </span>
+                        <span className="review-info-item">
+                          <span className="review-info-label">작성일시 : </span>
+                          <span className="review-info-value">{review.createdAt}</span>
+                        </span>
                       </div>
                     </div>
                     <div className="review-content">
                       {review.content}
                     </div>
-                    <div className="review-actions">
-                      <button className="btn-secondary">답변 작성</button>
-                    </div>
+                    
+                    {/* 리뷰 이미지 표시 */}
+                    {review.images && review.images.length > 0 && (
+                      <div className="review-images">
+                        {review.images.map((imageUrl, index) => (
+                          <img
+                            key={`${review.reviewId}-${index}`}
+                            src={imageUrl}
+                            alt={`리뷰 이미지 ${index + 1}`}
+                            className="review-image"
+                            onError={(e) => {
+                              e.target.src = 'https://via.placeholder.com/300x300/CCCCCC/666666?text=No+Image';
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 판매자 답글 표시 */}
+                    {review.sellerReply && (
+                      <div className="seller-reply">
+                        <div className="seller-reply-header">
+                          <div className="seller-reply-title-section">
+                            {review.brand && (
+                              <span className="seller-reply-brand">{review.brand}</span>
+                            )}
+                          </div>
+                          {review.sellerReplyAt && (
+                            <span className="seller-reply-date">{review.sellerReplyAt}</span>
+                          )}
+                        </div>
+                        <div className="seller-reply-content">
+                          {review.sellerReply}
+                        </div>
+                        {editingReplyId !== review.reviewId && (
+                          <div className="seller-reply-actions">
+                            <button 
+                              className="btn-secondary"
+                              onClick={() => handleStartReply(review)}
+                            >
+                              수정
+                            </button>
+                            <button 
+                              className="btn-danger"
+                              onClick={() => handleDeleteReply(review.reviewId)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* 답글 작성/수정 폼 */}
+                    {editingReplyId === review.reviewId ? (
+                      <div className="reply-form">
+                        <textarea
+                          value={replyContent}
+                          onChange={(e) => setReplyContent(e.target.value)}
+                          className="reply-textarea"
+                          rows="8" cols="140"
+                          placeholder="답글을 입력하세요"
+                          maxLength={1000}
+                        />
+                        <div className="reply-actions">
+                          <button 
+                            className="btn-secondary"
+                            onClick={handleCancelReply}
+                          >
+                            취소
+                          </button>
+                          <button 
+                            className="btn-primary"
+                            onClick={() => handleSaveReply(review.reviewId)}
+                          >
+                            저장
+                          </button>
+                        </div>
+                      </div>
+                    ) : !review.sellerReply && (
+                      <div className="review-actions">
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => handleStartReply(review)}
+                        >
+                          답변 작성
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
