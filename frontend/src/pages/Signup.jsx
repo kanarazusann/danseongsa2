@@ -376,7 +376,6 @@ function Signup() {
                     placeholder="이메일 *"
                     value={generalForm.email}
                     onChange={handleGeneralChange}
-                    required
                     className="form-input"
                     disabled={generalForm.emailVerified}
                   />
@@ -423,7 +422,6 @@ function Signup() {
                   placeholder="이름 *"
                   value={generalForm.name}
                   onChange={handleGeneralChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -434,7 +432,6 @@ function Signup() {
                   placeholder="비밀번호 *"
                   value={generalForm.password}
                   onChange={handleGeneralChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -445,7 +442,6 @@ function Signup() {
                   placeholder="비밀번호 확인 *"
                   value={generalForm.passwordConfirm}
                   onChange={handleGeneralChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -456,7 +452,6 @@ function Signup() {
                   placeholder="전화번호 *"
                   value={generalForm.phone}
                   onChange={handleGeneralChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -468,7 +463,6 @@ function Signup() {
                     placeholder="우편번호 *"
                     value={generalForm.zipcode}
                     readOnly
-                    required
                     className="form-input"
                   />
                   <button
@@ -487,7 +481,6 @@ function Signup() {
                   placeholder="주소 *"
                   value={generalForm.address}
                   readOnly
-                  required
                   className="form-input"
                 />
               </div>
@@ -520,7 +513,6 @@ function Signup() {
                     placeholder="이메일 *"
                     value={businessForm.email}
                     onChange={handleBusinessChange}
-                    required
                     className="form-input"
                     disabled={businessForm.emailVerified}
                   />
@@ -567,7 +559,6 @@ function Signup() {
                   placeholder="상호명 *"
                   value={businessForm.brand}
                   onChange={handleBusinessChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -578,7 +569,6 @@ function Signup() {
                   placeholder="사업자등록번호 *"
                   value={businessForm.businessNumber}
                   onChange={handleBusinessChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -588,8 +578,7 @@ function Signup() {
                   name="managerName"
                   placeholder="담당자명 *"
                   value={businessForm.managerName}
-                  onChange={handleBusinessChange}
-                  required
+                  onChange={handleBusinessChange} 
                   className="form-input"
                 />
               </div>
@@ -600,7 +589,6 @@ function Signup() {
                   placeholder="비밀번호 *"
                   value={businessForm.password}
                   onChange={handleBusinessChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -610,8 +598,7 @@ function Signup() {
                   name="passwordConfirm"
                   placeholder="비밀번호 확인 *"
                   value={businessForm.passwordConfirm}
-                  onChange={handleBusinessChange}
-                  required
+                  onChange={handleBusinessChange} 
                   className="form-input"
                 />
               </div>
@@ -622,7 +609,6 @@ function Signup() {
                   placeholder="전화번호 *"
                   value={businessForm.phone}
                   onChange={handleBusinessChange}
-                  required
                   className="form-input"
                 />
               </div>
@@ -634,7 +620,6 @@ function Signup() {
                     placeholder="우편번호 *"
                     value={businessForm.zipcode}
                     readOnly
-                    required
                     className="form-input"
                   />
                   <button
@@ -652,8 +637,7 @@ function Signup() {
                   name="address"
                   placeholder="주소 *"
                   value={businessForm.address}
-                  readOnly
-                  required
+                  readOnly 
                   className="form-input"
                 />
               </div>

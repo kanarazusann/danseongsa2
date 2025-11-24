@@ -202,17 +202,25 @@ public class UserController {
     public Map<String, Object> resetPassword(@RequestBody UserDTO request) {
         Map<String, Object> map = new HashMap<>();
         
-        boolean success = userService.resetPassword(
-            request.getEmail().trim(),
-            request.getPassword()
-        );
-        
-        if (success) {
-            map.put("rt", "OK");
-            map.put("message", "비밀번호가 재설정되었습니다.");
-        } else {
+        try {
+            boolean success = userService.resetPassword(
+                request.getEmail().trim(),
+                request.getPassword()
+            );
+            
+            if (success) {
+                map.put("rt", "OK");
+                map.put("message", "비밀번호가 재설정되었습니다.");
+            } else {
+                map.put("rt", "FAIL");
+                map.put("message", "비밀번호 재설정에 실패했습니다.");
+            }
+        } catch (IllegalArgumentException e) {
             map.put("rt", "FAIL");
-            map.put("message", "비밀번호 재설정에 실패했습니다.");
+            map.put("message", e.getMessage());
+        } catch (Exception e) {
+            map.put("rt", "FAIL");
+            map.put("message", "비밀번호 재설정 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return map;

@@ -73,7 +73,6 @@ function LoginForm() {
                 placeholder="이메일"
                 value={formData.email}
                 onChange={handleChange}
-                required
                 className="form-input"
               />
             </div>
@@ -84,7 +83,6 @@ function LoginForm() {
                 placeholder="비밀번호"
                 value={formData.password}
                 onChange={handleChange}
-                required
                 className="form-input"
               />
             </div>

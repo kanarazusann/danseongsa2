@@ -181,6 +181,12 @@ public class UserService {
         Optional<User> userOpt = userDAO.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            
+            // 기존 비밀번호와 동일한지 확인
+            if (user.getPassword().equals(newPassword)) {
+                throw new IllegalArgumentException("기존 비밀번호와 동일한 비밀번호는 사용할 수 없습니다.");
+            }
+            
             user.setPassword(newPassword);
             userDAO.save(user);
             return true;
