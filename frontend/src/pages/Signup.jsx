@@ -50,6 +50,8 @@ function Signup() {
     detailAddress: ''
   });
 
+  const isValidPassword = (password) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/.test(password);
+
   useEffect(() => {
     if (window.daum && window.daum.Postcode) {
       return;
@@ -261,6 +263,10 @@ function Signup() {
       alert('비밀번호를 입력해주세요.');
       return;
     }
+    if (!isValidPassword(generalForm.password)) {
+      alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
+      return;
+    }
     if (generalForm.password !== generalForm.passwordConfirm) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
@@ -329,6 +335,10 @@ function Signup() {
     }
     if (!businessForm.password || !businessForm.password.trim()) {
       alert('비밀번호를 입력해주세요.');
+      return;
+    }
+    if (!isValidPassword(businessForm.password)) {
+      alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
       return;
     }
     if (businessForm.password !== businessForm.passwordConfirm) {
