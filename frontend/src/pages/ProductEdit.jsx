@@ -50,6 +50,7 @@ function ProductEdit() {
   const [existingImages, setExistingImages] = useState([]); // 기존 이미지 URL 저장
   // 상품 설명 이미지
   const [descriptionImages, setDescriptionImages] = useState([]);
+  const [descriptionPreviewUrls, setDescriptionPreviewUrls] = useState([]);
   
   // 드래그 앤 드롭을 위한 상태
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -205,6 +206,7 @@ function ProductEdit() {
             };
           });
           setDescriptionImages(existingDescription);
+          setDescriptionPreviewUrls(existingDescription.map(img => img.preview));
         }
 
       } catch (error) {
@@ -376,6 +378,7 @@ function ProductEdit() {
           isExisting: false
         };
         setDescriptionImages(prev => [...prev, newImage]);
+        setDescriptionPreviewUrls(prev => [...prev, reader.result]);
       };
       reader.readAsDataURL(file);
     });
@@ -383,6 +386,7 @@ function ProductEdit() {
 
   const handleDescriptionImageRemove = (index) => {
     setDescriptionImages(prev => prev.filter((_, i) => i !== index));
+    setDescriptionPreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   // 대표 이미지 설정 핸들러
@@ -611,48 +615,6 @@ function ProductEdit() {
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <p>상품 데이터를 불러오는 중...</p>
           </div>
-
-          {/* 상품 설명 이미지 섹션 */}
-          <div className="form-section">
-            <h2 className="section-title">상품 설명 이미지</h2>
-            <div className="form-group">
-              <label className="form-label">
-                설명 이미지 <span className="required">*</span>
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleDescriptionImagesChange}
-                className="form-input-file"
-                id="description-image-upload"
-              />
-              <label htmlFor="description-image-upload" className="file-upload-label">
-                설명 이미지 추가 (최대 10개, 각 5MB 이하)
-              </label>
-              <p className="form-hint">
-                상품 설명 영역에 노출될 상세 이미지입니다.
-              </p>
-            </div>
-
-            {descriptionImages.length > 0 && (
-              <div className="description-image-preview-list">
-                {descriptionImages.map((image, index) => (
-                  <div key={`desc-${index}`} className="description-image-item">
-                    <img src={image.preview} alt={`설명 이미지 ${index + 1}`} />
-                    {image.isExisting && <span className="existing-label">기존</span>}
-                    <button
-                      type="button"
-                      className="btn-description-image-remove"
-                      onClick={() => handleDescriptionImageRemove(index)}
-                    >
-                      삭제
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     );
@@ -683,71 +645,85 @@ function ProductEdit() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group full-width">
                 <label className="form-label">
                   카테고리 <span className="required">*</span>
                 </label>
-                <div className="category-selector">
-                  {/* 대분류 선택 */}
-                  <div className="category-level-select">
-                    <label className="category-label">대분류</label>
-                    <select
-                      value={selectedMainCategory || ''}
-                      onChange={(e) => handleMainCategorySelect(e.target.value)}
-                      className="form-input"
-                      required
-                    >
-                      <option value="">선택하세요</option>
-                      <option value="전체">전체</option>
-                      <option value="남성">남성</option>
-                      <option value="여성">여성</option>
-                    </select>
+                <div className="category-selector-form">
+                  <div className="category-levels-form">
+                    {/* 대분류 선택 */}
+                    <div className="category-level-form">
+                      <div className="category-level-title">대분류</div>
+                      <div className="category-buttons">
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '전체' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('전체')}
+                        >
+                          전체
+                        </button>
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '남성' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('남성')}
+                        >
+                          남성
+                        </button>
+                        <button
+                          type="button"
+                          className={`category-btn ${selectedMainCategory === '여성' ? 'active' : ''}`}
+                          onClick={() => handleMainCategorySelect('여성')}
+                        >
+                          여성
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 중분류 선택 */}
+                    {selectedMainCategory && (
+                      <div className="category-level-form">
+                        <div className="category-level-title">중분류</div>
+                        <div className="category-buttons">
+                          {Object.keys(categoriesData[selectedMainCategory] || {}).map(subCat => (
+                            <button
+                              key={subCat}
+                              type="button"
+                              className={`category-btn ${selectedSubCategory === subCat ? 'active' : ''}`}
+                              onClick={() => handleSubCategorySelect(subCat)}
+                            >
+                              {subCat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 소분류 선택 */}
+                    {selectedMainCategory && selectedSubCategory && (
+                      <div className="category-level-form sub-category-level-form">
+                        <div className="category-level-title">소분류</div>
+                        <div className="sub-category-buttons-form">
+                          {categoriesData[selectedMainCategory]?.[selectedSubCategory]?.map(item => (
+                            <button
+                              key={item.name}
+                              type="button"
+                              className={`sub-category-btn-form ${selectedItem === item.name ? 'active' : ''}`}
+                              onClick={() => handleItemSelect(item.name)}
+                            >
+                              {item.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* 중분류 선택 */}
-                  {selectedMainCategory && (
-                    <div className="category-level-select">
-                      <label className="category-label">중분류</label>
-                      <select
-                        value={selectedSubCategory || ''}
-                        onChange={(e) => handleSubCategorySelect(e.target.value)}
-                        className="form-input"
-                        required
-                      >
-                        <option value="">선택하세요</option>
-                        {Object.keys(categoriesData[selectedMainCategory] || {}).map(subCat => (
-                          <option key={subCat} value={subCat}>
-                            {subCat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* 소분류 선택 */}
-                  {selectedMainCategory && selectedSubCategory && (
-                    <div className="category-level-select">
-                      <label className="category-label">소분류</label>
-                      <select
-                        value={selectedItem || ''}
-                        onChange={(e) => handleItemSelect(e.target.value)}
-                        className="form-input"
-                        required
-                      >
-                        <option value="">선택하세요</option>
-                        {categoriesData[selectedMainCategory]?.[selectedSubCategory]?.map(item => (
-                          <option key={item.name} value={item.name}>
-                            {item.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
 
                   {/* 선택된 카테고리명 표시 */}
                   {formData.categoryName && (
-                    <div className="selected-category">
-                      <span className="category-display">선택된 카테고리: {formData.categoryName}</span>
+                    <div className="selected-category-form">
+                      <span className="category-display-form">
+                        <strong>선택된 카테고리:</strong> {formData.categoryName}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -987,7 +963,7 @@ function ProductEdit() {
                 id="image-upload"
               />
               <label htmlFor="image-upload" className="file-upload-label">
-                이미지 추가 (최대 10개, 각 5MB 이하)
+                이미지 선택 (최대 10개, 각 5MB 이하)
               </label>
               <p className="form-hint">
                 첫 번째 이미지가 대표 이미지로 설정됩니다. 드래그하여 순서를 변경할 수 있습니다.
@@ -1049,6 +1025,48 @@ function ProductEdit() {
                         삭제
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 상품 설명 이미지 섹션 */}
+          <div className="form-section">
+            <h2 className="section-title">상품 설명 이미지</h2>
+            <div className="form-group">
+              <label className="form-label">
+                설명 이미지 <span className="required">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleDescriptionImagesChange}
+                className="form-input-file"
+                id="description-image-upload"
+              />
+              <label htmlFor="description-image-upload" className="file-upload-label">
+                설명 이미지 선택 (최대 10개, 각 5MB 이하)
+              </label>
+              <p className="form-hint">
+                상품 설명 영역에 표시될 이미지입니다. 등록 순서대로 노출됩니다.
+              </p>
+            </div>
+
+            {descriptionPreviewUrls.length > 0 && (
+              <div className="description-image-preview-list">
+                {descriptionImages.map((image, index) => (
+                  <div key={`desc-${index}`} className="description-image-item">
+                    <img src={image.preview} alt={`설명 이미지 ${index + 1}`} />
+                    {image.isExisting && <span className="existing-label">기존</span>}
+                    <button
+                      type="button"
+                      className="btn-description-image-remove"
+                      onClick={() => handleDescriptionImageRemove(index)}
+                    >
+                      삭제
+                    </button>
                   </div>
                 ))}
               </div>

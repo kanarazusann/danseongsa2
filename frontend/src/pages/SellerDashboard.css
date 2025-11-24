@@ -305,10 +305,11 @@
 
 .product-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 10px;
   width: 100%;
   align-items: center;
+  justify-content: flex-start;
 }
 
 /* 주문 관리 */
@@ -1104,8 +1105,9 @@
   }
 
   .product-actions {
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .order-header {

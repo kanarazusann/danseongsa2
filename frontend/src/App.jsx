@@ -28,7 +28,6 @@ import ProductRegister from './pages/ProductRegister';
 import ProductEdit from './pages/ProductEdit';
 import Banner1 from './pages/Banner1';
 import Banner2 from './pages/Banner2';
-import Banner3 from './pages/Banner3';
 import Banner4 from './pages/Banner4';
 import Banner5 from './pages/Banner5';
 import './App.css';
@@ -67,7 +66,6 @@ function App() {
           <Route path="/product/edit/:id" element={<ProductEdit />} />
           <Route path="/banner1" element={<Banner1 />} />
           <Route path="/banner2" element={<Banner2 />} />
-          <Route path="/banner3" element={<Banner3 />} />
           <Route path="/banner4" element={<Banner4 />} />
           <Route path="/banner5" element={<Banner5 />} />
         </Routes>
