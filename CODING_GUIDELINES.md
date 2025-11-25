@@ -979,8 +979,16 @@ private int productId;  // ⚠️ Long 대신 int 사용
 ### 데이터 타입 매핑
 - **NUMBER → Integer (int)** ⚠️ **Long 사용 금지, 모든 숫자는 int 사용**
 - **VARCHAR2 → String**
+- **CLOB → String** (긴 텍스트, 하지만 PRODUCTPOST.DESCRIPTION은 VARCHAR2(2000) 사용)
 - **DATE, TIMESTAMP → Timestamp**
 - **CHAR(1) → String** (Y/N 플래그)
+- **NUMBER(1) → Integer** (STATUS 등 0/1 값)
+
+### PRODUCTPOST 특수 필드 변환 규칙
+- **STATUS**: DB에는 `NUMBER(1)` (1=SELLING, 0=SOLD_OUT), API는 `String` ("SELLING"/"SOLD_OUT")로 변환
+- **GENDER**: DB에는 `VARCHAR2(1)` (M/W/U), API는 `String` ("MEN"/"WOMEN"/"UNISEX")로 변환
+- **SEASON**: DB에는 `VARCHAR2(3)` (SPR/SMR/FAL/WTR/ALL), API는 `String` ("SPRING"/"SUMMER"/"FALL"/"WINTER"/"ALL_SEASON")로 변환
+- **DESCRIPTION**: DB에는 `VARCHAR2(2000)`, Java Entity는 `String` (length: 2000)
 
 ### 숫자 타입 규칙
 - **모든 숫자 타입은 int(Integer) 사용** (Long 사용 금지)
@@ -1342,100 +1350,100 @@ feat: 상품 조회 API 구현
 
 
 회원(User)
-- userId (PK, int)  //회원고유id(seq) ⚠️ Long 대신 int 사용
+- userId (PK, int)  //회원고유id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: USERID_SEQ
 - email (String, unique, not null) //로그인이메일
-- password (String, not null)  //비밀번호
+- password (String, not null)  //비밀번호 (BCrypt 암호화 저장)
 - name (String, not null)  // 이름
 - phone (String)  // 전화번호
 - isSeller (Boolean, default: false) // 사업자인지 일반회원인지 구분
-- businessNumber (String, nullable) // 사업자등록번호 
+- businessNumber (String, nullable) // 사업자등록번호, DB 컬럼명: BN_NO
 - brand (String, nullable) // 상호명 (isSeller = 1 일 때 필수)
 - zipcode (String) // 다음 주소검색 API 우편번호
-- address (String) // 기본 주소
-- detailAddress (String) // 상세 주소
+- address (String) // 기본 주소, DB 컬럼명: ADDR (마지막 순서)
+- detailAddress (String) // 상세 주소, DB 컬럼명: D_ADDR
 - createdAt (Timestamp)  //회원가입날짜
 - updatedAt (Timestamp)  //회원정보수정날짜
 
 상품게시물(ProductPost)
-- postId (PK, int)  //게시물고유id(seq) ⚠️ Long 대신 int 사용
-- sellerId (FK -> User)  // user의 isSeller가 true인 회원과 join
-- categoryName (String, not null) // 카테고리명 (예: "신발 스니커즈", "상의 맨투맨" - 중간에 띄어쓰기 넣어서 상세구분까지 표기)
+- postId (PK, int)  //게시물고유id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: POSTID_SEQ
+- sellerId (FK -> User)  // user의 isSeller가 true인 회원과 join, DB 컬럼명: USERID_SEQ
+- categoryId (FK -> Category, int, not null) // 카테고리ID, DB 컬럼명: CATEGORYID_SEQ
 - postName (String, not null) // 게시물명 (예: "나이키 에어맥스 신발")
-- description (Text) // 상품 설명
+- description (String, length: 2000) // 상품 설명 (VARCHAR2(2000))
 - brand (String) // 브랜드 (예: "나이키", "아디다스", "퓨마" 등)
 - material (String) // 주요소재 (예: "면", "폴리에스터", "나일론" 등)
 - viewCount (Integer, default: 0)  //조회수
 - wishCount (Integer, default: 0)  //찜수 (WISHLIST 테이블 트리거로 자동 업데이트)
-- status (String) // SELLING, SOLD_OUT(게시물상태)
-- gender (String) // 성별 (MEN, WOMEN, UNISEX)
-- season (String) // 계절 (SPRING, SUMMER, FALL, WINTER, ALL_SEASON)
+- status (Integer) // 게시물상태 (1=SELLING 판매중, 0=SOLD_OUT 품절) - DB에는 숫자로 저장, API는 "SELLING"/"SOLD_OUT" 문자열로 변환
+- gender (String, length: 1) // 성별 (M=MEN 남성, W=WOMEN 여성, U=UNISEX 공용) - DB에는 짧은 코드로 저장, API는 "MEN"/"WOMEN"/"UNISEX" 문자열로 변환
+- season (String, length: 3) // 계절 (SPR=봄, SMR=여름, FAL=가을, WTR=겨울, ALL=사계절) - DB에는 짧은 코드로 저장, API는 "SPRING"/"SUMMER"/"FALL"/"WINTER"/"ALL_SEASON" 문자열로 변환
 - createdAt (Timestamp)  // 게시물올린날짜
 - updatedAt (Timestamp)  //게시물수정한날짜
 
 상품(Product)
-- productId (PK, int)  //상품고유id(seq) ⚠️ Long 대신 int 사용
-- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 하나의 게시물에 여러 상품
+- productId (PK, int)  //상품고유id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: PRODUCTID_SEQ
+- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 하나의 게시물에 여러 상품, DB 컬럼명: POSTID_SEQ
 - color (String, not null) // 컬러 (black, white, navy, gray, red 등)
 - productSize (String, not null) // 사이즈 (S, M, L, XL, FREE, 250, 260 등) ⚠️ Oracle 예약어 SIZE 대신 productSize 사용
 - price (Integer, not null)  // 가격
 - discountPrice (Integer, nullable)  // 할인된가격
 - stock (Integer, default: 0)  // 재고수량
-- status (String) // SELLING, SOLD_OUT(해당 옵션의 판매상태)
+- status (Integer) // 판매상태 (1=SELLING 판매중, 0=SOLD_OUT 품절) - DB에는 숫자로 저장, API는 "SELLING"/"SOLD_OUT" 문자열로 변환
 - createdAt (Timestamp)  // 상품등록날짜
 - updatedAt (Timestamp)  //상품수정한날짜
 
 상품이미지(ProductImage)
-- imageId (PK, int)  // 이미지id(seq) ⚠️ Long 대신 int 사용
-- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 게시물에 속한 이미지
+- imageId (PK, int)  // 이미지id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: IMAGEID_SEQ
+- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 게시물에 속한 이미지, DB 컬럼명: POSTID_SEQ
 - imageUrl (String, not null)  //이미지경로
 - isMain (Integer, default: 0) // 대표이미지 여부 (0: 일반, 1: 대표)
 - imageType (String) // 이미지 타입 (GALLERY: 갤러리 이미지, DESCRIPTION: 상품 설명 이미지)
 - createdAt (Timestamp)  // 이미지 만들어진 날짜
 
  장바구니(Cart)
-- cartId (PK, int)  // 장바구니id(seq) ⚠️ Long 대신 int 사용
-- userId (FK -> User)  // 유저id(user table과 join)
-- productId (FK -> Product)  // 상품id (상품 table 과 join) - color, productSize 정보는 Product에서 조회
+- cartId (PK, int)  // 장바구니id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: CARTID_SEQ
+- userId (FK -> User)  // 유저id(user table과 join), DB 컬럼명: USERID_SEQ
+- productId (FK -> Product)  // 상품id (상품 table 과 join) - color, productSize 정보는 Product에서 조회, DB 컬럼명: PRODUCTID_SEQ
 - quantity (Integer, not null)  // 해당상품수량
 - createdAt (Timestamp)  // 장바구니에추가된날짜
 
  찜(Wishlist)
-- wishlistId (PK, int)  // 찜id(seq) ⚠️ Long 대신 int 사용
-- userId (FK -> User)  // 유저id (user table과 join)
-- postId (FK -> ProductPost)  // 게시물id (게시물 table과 join)
+- wishlistId (PK, int)  // 찜id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: WISHLISTID_SEQ
+- userId (FK -> User)  // 유저id (user table과 join), DB 컬럼명: USERID_SEQ
+- postId (FK -> ProductPost)  // 게시물id (게시물 table과 join), DB 컬럼명: POSTID_SEQ
 - createdAt (Timestamp)  // 찜목록에추가된날짜
-- 유니크 제약조건: (userId, postId) - 한 유저가 같은 게시물을 중복 찜할 수 없음
+- 유니크 제약조건: (USERID_SEQ, POSTID_SEQ) - 한 유저가 같은 게시물을 중복 찜할 수 없음
 
 주문(Order)
-- orderId (PK, int) //주문id (seq) ⚠️ Long 대신 int 사용
-- userId (FK -> User)  // userid(user테이블과 join)
-- orderNumber (String, unique) // 주문번호 (예: ORD20250114-001)
+- orderId (PK, int) //주문id (seq) ⚠️ Long 대신 int 사용, DB 컬럼명: ORDERID_SEQ
+- userId (FK -> User)  // userid(user테이블과 join), DB 컬럼명: USERID_SEQ
+- orderNumber (String, unique) // 주문번호 (예: ORD20250114-001), DB 컬럼명: OD_NO
 - totalPrice (Integer, not null) // 상품 총액
 - discountAmount (Integer, default: 0) //할인된 금액
-- deliveryFee (Integer, default: 0) // 배송비
+- deliveryFee (Integer, default: 0) // 배송비, DB 컬럼명: DV_FEE
 - finalPrice (Integer, not null) // 최종 결제금액
-- orderStatus (String) //  PAID, DELIVERING, REFUND(환불/교환 진행중), DELIVERED, CANCELED
+- orderStatus (String) //  PAID, DELIVERING, REFUND(환불/교환 진행중), DELIVERED, CANCELED, DB 컬럼명: OD_STATUS
 - recipientName (String, not null) // 받는 분 이름
 - recipientPhone (String, not null) // 받는 분 전화번호
 - zipcode (String) // 우편번호 (다음 주소검색 API 사용)
-- address (String, not null) // 주소 (다음 주소검색 API에서 받은 기본 주소)
+- address (String, not null) // 주소 (다음 주소검색 API에서 받은 기본 주소), DB 컬럼명: ADDR
 - detailAddress (String) // 상세 주소 (사용자가 직접 입력)
-- deliveryMemo (String) // 배송 메모 (문 앞, 경비실 등)
+- deliveryMemo (String) // 배송 메모 (문 앞, 경비실 등), DB 컬럼명: DV_MEMO
 - createdAt (Timestamp)  // 주문된 날짜
 - updatedAt (Timestamp)  //주문이 수정된 날짜
 
 주문상세(OrderItem)
-- orderItemId (PK, int)  // 주문상세id(seq) ⚠️ Long 대신 int 사용   <= 상품별
-- orderId (FK -> Order)  // 주문id (order table과 join)
-- productId (FK -> Product)  //상품id(상품 table과 join) - 실제 구매한 상품 옵션
-- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 주문 당시 게시물 정보
-- sellerId (FK -> User) // 판매자  (user테이블과 join)
+- orderItemId (PK, int)  // 주문상세id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: ORDERITEMID_SEQ   <= 상품별
+- orderId (FK -> Order)  // 주문id (order table과 join), DB 컬럼명: ORDERID_SEQ
+- productId (FK -> Product)  //상품id(상품 table과 join) - 실제 구매한 상품 옵션, DB 컬럼명: PRODUCTID_SEQ
+- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 주문 당시 게시물 정보, DB 컬럼명: POSTID_SEQ
+- sellerId (FK -> User) // 판매자  (user테이블과 join), DB 컬럼명: USERID_SEQ
 - postName (String) // 주문 당시 게시물명 (예: "나이키 에어맥스 신발")
 - color (String) // 주문 당시 색상
 - productSize (String) // 주문 당시 사이즈 ⚠️ Oracle 예약어 SIZE 대신 productSize 사용
 - quantity (Integer, not null)  //수량
 - price (Integer, not null) // 주문 당시 단가
-- status (String) // PAID, DELIVERING, DELIVERED, CANCELED, REFUND_REQUESTED, REFUNDED, EXCHANGE_REQUESTED, EXCHANGED
+- status (String, length: 3) // 상태 (con=CONFIRMED, can=CANCELLED, ref=REFUNDED) - DB에는 짧은 코드로 저장, API는 "CONFIRMED"/"CANCELLED"/"REFUNDED" 문자열로 변환
 - createdAt (Timestamp)  //주문된 날짜
 
  결제(Payment)
@@ -1448,27 +1456,27 @@ feat: 상품 조회 API 구현
 - paidAt (Timestamp) // 결제된 날짜
 
 리뷰(Review)
-- reviewId (PK, int)  //리뷰고유id ⚠️ Long 대신 int 사용 
-- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 리뷰는 게시물 기준
-- productId (FK -> Product, nullable)  //상품id(상품 table과 join, nullable) - 특정 옵션에 대한 리뷰인 경우
-- userId (FK -> User)  유저아이디
-- orderItemId (FK -> OrderItem) // 실구매자 검증용
+- reviewId (PK, int)  //리뷰고유id ⚠️ Long 대신 int 사용, DB 컬럼명: REVIEWID_SEQ
+- postId (FK -> ProductPost)  //게시물id(게시물 table과 join) - 리뷰는 게시물 기준, DB 컬럼명: POSTID_SEQ
+- productId (FK -> Product, nullable)  //상품id(상품 table과 join, nullable) - 특정 옵션에 대한 리뷰인 경우, DB 컬럼명: PRODUCTID_SEQ
+- userId (FK -> User)  유저아이디, DB 컬럼명: USERID_SEQ
+- orderItemId (FK -> OrderItem) // 실구매자 검증용, DB 컬럼명: ORDERITEMID_SEQ
 - rating (Integer, not null) // 1~5점
 - content (Text)  //리뷰텍스트
 - createdAt (Timestamp)  //글쓴날짜
 - updatedAt (Timestamp)  //수정한날짜
 
 리뷰이미지(ReviewImage)
-- reviewImageId (PK, int)  //리뷰이미지id(seq) ⚠️ Long 대신 int 사용
-- reviewId (FK -> Review)  //리뷰id(리뷰 table과 join)
+- reviewImageId (PK, int)  //리뷰이미지id(seq) ⚠️ Long 대신 int 사용, DB 컬럼명: REVIEWIMAGEID_SEQ
+- reviewId (FK -> Review)  //리뷰id(리뷰 table과 join), DB 컬럼명: REVIEWID_SEQ
 - imageUrl (String, not null)  //이미지경로
 - createdAt (Timestamp)  // 이미지 업로드 날짜
 
 환불/교환(Refund)
-- refundId (PK, int) 환불/교환 고유 id ⚠️ Long 대신 int 사용
-- orderItemId (FK -> OrderItem)  주문상세id
-- userId (FK -> User)  유저id
-- refundType (String) // CANCEL, REFUND, EXCHANGE
+- refundId (PK, int) 환불/교환 고유 id ⚠️ Long 대신 int 사용, DB 컬럼명: REFUNDID_SEQ
+- orderItemId (FK -> OrderItem)  주문상세id, DB 컬럼명: ORDERITEMID_SEQ
+- userId (FK -> User)  유저id, DB 컬럼명: USERID_SEQ
+- refundType (String) // REFUND, EXCHANGE (API는 긴 이름 사용, DB에는 REF/EXC로 저장), DB 컬럼명: REFUNDTYPE (VARCHAR2(3))
 - reason (String, not null)  이유 (아마 선택식)
 - reasonDetail (Text)  이유를 텍스트로
 - refundAmount (Integer)   환불하는 총가격

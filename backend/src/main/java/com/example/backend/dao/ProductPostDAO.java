@@ -38,8 +38,8 @@ public class ProductPostDAO {
         return productPostRepository.findAllOrderByCreatedAtDesc();
     }
     
-    // 상태로 게시물 목록 조회
-    public List<ProductPost> findByStatus(String status) {
+    // 상태로 게시물 목록 조회 (Integer: 1=SELLING, 0=SOLD_OUT)
+    public List<ProductPost> findByStatus(Integer status) {
         return productPostRepository.findByStatus(status);
     }
     

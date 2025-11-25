@@ -19,36 +19,36 @@ public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "review_seq")
-    @SequenceGenerator(name = "review_seq", sequenceName = "SEQ_REVIEW_REVIEWID", allocationSize = 1)
-    @Column(name = "REVIEWID")
+    @SequenceGenerator(name = "review_seq", sequenceName = "SEQ_REVIEW_REVIEWID_SEQ", allocationSize = 1)
+    @Column(name = "REVIEWID_SEQ")
     private int reviewId;
 
-    @Column(name = "POSTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "POSTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int postId;
 
-    @Column(name = "PRODUCTID", insertable = false, updatable = false)
+    @Column(name = "PRODUCTID_SEQ", insertable = false, updatable = false)
     private Integer productId;  // nullable
 
-    @Column(name = "USERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "USERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int userId;
 
-    @Column(name = "ORDERITEMID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "ORDERITEMID_SEQ", nullable = false, insertable = false, updatable = false)
     private int orderItemId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POSTID", nullable = false)
+    @JoinColumn(name = "POSTID_SEQ", nullable = false)
     private ProductPost productPost;  // 상품게시물 (FK -> ProductPost)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PRODUCTID")
+    @JoinColumn(name = "PRODUCTID_SEQ")
     private Product product;  // 상품 (FK -> Product, nullable)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USERID", nullable = false)
+    @JoinColumn(name = "USERID_SEQ", nullable = false)
     private User user;  // 사용자 (FK -> User)
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ORDERITEMID", nullable = false)
+    @JoinColumn(name = "ORDERITEMID_SEQ", nullable = false)
     private OrderItem orderItem;  // 주문상세 (FK -> OrderItem)
 
     @Column(name = "RATING", nullable = false)

@@ -50,13 +50,48 @@ const REFUND_TYPE_TEXT = {
   CANCEL: '취소'
 };
 
-const REFUND_STATUS_TEXT = {
-  REQUESTED: '승인 대기',
-  APPROVED: '승인됨',
-  COMPLETED: '처리 완료',
-  REJECTED: '거절됨',
-  CANCELED: '사용자 취소'
+const REFUND_STATUS = {
+  REQUESTED: 'REQ',
+  APPROVED: 'APR',
+  COMPLETED: 'COM',
+  REJECTED: 'REJ',
+  CANCELED: 'CAN'
 };
+
+const REFUND_STATUS_TEXT = {
+  [REFUND_STATUS.REQUESTED]: '승인 대기',
+  [REFUND_STATUS.APPROVED]: '승인됨',
+  [REFUND_STATUS.COMPLETED]: '처리 완료',
+  [REFUND_STATUS.REJECTED]: '거절됨',
+  [REFUND_STATUS.CANCELED]: '사용자 취소'
+};
+
+const normalizeRefundStatus = (status) => {
+  if (!status) return '';
+  const upper = status.toUpperCase();
+  switch (upper) {
+    case 'REQUESTED':
+    case REFUND_STATUS.REQUESTED:
+      return REFUND_STATUS.REQUESTED;
+    case 'APPROVED':
+    case REFUND_STATUS.APPROVED:
+      return REFUND_STATUS.APPROVED;
+    case 'COMPLETED':
+    case REFUND_STATUS.COMPLETED:
+      return REFUND_STATUS.COMPLETED;
+    case 'REJECTED':
+    case REFUND_STATUS.REJECTED:
+      return REFUND_STATUS.REJECTED;
+    case 'CANCELED':
+    case 'CANCELLED':
+    case REFUND_STATUS.CANCELED:
+      return REFUND_STATUS.CANCELED;
+    default:
+      return upper;
+  }
+};
+
+const isPendingRefund = (status) => normalizeRefundStatus(status) === REFUND_STATUS.REQUESTED;
 
 const getOrderStatusText = (status) => {
   if (!status) return '결제완료';
@@ -70,8 +105,9 @@ const mapRefundTypeText = (type) => {
 };
 
 const mapRefundStatusText = (status) => {
-  if (!status) return '-';
-  return REFUND_STATUS_TEXT[status.toUpperCase()] || status;
+  const normalized = normalizeRefundStatus(status);
+  if (!normalized) return '-';
+  return REFUND_STATUS_TEXT[normalized] || status;
 };
 
 const getOrderStatusClass = (status) => {
@@ -328,7 +364,7 @@ function SellerDashboard() {
   const stats = useMemo(() => {
     const orderList = Array.isArray(orders) ? orders : [];
     const requestedRefundCount = refunds.filter(
-      refund => refund.status?.toUpperCase() === 'REQUESTED'
+      refund => isPendingRefund(refund.status)
     ).length;
     const paidOrdersCount = orderList.filter(
       order => (order.status || '').toUpperCase() === 'PAID'
@@ -388,9 +424,9 @@ function SellerDashboard() {
       }
     });
     
-    // 처리된 refund (REQUESTED가 아닌 것들)를 order 형태로 변환
+    // 처리된 refund (대기 상태가 아닌 것들)를 order 형태로 변환
     const processed = refunds
-      .filter(r => r.status?.toUpperCase() !== 'REQUESTED')
+      .filter(r => !isPendingRefund(r.status))
       .map(refund => ({
         orderItemId: refund.orderItemId || refund.refundId,
         orderNumber: refund.orderNumber || '-',
@@ -1028,13 +1064,13 @@ function SellerDashboard() {
                 <div className="empty-state">
                   <p>{refundsError}</p>
                 </div>
-              ) : refunds.filter(r => r.status?.toUpperCase() === 'REQUESTED').length === 0 ? (
+              ) : refunds.filter(r => isPendingRefund(r.status)).length === 0 ? (
                 <div className="empty-state">
                   <p>대기 중인 신청이 없습니다.</p>
                 </div>
               ) : (
                 <div className="refunds-list">
-                  {refunds.filter(r => r.status?.toUpperCase() === 'REQUESTED').map(refund => (
+                  {refunds.filter(r => isPendingRefund(r.status)).map(refund => (
                     <div key={refund.refundId} className="refund-card">
                       <div className="refund-header">
                         <span className={`order-status ${getOrderStatusClass(refund.status)}`}>
@@ -1071,7 +1107,7 @@ function SellerDashboard() {
                           </div>
                         )}
                       </div>
-                      {refund.status?.toUpperCase() === 'REQUESTED' && (
+                      {isPendingRefund(refund.status) && (
                         <div className="refund-actions">
                           <button
                             className="btn-primary"

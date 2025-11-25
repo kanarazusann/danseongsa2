@@ -19,15 +19,15 @@ public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "product_seq")
-    @SequenceGenerator(name = "product_seq", sequenceName = "SEQ_PRODUCT_PRODUCTID", allocationSize = 1)
-    @Column(name = "PRODUCTID")
+    @SequenceGenerator(name = "product_seq", sequenceName = "SEQ_PRODUCT_PRODUCTID_SEQ", allocationSize = 1)
+    @Column(name = "PRODUCTID_SEQ")
     private int productId;
 
-    @Column(name = "POSTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "POSTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int postId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POSTID", nullable = false)
+    @JoinColumn(name = "POSTID_SEQ", nullable = false)
     private ProductPost productPost;  // 상품게시물 (FK -> ProductPost)
 
     @Column(name = "COLOR", nullable = false, length = 50)
@@ -45,8 +45,8 @@ public class Product {
     @Column(name = "STOCK", nullable = false)
     private Integer stock = 0;
 
-    @Column(name = "STATUS", length = 20)
-    private String status;  // SELLING, SOLD_OUT
+    @Column(name = "STATUS", nullable = false)
+    private Integer status;  // 1=SELLING, 0=SOLD_OUT (DB 저장용), API는 "SELLING"/"SOLD_OUT" 문자열로 변환
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)

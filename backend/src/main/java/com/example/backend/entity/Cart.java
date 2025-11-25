@@ -17,22 +17,22 @@ public class Cart {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_seq")
-    @SequenceGenerator(name = "cart_seq", sequenceName = "SEQ_CART_CARTID", allocationSize = 1)
-    @Column(name = "CARTID")
+    @SequenceGenerator(name = "cart_seq", sequenceName = "SEQ_CART_CARTID_SEQ", allocationSize = 1)
+    @Column(name = "CARTID_SEQ")
     private int cartId;
 
-    @Column(name = "USERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "USERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int userId;
 
-    @Column(name = "PRODUCTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "PRODUCTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int productId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USERID", nullable = false)
+    @JoinColumn(name = "USERID_SEQ", nullable = false)
     private User user;  // 사용자 (FK -> User)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PRODUCTID", nullable = false)
+    @JoinColumn(name = "PRODUCTID_SEQ", nullable = false)
     private Product product;  // 상품 (FK -> Product)
 
     @Column(name = "QUANTITY", nullable = false)

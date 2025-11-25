@@ -25,8 +25,8 @@ public class Payment {
     private int orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ORDERID", nullable = false)
-    private Order order;  // 주문 (FK -> Order)
+    @JoinColumn(name = "ORDERID", referencedColumnName = "ORDERID_SEQ", nullable = false)
+    private Order order;  // 주문 (FK -> Order) - DB 컬럼명: ORDERID (FK -> "order".ORDERID_SEQ)
 
     @Column(name = "PAYMENTMETHOD", length = 20)
     private String paymentMethod;  // CARD, TOSS

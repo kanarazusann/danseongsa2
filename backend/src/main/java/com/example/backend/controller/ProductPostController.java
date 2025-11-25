@@ -63,7 +63,9 @@ public class ProductPostController {
             Map<String, Object> item = new HashMap<>();
             item.put("postId", savedPost.getPostId());
             item.put("postName", savedPost.getPostName());
-            item.put("categoryName", savedPost.getCategoryName());
+            String savedCategoryName = savedPost.getCategory() != null ? savedPost.getCategory().getCategoryName() : null;
+            item.put("categoryId", savedPost.getCategoryId());
+            item.put("categoryName", savedCategoryName);
             item.put("brand", savedPost.getBrand());
             item.put("description", savedPost.getDescription());
             item.put("material", savedPost.getMaterial());
@@ -307,7 +309,9 @@ public class ProductPostController {
             Map<String, Object> item = new HashMap<>();
             item.put("postId", updatedPost.getPostId());
             item.put("postName", updatedPost.getPostName());
-            item.put("categoryName", updatedPost.getCategoryName());
+            String updatedCategoryName = updatedPost.getCategory() != null ? updatedPost.getCategory().getCategoryName() : null;
+            item.put("categoryId", updatedPost.getCategoryId());
+            item.put("categoryName", updatedCategoryName);
             item.put("brand", updatedPost.getBrand());
             item.put("description", updatedPost.getDescription());
             item.put("material", updatedPost.getMaterial());

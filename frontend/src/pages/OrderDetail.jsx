@@ -13,6 +13,47 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+const REFUND_STATUS = {
+  REQUESTED: 'REQ',
+  APPROVED: 'APR',
+  COMPLETED: 'COM',
+  REJECTED: 'REJ',
+  CANCELED: 'CAN'
+};
+
+const REFUND_STATUS_TEXT = {
+  [REFUND_STATUS.REQUESTED]: '승인 대기',
+  [REFUND_STATUS.APPROVED]: '승인됨',
+  [REFUND_STATUS.COMPLETED]: '처리 완료',
+  [REFUND_STATUS.REJECTED]: '거절됨',
+  [REFUND_STATUS.CANCELED]: '사용자 취소'
+};
+
+const normalizeRefundStatus = (status) => {
+  if (!status) return '';
+  const upper = status.toUpperCase();
+  switch (upper) {
+    case 'REQUESTED':
+    case REFUND_STATUS.REQUESTED:
+      return REFUND_STATUS.REQUESTED;
+    case 'APPROVED':
+    case REFUND_STATUS.APPROVED:
+      return REFUND_STATUS.APPROVED;
+    case 'COMPLETED':
+    case REFUND_STATUS.COMPLETED:
+      return REFUND_STATUS.COMPLETED;
+    case 'REJECTED':
+    case REFUND_STATUS.REJECTED:
+      return REFUND_STATUS.REJECTED;
+    case 'CANCELED':
+    case 'CANCELLED':
+    case REFUND_STATUS.CANCELED:
+      return REFUND_STATUS.CANCELED;
+    default:
+      return upper;
+  }
+};
+
 const resolveImageUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
@@ -136,14 +177,9 @@ function OrderDetail() {
   };
 
   const getRefundStatusText = (status) => {
-    const statusMap = {
-      'REQUESTED': '승인 대기',
-      'APPROVED': '승인됨',
-      'COMPLETED': '처리 완료',
-      'REJECTED': '거절됨',
-      'CANCELED': '사용자 취소'
-    };
-    return statusMap[status?.toUpperCase()] || status || '';
+    const normalized = normalizeRefundStatus(status);
+    if (!normalized) return status || '';
+    return REFUND_STATUS_TEXT[normalized] || status || '';
   };
   
   // 리뷰 작성 핸들러

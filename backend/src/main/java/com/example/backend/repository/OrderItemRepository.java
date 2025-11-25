@@ -13,7 +13,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
             "join fetch oi.order o " +
             "left join fetch oi.product p " +
             "left join fetch oi.productPost post " +
-            "where oi.sellerId = :sellerId " +
+            "where oi.sellerId = :sellerId " +  // DB 컬럼명: USERID_SEQ
             "order by oi.orderItemId desc")
     List<OrderItem> findBySellerIdWithDetails(@Param("sellerId") int sellerId);
 

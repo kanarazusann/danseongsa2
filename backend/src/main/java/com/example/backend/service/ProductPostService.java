@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.example.backend.dao.ProductPostDAO;
+import com.example.backend.dao.CategoryDAO;
+import com.example.backend.entity.Category;
 import com.example.backend.dao.ProductDAO;
 import com.example.backend.dao.ProductImageDAO;
 import com.example.backend.dao.UserDAO;
@@ -21,10 +23,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
 public class ProductPostService {
+    
+    // STATUS 변환 상수
+    private static final int STATUS_SELLING = 1;
+    private static final int STATUS_SOLD_OUT = 0;
+    
+    // GENDER 변환 상수
+    private static final String GENDER_MEN = "M";
+    private static final String GENDER_WOMEN = "W";
+    private static final String GENDER_UNISEX = "U";
+    
+    // SEASON 변환 상수
+    private static final String SEASON_SPRING = "SPR";
+    private static final String SEASON_SUMMER = "SMR";
+    private static final String SEASON_FALL = "FAL";
+    private static final String SEASON_WINTER = "WTR";
+    private static final String SEASON_ALL = "ALL";
     
     @Autowired
     private ProductPostDAO productPostDAO;
@@ -49,6 +68,95 @@ public class ProductPostService {
 
     @Autowired
     private WishlistService wishlistService;
+    
+    @Autowired
+    private CategoryDAO categoryDAO;
+    
+    // STATUS 변환: String → Integer (DB 저장용)
+    private Integer convertStatusToDb(String status) {
+        if (status == null) return STATUS_SELLING;
+        String upper = status.trim().toUpperCase();
+        if ("SELLING".equals(upper) || "1".equals(status)) {
+            return STATUS_SELLING;
+        } else if ("SOLD_OUT".equals(upper) || "SOLDOUT".equals(upper) || "0".equals(status)) {
+            return STATUS_SOLD_OUT;
+        }
+        return STATUS_SELLING; // 기본값
+    }
+    
+    // STATUS 변환: Integer → String (API 응답용)
+    private String convertStatusFromDb(Integer status) {
+        if (status == null) return "SELLING";
+        return status == STATUS_SELLING ? "SELLING" : "SOLD_OUT";
+    }
+    
+    // GENDER 변환: String → String (DB 저장용)
+    private String convertGenderToDb(String gender) {
+        if (gender == null) return null;
+        String upper = gender.trim().toUpperCase();
+        if ("MEN".equals(upper) || "M".equals(upper)) {
+            return GENDER_MEN;
+        } else if ("WOMEN".equals(upper) || "W".equals(upper)) {
+            return GENDER_WOMEN;
+        } else if ("UNISEX".equals(upper) || "U".equals(upper)) {
+            return GENDER_UNISEX;
+        }
+        return upper.length() == 1 ? upper : null; // 이미 짧은 코드면 그대로
+    }
+    
+    // GENDER 변환: String → String (API 응답용)
+    private String convertGenderFromDb(String gender) {
+        if (gender == null) return null;
+        String upper = gender.trim().toUpperCase();
+        if (GENDER_MEN.equals(upper)) {
+            return "MEN";
+        } else if (GENDER_WOMEN.equals(upper)) {
+            return "WOMEN";
+        } else if (GENDER_UNISEX.equals(upper)) {
+            return "UNISEX";
+        }
+        return gender; // 이미 긴 형태면 그대로
+    }
+    
+    // SEASON 변환: String → String (DB 저장용)
+    private String convertSeasonToDb(String season) {
+        if (season == null) return null;
+        String upper = season.trim().toUpperCase();
+        if ("SPRING".equals(upper)) {
+            return SEASON_SPRING;
+        } else if ("SUMMER".equals(upper)) {
+            return SEASON_SUMMER;
+        } else if ("FALL".equals(upper)) {
+            return SEASON_FALL;
+        } else if ("WINTER".equals(upper)) {
+            return SEASON_WINTER;
+        } else if ("ALL_SEASON".equals(upper) || "ALLSEASON".equals(upper)) {
+            return SEASON_ALL;
+        }
+        // 이미 짧은 코드면 그대로 (SPR, SMR, FAL, WTR, ALL)
+        if (upper.length() <= 3) {
+            return upper;
+        }
+        return null;
+    }
+    
+    // SEASON 변환: String → String (API 응답용)
+    private String convertSeasonFromDb(String season) {
+        if (season == null) return null;
+        String upper = season.trim().toUpperCase();
+        if (SEASON_SPRING.equals(upper)) {
+            return "SPRING";
+        } else if (SEASON_SUMMER.equals(upper)) {
+            return "SUMMER";
+        } else if (SEASON_FALL.equals(upper)) {
+            return "FALL";
+        } else if (SEASON_WINTER.equals(upper)) {
+            return "WINTER";
+        } else if (SEASON_ALL.equals(upper)) {
+            return "ALL_SEASON";
+        }
+        return season; // 이미 긴 형태면 그대로
+    }
     
     // 게시물 생성
     @Transactional
@@ -141,7 +249,9 @@ public class ProductPostService {
                     option.put("price", product.getPrice());
                     option.put("discountPrice", product.getDiscountPrice());
                     option.put("stock", product.getStock());
-                    option.put("status", product.getStatus());
+                    // STATUS 변환: Integer → String (API 응답용)
+                    String productStatus = convertProductStatusFromDb(product.getStatus());
+                    option.put("status", productStatus);
                     return option;
                 })
                 .collect(Collectors.toList());
@@ -168,12 +278,15 @@ public class ProductPostService {
         detail.put("postId", post.getPostId());
         detail.put("postName", post.getPostName());
         detail.put("brand", post.getBrand());
-        detail.put("categoryName", post.getCategoryName());
+        // Category에서 categoryName 가져오기
+        String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+        detail.put("categoryId", post.getCategoryId());
+        detail.put("categoryName", categoryName);
         detail.put("material", post.getMaterial());
-        detail.put("gender", post.getGender());
-        detail.put("season", post.getSeason());
+        detail.put("gender", convertGenderFromDb(post.getGender()));
+        detail.put("season", convertSeasonFromDb(post.getSeason()));
         detail.put("description", post.getDescription());
-        detail.put("status", post.getStatus());
+        detail.put("status", convertStatusFromDb(post.getStatus()));
         detail.put("viewCount", post.getViewCount());
         detail.put("wishCount", post.getWishCount());
         detail.put("sellerId", post.getSellerId());
@@ -193,7 +306,16 @@ public class ProductPostService {
     private ProductPost createProductPostEntity(ProductPostDTO dto, User seller) {
         ProductPost productPost = new ProductPost();
         productPost.setSeller(seller);
-        productPost.setCategoryName(dto.getCategoryName());
+        // categoryName으로 Category 테이블에서 조회하여 categoryId 설정
+        if (dto.getCategoryName() != null && !dto.getCategoryName().trim().isEmpty()) {
+            Category category = categoryDAO.findByCategoryName(dto.getCategoryName().trim());
+            if (category == null) {
+                throw new IllegalArgumentException("카테고리를 찾을 수 없습니다. categoryName: " + dto.getCategoryName());
+            }
+            productPost.setCategory(category);
+        } else {
+            throw new IllegalArgumentException("카테고리명은 필수입니다.");
+        }
         productPost.setPostName(dto.getPostName());
         productPost.setDescription(dto.getDescription());
         // 판매자의 brand 정보 사용
@@ -203,9 +325,9 @@ public class ProductPostService {
         System.out.println("판매자 brand 값: " + brand);
         productPost.setBrand(brand);
         productPost.setMaterial(dto.getMaterial());
-        productPost.setGender(dto.getGender());
-        productPost.setSeason(dto.getSeason());
-        productPost.setStatus(dto.getStatus());
+        productPost.setGender(convertGenderToDb(dto.getGender()));
+        productPost.setSeason(convertSeasonToDb(dto.getSeason()));
+        productPost.setStatus(convertStatusToDb(dto.getStatus()));
         productPost.setViewCount(0);
         return productPost;
     }
@@ -221,11 +343,18 @@ public class ProductPostService {
         // 게시물 정보 업데이트
         post.setPostName(dto.getPostName());
         post.setDescription(dto.getDescription());
-        post.setCategoryName(dto.getCategoryName());
+        // categoryName으로 Category 테이블에서 조회하여 categoryId 설정
+        if (dto.getCategoryName() != null && !dto.getCategoryName().trim().isEmpty()) {
+            Category category = categoryDAO.findByCategoryName(dto.getCategoryName().trim());
+            if (category == null) {
+                throw new IllegalArgumentException("카테고리를 찾을 수 없습니다. categoryName: " + dto.getCategoryName());
+            }
+            post.setCategory(category);
+        }
         post.setMaterial(dto.getMaterial());
-        post.setGender(dto.getGender());
-        post.setSeason(dto.getSeason());
-        post.setStatus(dto.getStatus());
+        post.setGender(convertGenderToDb(dto.getGender()));
+        post.setSeason(convertSeasonToDb(dto.getSeason()));
+        post.setStatus(convertStatusToDb(dto.getStatus()));
         ProductPost updatedPost = productPostDAO.save(post);
         
         // 상품 옵션 업데이트
@@ -269,7 +398,8 @@ public class ProductPostService {
                     existingProduct.setPrice(productDto.getPrice());
                     existingProduct.setDiscountPrice(productDto.getDiscountPrice());
                     existingProduct.setStock(productDto.getStock() != null ? productDto.getStock() : 0);
-                    existingProduct.setStatus(productDto.getStatus() != null ? productDto.getStatus() : "SELLING");
+                    // STATUS 변환: String → Integer (DB 저장용)
+                    existingProduct.setStatus(convertProductStatusToDb(productDto.getStatus() != null ? productDto.getStatus() : "SELLING"));
                     productDAO.save(existingProduct);
                 }
             } else {
@@ -281,7 +411,8 @@ public class ProductPostService {
                 newProduct.setPrice(productDto.getPrice());
                 newProduct.setDiscountPrice(productDto.getDiscountPrice());
                 newProduct.setStock(productDto.getStock() != null ? productDto.getStock() : 0);
-                newProduct.setStatus(productDto.getStatus() != null ? productDto.getStatus() : "SELLING");
+                // STATUS 변환: String → Integer (DB 저장용)
+                newProduct.setStatus(convertProductStatusToDb(productDto.getStatus() != null ? productDto.getStatus() : "SELLING"));
                 productDAO.save(newProduct);
             }
         }
@@ -416,8 +547,10 @@ public class ProductPostService {
             item.put("postId", post.getPostId());
             item.put("postName", post.getPostName());
             item.put("brand", post.getBrand());
-            item.put("categoryName", post.getCategoryName());
-            item.put("status", post.getStatus());
+            String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+            item.put("categoryId", post.getCategoryId());
+            item.put("categoryName", categoryName);
+            item.put("status", convertStatusFromDb(post.getStatus()));
             item.put("viewCount", post.getViewCount() != null ? post.getViewCount() : 0);
             item.put("wishCount", post.getWishCount() != null ? post.getWishCount() : 0);
             // Timestamp를 String으로 변환
@@ -479,8 +612,10 @@ public class ProductPostService {
             item.put("postId", post.getPostId());
             item.put("postName", post.getPostName());
             item.put("brand", post.getBrand());
-            item.put("categoryName", post.getCategoryName());
-            item.put("status", post.getStatus());
+            String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+            item.put("categoryId", post.getCategoryId());
+            item.put("categoryName", categoryName);
+            item.put("status", convertStatusFromDb(post.getStatus()));
             item.put("wishCount", post.getWishCount() != null ? post.getWishCount() : 0);
             
             // 대표 이미지 조회 (ISMAIN = 1인 이미지, 없으면 첫 번째 이미지)
@@ -533,8 +668,10 @@ public class ProductPostService {
             item.put("postId", post.getPostId());
             item.put("postName", post.getPostName());
             item.put("brand", post.getBrand());
-            item.put("categoryName", post.getCategoryName());
-            item.put("status", post.getStatus());
+            String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+            item.put("categoryId", post.getCategoryId());
+            item.put("categoryName", categoryName);
+            item.put("status", convertStatusFromDb(post.getStatus()));
             
             // 대표 이미지 조회 (ISMAIN = 1인 이미지, 없으면 첫 번째 이미지)
             String mainImageUrl = null;
@@ -577,21 +714,24 @@ public class ProductPostService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> findWithFilters(String category, String gender, String search, 
                                                       List<String> colors, List<String> sizes, List<String> seasons) {
-        // 모든 게시물 조회 (SELLING 상태만)
-        List<ProductPost> allPosts = productPostDAO.findByStatus("SELLING");
+        // 모든 게시물 조회 (SELLING 상태만, DB에는 1로 저장됨)
+        List<ProductPost> allPosts = productPostDAO.findByStatus(STATUS_SELLING);
         
         return allPosts.stream()
             .filter(post -> {
                 // 카테고리 필터링
                 if (category != null && !category.isEmpty()) {
-                    if (post.getCategoryName() == null || !post.getCategoryName().startsWith(category)) {
+                    String postCategoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+                    if (postCategoryName == null || !postCategoryName.startsWith(category)) {
                         return false;
                     }
                 }
                 
                 // 성별 필터링
                 if (gender != null && !gender.isEmpty() && !gender.equals("전체")) {
-                    if (post.getGender() == null || (!post.getGender().equals(gender) && !post.getGender().equals("UNISEX"))) {
+                    String dbGender = convertGenderToDb(gender);
+                    String postGender = post.getGender();
+                    if (postGender == null || (!postGender.equals(dbGender) && !GENDER_UNISEX.equals(postGender))) {
                         return false;
                     }
                 }
@@ -627,7 +767,10 @@ public class ProductPostService {
                 
                 // 계절 필터링
                 if (seasons != null && !seasons.isEmpty()) {
-                    if (post.getSeason() == null || !seasons.contains(post.getSeason())) {
+                    List<String> dbSeasons = seasons.stream()
+                        .map(this::convertSeasonToDb)
+                        .collect(Collectors.toList());
+                    if (post.getSeason() == null || !dbSeasons.contains(post.getSeason())) {
                         return false;
                     }
                 }
@@ -639,10 +782,12 @@ public class ProductPostService {
                 item.put("postId", post.getPostId());
                 item.put("postName", post.getPostName());
                 item.put("brand", post.getBrand());
-                item.put("categoryName", post.getCategoryName());
-                item.put("status", post.getStatus());
-                item.put("gender", post.getGender());
-                item.put("season", post.getSeason());
+                String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+            item.put("categoryId", post.getCategoryId());
+            item.put("categoryName", categoryName);
+                item.put("status", convertStatusFromDb(post.getStatus()));
+                item.put("gender", convertGenderFromDb(post.getGender()));
+                item.put("season", convertSeasonFromDb(post.getSeason()));
                 item.put("wishCount", post.getWishCount() != null ? post.getWishCount() : 0);
                 // Timestamp를 String으로 변환하여 JSON 직렬화 문제 해결
                 item.put("createdAt", post.getCreatedAt() != null ? post.getCreatedAt().toString() : null);
@@ -733,6 +878,24 @@ public class ProductPostService {
         
         // ProductPost 삭제
         productPostDAO.deleteById(postId);
+    }
+    
+    // Product STATUS 변환: String → Integer (DB 저장용)
+    private Integer convertProductStatusToDb(String status) {
+        if (status == null) return 1; // 기본값: SELLING
+        String upper = status.trim().toUpperCase(Locale.ROOT);
+        if ("SELLING".equals(upper) || "1".equals(status)) {
+            return 1;
+        } else if ("SOLD_OUT".equals(upper) || "SOLDOUT".equals(upper) || "0".equals(status)) {
+            return 0;
+        }
+        return 1; // 기본값: SELLING
+    }
+    
+    // Product STATUS 변환: Integer → String (API 응답용)
+    private String convertProductStatusFromDb(Integer status) {
+        if (status == null) return "SELLING";
+        return status == 1 ? "SELLING" : "SOLD_OUT";
     }
 }
 

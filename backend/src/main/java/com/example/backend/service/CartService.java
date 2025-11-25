@@ -115,7 +115,8 @@ public class CartService {
         if (product == null) {
             throw new IllegalArgumentException("상품을 찾을 수 없습니다.");
         }
-        if (product.getStatus() != null && !"SELLING".equalsIgnoreCase(product.getStatus())) {
+        // Product STATUS는 Integer (1=SELLING, 0=SOLD_OUT)
+        if (product.getStatus() == null || product.getStatus() != 1) {
             throw new IllegalStateException("판매 중이 아닌 상품입니다.");
         }
         return product;
@@ -143,9 +144,13 @@ public class CartService {
         item.put("discountPrice", product.getDiscountPrice());
         item.put("stock", product.getStock());
         item.put("quantity", cart.getQuantity());
-        item.put("status", product.getStatus());
+        // Product STATUS 변환: Integer → String (API 응답용)
+        String productStatus = product.getStatus() != null && product.getStatus() == 1 ? "SELLING" : "SOLD_OUT";
+        item.put("status", productStatus);
         item.put("postStatus", post.getStatus());
-        item.put("categoryName", post.getCategoryName());
+        String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+        item.put("categoryId", post.getCategoryId());
+        item.put("categoryName", categoryName);
         item.put("imageUrl", resolveMainImageUrl(post.getPostId()));
         item.put("createdAt", cart.getCreatedAt() != null ? cart.getCreatedAt().toString() : null);
         return item;

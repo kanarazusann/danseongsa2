@@ -187,6 +187,9 @@ function Home() {
     setSelectedItem(null);
   };
 
+  // 슬라이드 너비 계산 (배너 이미지 개수에 따라)
+  const slideWidthPercent = 100 / bannerImages.length;
+
   return (
     <div className="home">
       {/* 메인 배너 (광고) - 슬라이드 */}
@@ -195,12 +198,13 @@ function Home() {
           {/* 배너 이미지들 */}
           <div 
             className="banner-slides" 
-            style={{ transform: `translateX(-${currentSlide * 25}%)` }}
+            style={{ transform: `translateX(-${currentSlide * slideWidthPercent}%)` }}
           >
             {bannerImages.map((banner, index) => (
               <div 
                 key={index} 
                 className="banner-slide"
+                style={{ width: `${slideWidthPercent}%`, flex: `0 0 ${slideWidthPercent}%` }}
               >
                 {banner.link ? (
                   <Link to={banner.link} style={{ display: 'block', width: '100%', height: '100%' }}>

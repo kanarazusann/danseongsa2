@@ -16,7 +16,7 @@ public class UserDTO {
     private String name;
     private String phone;
     private Integer isSeller;
-    private String businessNumber;
+    private String businessNumber;  // 프론트엔드에서 String으로 받고, 엔티티에서 Integer로 변환
     private String brand;
     private String zipcode;
     private String address;
