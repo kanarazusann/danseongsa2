@@ -33,7 +33,7 @@ const ORDER_STATUS_TEXT = {
   DELIVERING: '배송중',
   DELIVERED: '배송완료',
   CANCELED: '취소됨',
-  CANCELLED: '취소됨',
+  CANCELLED: '취소됨', // 호환성을 위해 유지 (백엔드에서 둘 다 체크)
   REFUND: '환불/교환',
   REFUND_REQUESTED: '환불요청중',
   REFUNDED: '환불완료',
