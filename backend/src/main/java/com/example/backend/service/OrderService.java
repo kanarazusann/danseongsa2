@@ -33,9 +33,13 @@ public class OrderService {
     private static final String REFUND_TYPE_EXC = "EXC";  // 교환
     
     // ORDERITEM STATUS 상수 (DB 저장용: 짧은 코드)
-    private static final String ORDERITEM_STATUS_CONFIRMED = "con";  // CONFIRMED
-    private static final String ORDERITEM_STATUS_CANCELLED = "can";  // CANCELLED
-    private static final String ORDERITEM_STATUS_REFUNDED = "ref";   // REFUNDED
+    private static final String ORDERITEM_STATUS_PAID = "pay";             // 결제 완료
+    private static final String ORDERITEM_STATUS_DELIVERING = "dlv";       // 배송중
+    private static final String ORDERITEM_STATUS_DELIVERED = "dld";        // 배송완료
+    private static final String ORDERITEM_STATUS_CONFIRMED_CODE = "cnf";   // 구매확정
+    private static final String ORDERITEM_STATUS_CANCELLED = "can";        // 취소
+    private static final String ORDERITEM_STATUS_REFUNDED = "ref";         // 환불
+    private static final String ORDERITEM_STATUS_LEGACY_CONFIRMED = "con"; // 기존 데이터 호환
 
     @Autowired
     private OrderRepository orderRepository;
@@ -200,7 +204,7 @@ public class OrderService {
         orderItem.setProductSize(product.getProductSize());
         orderItem.setQuantity(cart.getQuantity());
         orderItem.setPrice(effectivePrice);
-        orderItem.setStatus(convertOrderItemStatusToDb("CONFIRMED"));  // 결제 완료 시 즉시 CONFIRMED로 설정
+        orderItem.setStatus(convertOrderItemStatusToDb("PAID"));  // 결제 완료 시 기본 상태
         return orderItem;
     }
 
@@ -219,7 +223,7 @@ public class OrderService {
         orderItem.setProductSize(product.getProductSize());
         orderItem.setQuantity(itemRequest.getQuantity());
         orderItem.setPrice(effectivePrice);
-        orderItem.setStatus(convertOrderItemStatusToDb("CONFIRMED"));  // 결제 완료 시 즉시 CONFIRMED로 설정
+        orderItem.setStatus(convertOrderItemStatusToDb("PAID"));  // 결제 완료 시 기본 상태
         return orderItem;
     }
 
@@ -289,11 +293,28 @@ public class OrderService {
         }
 
         String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
-        if (!"CONFIRMED".equalsIgnoreCase(currentStatus) && !"DELIVERING".equalsIgnoreCase(currentStatus)) {
-            throw new IllegalStateException("배송 처리할 수 없는 상태입니다.");
+        String targetStatus = (newStatus != null ? newStatus.trim().toUpperCase(Locale.ROOT) : "DELIVERING");
+
+        boolean canUpdate;
+        switch (targetStatus) {
+            case "DELIVERING":
+                canUpdate = "PAID".equalsIgnoreCase(currentStatus) || "DELIVERING".equalsIgnoreCase(currentStatus);
+                break;
+            case "DELIVERED":
+                canUpdate = "DELIVERING".equalsIgnoreCase(currentStatus);
+                break;
+            case "CONFIRMED":
+                canUpdate = "DELIVERED".equalsIgnoreCase(currentStatus);
+                break;
+            default:
+                canUpdate = "PAID".equalsIgnoreCase(currentStatus);
         }
 
-        orderItem.setStatus(convertOrderItemStatusToDb(newStatus));
+        if (!canUpdate) {
+            throw new IllegalStateException("현재 상태에서는 처리할 수 없습니다.");
+        }
+
+        orderItem.setStatus(convertOrderItemStatusToDb(targetStatus));
         OrderItem savedItem = orderItemRepository.save(orderItem);
         updateOrderStatusBasedOnItems(orderItem.getOrder());
         return buildSellerOrderItemResponse(savedItem);
@@ -303,7 +324,7 @@ public class OrderService {
     public Map<String, Object> cancelOrderItem(int orderItemId, int userId) {
         OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
         String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
-        if (!"CONFIRMED".equalsIgnoreCase(currentStatus)) {
+        if (!"PAID".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("결제 취소할 수 없는 상태입니다.");
         }
 
@@ -336,7 +357,7 @@ public class OrderService {
             throw new IllegalArgumentException("해당 주문에 접근할 수 없습니다.");
         }
         String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
-        if (!"CONFIRMED".equalsIgnoreCase(currentStatus)) {
+        if (!"PAID".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("결제 취소할 수 없는 상태입니다.");
         }
         Product product = orderItem.getProduct();
@@ -738,20 +759,20 @@ public class OrderService {
         // 모든 orderItem의 status 확인
         boolean allCompleted = items.stream()
                 .allMatch(item -> {
-                    String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
-                    // 구매확정(DELIVERED), 환불완료(REFUNDED), 취소완료(CANCELED/CANCELLED)인 경우 완료로 간주
-                    return "DELIVERED".equals(status) || 
-                           "REFUNDED".equals(status) || 
-                           "CANCELED".equals(status) || 
-                           "CANCELLED".equals(status);
+                    String status = convertOrderItemStatusFromDb(item.getStatus()).toUpperCase(Locale.ROOT);
+                    return "DELIVERED".equals(status) ||
+                           "REFUNDED".equals(status) ||
+                           "CANCELED".equals(status) ||
+                           "CANCELLED".equals(status) ||
+                           "CONFIRMED".equals(status);
                 });
 
         // 처리 중인 상태: 환불요청중, 배송중, 결제완료 등
         boolean anyProcessing = items.stream()
                 .anyMatch(item -> {
-                    String status = Optional.ofNullable(item.getStatus()).orElse("").toUpperCase();
-                    return "PAID".equals(status) || 
-                           "DELIVERING".equals(status) || 
+                    String status = convertOrderItemStatusFromDb(item.getStatus()).toUpperCase(Locale.ROOT);
+                    return "PAID".equals(status) ||
+                           "DELIVERING".equals(status) ||
                            "REFUND_REQUESTED".equals(status);
                 });
 
@@ -860,45 +881,66 @@ public class OrderService {
     
     // ORDERITEM STATUS 변환: String → String (DB 저장용: 짧은 코드)
     private String convertOrderItemStatusToDb(String status) {
-        if (status == null) return ORDERITEM_STATUS_CONFIRMED; // 기본값: CONFIRMED
+        if (status == null || status.trim().isEmpty()) {
+            return ORDERITEM_STATUS_PAID;
+        }
         String upper = status.trim().toUpperCase(Locale.ROOT);
         switch (upper) {
-            case "CONFIRMED":
             case "PAID":
+            case "PAY":
+                return ORDERITEM_STATUS_PAID;
+            case "DELIVERING":
+            case "DELIVERY":
+            case "배송중":
+                return ORDERITEM_STATUS_DELIVERING;
             case "DELIVERED":
-                return ORDERITEM_STATUS_CONFIRMED;  // con
+            case "배송완료":
+                return ORDERITEM_STATUS_DELIVERED;
+            case "CONFIRMED":
+            case "COMPLETED":
+            case "구매확정":
+                return ORDERITEM_STATUS_CONFIRMED_CODE;
             case "CANCELLED":
             case "CANCELED":
-                return ORDERITEM_STATUS_CANCELLED;  // can
+                return ORDERITEM_STATUS_CANCELLED;
             case "REFUNDED":
-            case "REFUND_REQUESTED":
-                return ORDERITEM_STATUS_REFUNDED;   // ref
-            case "con":
-            case "can":
-            case "ref":
-                return status.toLowerCase(); // 이미 짧은 코드인 경우 그대로 반환
+            case "REFUND_COMPLETED":
+                return ORDERITEM_STATUS_REFUNDED;
+            case ORDERITEM_STATUS_PAID:
+            case ORDERITEM_STATUS_DELIVERING:
+            case ORDERITEM_STATUS_DELIVERED:
+            case ORDERITEM_STATUS_CONFIRMED_CODE:
+            case ORDERITEM_STATUS_CANCELLED:
+            case ORDERITEM_STATUS_REFUNDED:
+            case ORDERITEM_STATUS_LEGACY_CONFIRMED:
+                return status.toLowerCase(Locale.ROOT);
             default:
-                return ORDERITEM_STATUS_CONFIRMED; // 기본값: CONFIRMED
+                return ORDERITEM_STATUS_PAID;
         }
     }
     
     // ORDERITEM STATUS 변환: String → String (API 응답용: 긴 이름)
     private String convertOrderItemStatusFromDb(String status) {
-        if (status == null) return "CONFIRMED";
+        if (status == null || status.trim().isEmpty()) {
+            return "PAID";
+        }
         String lower = status.trim().toLowerCase(Locale.ROOT);
         switch (lower) {
-            case ORDERITEM_STATUS_CONFIRMED:
+            case ORDERITEM_STATUS_PAID:
+                return "PAID";
+            case ORDERITEM_STATUS_DELIVERING:
+                return "DELIVERING";
+            case ORDERITEM_STATUS_DELIVERED:
+                return "DELIVERED";
+            case ORDERITEM_STATUS_CONFIRMED_CODE:
+            case ORDERITEM_STATUS_LEGACY_CONFIRMED:
                 return "CONFIRMED";
             case ORDERITEM_STATUS_CANCELLED:
                 return "CANCELLED";
             case ORDERITEM_STATUS_REFUNDED:
                 return "REFUNDED";
-            case "confirmed":
-            case "cancelled":
-            case "refunded":
-                return status.toUpperCase(); // 이미 긴 이름인 경우 그대로 반환
             default:
-                return "CONFIRMED"; // 기본값
+                return status.trim().toUpperCase(Locale.ROOT);
         }
     }
 }

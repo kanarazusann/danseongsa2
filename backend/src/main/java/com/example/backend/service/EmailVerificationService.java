@@ -2,12 +2,17 @@ package com.example.backend.service;
 
 import com.example.backend.dto.EmailVerificationResponse;
 import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Map;
@@ -86,15 +91,48 @@ public class EmailVerificationService {
     }
 
     private void sendEmail(String email, String code) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(email);
-        if (StringUtils.hasText(fromAddress)) {
-            message.setFrom(fromAddress);
+        String sanitizedEmail = email != null ? email.trim() : "";
+        if (!StringUtils.hasText(sanitizedEmail)) {
+            throw new IllegalArgumentException("수신 이메일 정보가 비어 있습니다.");
         }
-        message.setSubject(subject);
-        message.setText(buildEmailBody(code));
 
-        mailSender.send(message);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(
+                    message,
+                    false,
+                    StandardCharsets.UTF_8.name()
+            );
+
+            String toAddress = sanitizedEmail;
+            helper.setTo(toAddress);
+            String from = fromAddress != null ? fromAddress.trim() : "";
+            if (StringUtils.hasText(from)) {
+                helper.setFrom(from);
+            }
+            helper.setSubject(encodeSubject(resolveSubject()));
+            helper.setText(buildEmailBody(code), false);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private String resolveSubject() {
+        if (StringUtils.hasText(subject)) {
+            return subject;
+        }
+        return "[단성사] 이메일 인증 코드";
+    }
+
+    private String encodeSubject(String value) {
+        String text = StringUtils.hasText(value) ? value : "[단성사] 이메일 인증 코드";
+        try {
+            return MimeUtility.encodeText(text, StandardCharsets.UTF_8.name(), "B");
+        } catch (UnsupportedEncodingException e) {
+            return text;
+        }
     }
 
     private String buildEmailBody(String code) {

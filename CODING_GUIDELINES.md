@@ -406,6 +406,7 @@ function ProductDetail() {
     FOREIGN KEY (USERID) REFERENCES "USER"(USERID);
   ```
 - **장바구니/주문 등 모든 FK는 위 규칙을 따라야 하며, 개발/운영 DB 스키마에 동일하게 반영**
+- **카테고리 데이터는 (MAIN, MID, SUB) 조합만 유니크** → 동일 CATEGORYNAME 반복 가능, 입력 시 조합 기준으로만 중복 체크
 
 ---
 
