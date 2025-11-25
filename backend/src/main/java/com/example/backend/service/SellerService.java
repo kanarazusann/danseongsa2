@@ -40,7 +40,7 @@ public class SellerService {
         Map<String, Object> sellerInfo = new HashMap<>();
         sellerInfo.put("userId", seller.getUserId());
         sellerInfo.put("brand", seller.getBrand());
-        sellerInfo.put("businessNumber", seller.getBusinessNumber());
+        sellerInfo.put("businessNumber", seller.getBusinessNumber() != null ? String.valueOf(seller.getBusinessNumber()) : null);
         sellerInfo.put("phone", seller.getPhone());
         
         // 가입일 포맷팅

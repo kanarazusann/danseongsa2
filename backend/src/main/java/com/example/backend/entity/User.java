@@ -38,8 +38,8 @@ public class User {
     @Column(name = "ISSELLER", nullable = false)
     private Integer isSeller = 0;  // 0: 일반, 1: 사업자
 
-    @Column(name = "BN_NO", length = 20)
-    private String businessNumber;
+    @Column(name = "BN_NO")
+    private Integer businessNumber;  // 실제 DB는 NUMBER 타입
 
     @Column(name = "BRAND", length = 100)
     private String brand;

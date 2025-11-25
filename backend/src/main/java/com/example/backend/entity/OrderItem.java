@@ -35,7 +35,7 @@ public class OrderItem {
     private int sellerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ORDERID_SEQ", nullable = false)
+    @JoinColumn(name = "ORDERID_SEQ", referencedColumnName = "ORDERID_SEQ", nullable = false)
     private Order order;  // 주문 (FK -> Order)
 
     @ManyToOne(fetch = FetchType.LAZY)

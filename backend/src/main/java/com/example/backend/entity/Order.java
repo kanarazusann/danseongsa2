@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Entity
-@Table(name = "\"ORDER\"")  // Oracle 예약어이므로 따옴표로 감싸기
+@Table(name = "\"order\"")  // Oracle 예약어이므로 따옴표로 감싸기, 실제 테이블명은 소문자 "order"
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

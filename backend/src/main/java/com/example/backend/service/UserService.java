@@ -85,7 +85,21 @@ public class UserService {
 
         if (isSeller == 1) {
             user.setBrand(request.getBrand());
-            user.setBusinessNumber(request.getBusinessNumber());
+            // String을 Integer로 변환 (사업자등록번호는 숫자만 저장)
+            if (request.getBusinessNumber() != null && !request.getBusinessNumber().trim().isEmpty()) {
+                try {
+                    String bnStr = request.getBusinessNumber().trim().replaceAll("[^0-9]", "");
+                    if (!bnStr.isEmpty()) {
+                        user.setBusinessNumber(Integer.parseInt(bnStr));
+                    } else {
+                        user.setBusinessNumber(null);
+                    }
+                } catch (NumberFormatException e) {
+                    user.setBusinessNumber(null);
+                }
+            } else {
+                user.setBusinessNumber(null);
+            }
         } else {
             user.setBrand(null);
             user.setBusinessNumber(null);
@@ -121,7 +135,7 @@ public class UserService {
         item.put("phone", user.getPhone());
         item.put("isSeller", user.getIsSeller());
         item.put("brand", user.getBrand());
-        item.put("businessNumber", user.getBusinessNumber());
+        item.put("businessNumber", user.getBusinessNumber() != null ? String.valueOf(user.getBusinessNumber()) : null);
         item.put("zipcode", user.getZipcode());
         item.put("address", user.getAddress());
         item.put("detailAddress", user.getDetailAddress());
@@ -161,7 +175,7 @@ public class UserService {
         dto.setName(user.getName());
         dto.setPhone(user.getPhone());
         dto.setIsSeller(user.getIsSeller());
-        dto.setBusinessNumber(user.getBusinessNumber());
+        dto.setBusinessNumber(user.getBusinessNumber() != null ? String.valueOf(user.getBusinessNumber()) : null);
         dto.setBrand(user.getBrand());
         dto.setZipcode(user.getZipcode());
         dto.setAddress(user.getAddress());
@@ -214,7 +228,19 @@ public class UserService {
         if (request.getAddress() != null) user.setAddress(request.getAddress().trim());
         if (request.getDetailAddress() != null) user.setDetailAddress(request.getDetailAddress().trim());
         if (request.getBrand() != null) user.setBrand(request.getBrand().trim());
-        if (request.getBusinessNumber() != null) user.setBusinessNumber(request.getBusinessNumber().trim());
+        if (request.getBusinessNumber() != null) {
+            // String을 Integer로 변환 (사업자등록번호는 숫자만 저장)
+            try {
+                String bnStr = request.getBusinessNumber().trim().replaceAll("[^0-9]", "");
+                if (!bnStr.isEmpty()) {
+                    user.setBusinessNumber(Integer.parseInt(bnStr));
+                } else {
+                    user.setBusinessNumber(null);
+                }
+            } catch (NumberFormatException e) {
+                user.setBusinessNumber(null);
+            }
+        }
 
         return userDAO.save(user);
     }
