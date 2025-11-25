@@ -25,6 +25,34 @@ const REFUND_STATUS_TEXT = {
   [REFUND_STATUS.CANCELED]: '사용자 취소'
 };
 
+const normalizeOrderStatus = (status) => {
+  if (status === null || status === undefined) return '';
+  const key = status.toString().trim().toUpperCase();
+  switch (key) {
+    case 'PAY':
+    case 'PAID':
+      return 'PAID';
+    case 'DLV':
+    case 'DELIVERING':
+      return 'DELIVERING';
+    case 'DLD':
+    case 'DELIVERED':
+      return 'DELIVERED';
+    case 'CNF':
+    case 'CONFIRMED':
+      return 'CONFIRMED';
+    case 'CAN':
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'CANCELLED';
+    case 'REF':
+    case 'REFUNDED':
+      return 'REFUNDED';
+    default:
+      return key;
+  }
+};
+
 const normalizeRefundStatus = (status) => {
   if (!status) return '';
   const upper = status.toUpperCase();
@@ -48,6 +76,11 @@ const normalizeRefundStatus = (status) => {
     default:
       return upper;
   }
+};
+
+const mapRefundStatusText = (status) => {
+  const normalized = normalizeRefundStatus(status);
+  return REFUND_STATUS_TEXT[normalized] || status || '';
 };
 
 function MyPage() {
@@ -127,37 +160,40 @@ function MyPage() {
   };
 
   const getStatusText = (status) => {
+    const normalized = normalizeOrderStatus(status);
     const statusMap = {
       'PAID': '결제완료',
       'DELIVERING': '배송중',
       'DELIVERED': '배송완료',
+      'CONFIRMED': '구매확정',
       'CANCEL': '취소됨',
       'CANCELLED': '취소됨',
       'CANCELED': '취소완료',
       'REFUND': '환불',
       'REFUND_REQUESTED': '환불신청함',
       'REFUNDED': '환불완료',
+      'REJECTED': '거절됨',
       'COMPLETED': '처리완료',
       'PROCESSING': '처리중'
     };
-    return statusMap[status?.toUpperCase()] || status || '';
+    return statusMap[normalized] || statusMap[status?.toUpperCase()] || normalized || '';
   };
 
   // 주문 목록 필터링: 진행 중인 주문만 (PAID, DELIVERING, DELIVERED, PROCESSING)
   // order의 status 또는 orderItem 중 하나라도 진행 중인 상태면 포함
   const activeOrders = orders.filter(order => {
-    const orderStatus = (order.status || '').toUpperCase();
+    const orderStatus = normalizeOrderStatus(order.status);
     
     // order status가 진행 중인 상태면 포함
-    if (orderStatus === 'PAID' || orderStatus === 'DELIVERING' || orderStatus === 'DELIVERED' || orderStatus === 'PROCESSING') {
+    if (['PAID', 'DELIVERING', 'DELIVERED', 'CONFIRMED', 'PROCESSING'].includes(orderStatus)) {
       return true;
     }
     
     // orderItem 중 하나라도 진행 중인 상태면 포함
     if (order.items && order.items.length > 0) {
       return order.items.some(item => {
-        const itemStatus = (item.status || '').toUpperCase();
-        return itemStatus === 'PAID' || itemStatus === 'DELIVERING' || itemStatus === 'DELIVERED';
+        const itemStatus = normalizeOrderStatus(item.status);
+        return ['PAID', 'DELIVERING', 'DELIVERED', 'CONFIRMED'].includes(itemStatus);
       });
     }
     
@@ -166,10 +202,8 @@ function MyPage() {
 
   // 취소/반품된 주문만
   const cancelledOrders = orders.filter(order => {
-    const status = (order.status || '').toUpperCase();
-    return status === 'CANCEL' || status === 'CANCELLED' || status === 'CANCELED' ||
-           status === 'REFUND' || status === 'REFUND_REQUESTED' || 
-           status === 'REFUNDED';
+    const status = normalizeOrderStatus(order.status);
+    return ['CANCEL', 'CANCELLED', 'CANCELED', 'REFUND', 'REFUND_REQUESTED', 'REFUNDED', 'REJECTED'].includes(status);
   });
 
   // 상품별 취소/반품 내역 (refunds + 결제 취소한 주문)
@@ -181,17 +215,29 @@ function MyPage() {
     refunds.forEach(refund => {
       // 환불 거절된 것은 제외 (주문내역에서만 표시)
       const normalizedRefundStatus = normalizeRefundStatus(refund.status);
-      if (normalizedRefundStatus === REFUND_STATUS.REJECTED) {
+      if (normalizedRefundStatus === REFUND_STATUS_REJECTED) {
         return; // 거절된 환불은 취소/반품 내역에 표시하지 않음
       }
       
       // orderItemId가 유효한 경우만 추가
       if (refund.orderItemId) {
         refundOrderItemIds.add(refund.orderItemId);
-        // orderItemStatus를 우선 사용, 없으면 refund.status 사용
-        const fallbackStatus = normalizedRefundStatus || REFUND_STATUS.REQUESTED;
-        const displayStatus = refund.orderItemStatus || fallbackStatus;
-        // 이미지 URL 처리: productImage가 있으면 사용, 없으면 빈 문자열
+        const normalizedItemStatus = normalizeOrderStatus(refund.orderItemStatus);
+        const fallbackStatus = (() => {
+          switch (normalizedRefundStatus) {
+            case REFUND_STATUS_REQUESTED:
+              return 'REFUND_REQUESTED';
+            case REFUND_STATUS_APPROVED:
+              return 'REFUND';
+            case REFUND_STATUS_COMPLETED:
+              return 'REFUNDED';
+            case REFUND_STATUS_CANCELED:
+              return 'CANCELLED';
+            default:
+              return 'REFUND';
+          }
+        })();
+        const statusKey = normalizedItemStatus || fallbackStatus;
         const productImage = refund.productImage || refund.imageUrl || '';
         items.push({
           type: 'refund',
@@ -200,12 +246,13 @@ function MyPage() {
           orderId: refund.orderId,
           orderNumber: refund.orderNumber || '-',
           productName: refund.productName || '-',
-          productImage: productImage,
+          productImage,
           quantity: refund.quantity || 1,
           price: refund.refundAmount || refund.price || 0,
-          status: displayStatus, // orderItemStatus 우선 사용
-          orderItemStatus: refund.orderItemStatus, // 원본 보관
-          refundStatus: fallbackStatus, // refund status 보관
+          status: statusKey,
+          statusDisplay: normalizedItemStatus ? getStatusText(normalizedItemStatus) : mapRefundStatusText(refund.status),
+          orderItemStatus: refund.orderItemStatus,
+          refundStatus: normalizedRefundStatus,
           refundType: refund.refundType,
           reason: refund.reason,
           reasonDetail: refund.reasonDetail,
@@ -791,28 +838,30 @@ function MyPage() {
               </div>
             ) : (
               <div className="orders-list">
-                {activeOrders.map(order => (
+              {activeOrders.map(order => {
+                const orderStatusNormalized = normalizeOrderStatus(order.status || 'PAID');
+                return (
                   <div key={order.orderId} className="order-card">
                     <div className="order-header">
                       <div>
                         <span className="order-number">주문번호: {order.orderNumber}</span>
                         <span className="order-date">{order.orderDate}</span>
                       </div>
-                      <span className={`order-status ${(order.status || '').toLowerCase()}`}>
-                        {getStatusText(order.status)}
+                    <span className={`order-status ${orderStatusNormalized.toLowerCase()}`}>
+                      {getStatusText(orderStatusNormalized)}
                       </span>
                     </div>
                     <div className="order-items">
                       {order.items.map((item, idx) => {
-                        const itemStatus = (item.status || '').toUpperCase();
+                      const itemStatus = normalizeOrderStatus(item.status || 'PAID');
                         // 환불 거절 여부 확인
                         const refundInfo = refunds.find(ref => ref.orderItemId === item.orderItemId);
-                        const refundStatus = refundInfo?.status?.toUpperCase();
-                        const isRejected = refundStatus === 'REJECTED';
+                      const refundStatus = normalizeRefundStatus(refundInfo?.status);
+                      const isRejected = refundStatus === REFUND_STATUS.REJECTED;
                         
                         // 구매확정 가능 여부: DELIVERING 상태이거나, 환불 거절 후 DELIVERING 상태 (DELIVERED는 이미 구매확정된 상태이므로 버튼 숨김)
-                        const canConfirm = itemStatus === 'DELIVERING' || 
-                                          (isRejected && itemStatus === 'DELIVERING');
+                      const canConfirm = itemStatus === 'DELIVERING' || 
+                                        (isRejected && itemStatus === 'DELIVERING');
                         
                         return (
                           <div key={idx} className="order-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: idx < order.items.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
@@ -853,7 +902,8 @@ function MyPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
           </div>
@@ -915,8 +965,8 @@ function MyPage() {
                           {item.orderDate || (item.createdAt ? item.createdAt.split('T')[0] : '-')}
                         </span>
                       </div>
-                      <span className={`order-status ${(item.status || '').toLowerCase()}`} style={{ padding: '6px 14px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
-                        {getStatusText(item.status)}
+                      <span className={`order-status ${normalizeOrderStatus(item.status).toLowerCase()}`} style={{ padding: '6px 14px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                        {item.statusDisplay || getStatusText(item.status)}
                       </span>
                     </div>
                     <div className="order-body" style={{ display: 'flex', gap: '20px', padding: '15px' }}>

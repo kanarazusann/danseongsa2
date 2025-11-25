@@ -32,6 +32,7 @@ const ORDER_STATUS_TEXT = {
   PAID: '결제완료',
   DELIVERING: '배송중',
   DELIVERED: '배송완료',
+  CONFIRMED: '처리완료',
   CANCELED: '취소됨',
   CANCELLED: '취소됨', // 호환성을 위해 유지 (백엔드에서 둘 다 체크)
   REFUND: '환불/교환',
@@ -42,6 +43,34 @@ const ORDER_STATUS_TEXT = {
   REJECTED: '거절됨',
   COMPLETED: '처리완료',
   PROCESSING: '처리중'
+};
+
+const normalizeOrderStatus = (status) => {
+  if (status === null || status === undefined) return 'PAID';
+  const key = status.toString().trim().toUpperCase();
+  switch (key) {
+    case 'PAY':
+    case 'PAID':
+      return 'PAID';
+    case 'DLV':
+    case 'DELIVERING':
+      return 'DELIVERING';
+    case 'DLD':
+    case 'DELIVERED':
+      return 'DELIVERED';
+    case 'CNF':
+    case 'CONFIRMED':
+      return 'CONFIRMED';
+    case 'CAN':
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'CANCELLED';
+    case 'REF':
+    case 'REFUNDED':
+      return 'REFUNDED';
+    default:
+      return key || 'PAID';
+  }
 };
 
 const REFUND_TYPE_TEXT = {
@@ -96,6 +125,7 @@ const isPendingRefund = (status) => normalizeRefundStatus(status) === REFUND_STA
 const getOrderStatusText = (status) => {
   if (!status) return '결제완료';
   const key = status.toUpperCase();
+  if (key === 'CONFIRMED') return '처리완료';
   return ORDER_STATUS_TEXT[key] || status;
 };
 
@@ -111,8 +141,7 @@ const mapRefundStatusText = (status) => {
 };
 
 const getOrderStatusClass = (status) => {
-  if (!status) return 'paid';
-  const key = status.toLowerCase();
+  const key = normalizeOrderStatus(status).toLowerCase();
   switch (key) {
     case 'paid':
       return 'paid';
@@ -367,7 +396,7 @@ function SellerDashboard() {
       refund => isPendingRefund(refund.status)
     ).length;
     const paidOrdersCount = orderList.filter(
-      order => (order.status || '').toUpperCase() === 'PAID'
+      order => normalizeOrderStatus(order.status) === 'PAID'
     ).length;
     const pendingTaskCount = requestedRefundCount + paidOrdersCount;
 
@@ -413,49 +442,70 @@ function SellerDashboard() {
     const active = [];
     const afterSales = [];
     orders.forEach(item => {
-      const status = (item.status || '').toUpperCase();
+      const normalizedStatus = normalizeOrderStatus(item.status);
+      const mappedItem = {
+        ...item,
+        status: normalizedStatus,
+        statusDisplay: getOrderStatusText(normalizedStatus)
+      };
       if (
-        status.includes('CANCEL') ||
-        status.includes('REFUND')
+        normalizedStatus.includes('CANCEL') ||
+        normalizedStatus.includes('REFUND')
       ) {
-        afterSales.push(item);
+        afterSales.push(mappedItem);
       } else {
-        active.push(item);
+        active.push(mappedItem);
       }
     });
     
     // 처리된 refund (대기 상태가 아닌 것들)를 order 형태로 변환
     const processed = refunds
       .filter(r => !isPendingRefund(r.status))
-      .map(refund => ({
-        orderItemId: refund.orderItemId || refund.refundId,
-        orderNumber: refund.orderNumber || '-',
-        orderDate: refund.updatedAt || refund.createdAt,
-        buyerName: refund.buyerName || '-',
-        productName: refund.productName || '-',
-        productImage: refund.productImage || null,
-        quantity: refund.quantity || 1,
-        price: refund.price || 0,
-        totalPrice: refund.refundAmount || refund.price || 0,
-        buyerPhone: refund.buyerPhone || '-',
-        zipcode: refund.zipcode || '',
-        address: refund.address || '',
-        detailAddress: refund.detailAddress || '',
-        status: refund.status === 'COMPLETED' ? 'REFUNDED' : refund.status,
-        color: refund.color || '',
-        productSize: refund.productSize || ''
-      }));
+      .map(refund => {
+        const normalizedRefundStatus = normalizeRefundStatus(refund.status);
+        const orderStatusForDisplay = (() => {
+          switch (normalizedRefundStatus) {
+            case REFUND_STATUS.COMPLETED:
+              return 'REFUNDED';
+            case REFUND_STATUS.APPROVED:
+              return 'REFUND';
+            case REFUND_STATUS.REJECTED:
+              return 'REJECTED';
+            case REFUND_STATUS.CANCELED:
+              return 'CANCELLED';
+            default:
+              return 'REFUND_REQUESTED';
+          }
+        })();
+        return {
+          orderItemId: refund.orderItemId || refund.refundId,
+          orderNumber: refund.orderNumber || '-',
+          orderDate: refund.updatedAt || refund.createdAt,
+          buyerName: refund.buyerName || '-',
+          productName: refund.productName || '-',
+          productImage: refund.productImage || null,
+          quantity: refund.quantity || 1,
+          price: refund.price || 0,
+          totalPrice: refund.refundAmount || refund.price || 0,
+          buyerPhone: refund.buyerPhone || '-',
+          zipcode: refund.zipcode || '',
+          address: refund.address || '',
+          detailAddress: refund.detailAddress || '',
+          status: orderStatusForDisplay,
+          statusDisplay: mapRefundStatusText(refund.status),
+          color: refund.color || '',
+          productSize: refund.productSize || ''
+        };
+      });
     
     return { activeOrders: active, afterSalesOrders: afterSales, processedRefunds: processed };
   }, [orders, refunds]);
 
   const getStatusText = (status) => {
-    if (!status) return '-';
-    const key = status.toUpperCase();
-    if (PRODUCT_STATUS_TEXT[key]) return PRODUCT_STATUS_TEXT[key];
-    if (ORDER_STATUS_TEXT[key]) return ORDER_STATUS_TEXT[key];
-    if (key === 'CONFIRMED') return '결제완료';
-    return status;
+    const normalized = normalizeOrderStatus(status);
+    if (PRODUCT_STATUS_TEXT[normalized]) return PRODUCT_STATUS_TEXT[normalized];
+    if (ORDER_STATUS_TEXT[normalized]) return ORDER_STATUS_TEXT[normalized];
+    return normalized || '-';
   };
 
   // 취소된 주문 삭제
@@ -761,8 +811,8 @@ function SellerDashboard() {
                           </span>
                         </div>
                         <div className="recent-order-actions">
-                          <span className={`order-status-chip ${getOrderStatusClass(order.status)}`}>
-                            {getOrderStatusText(order.status)}
+                        <span className={`order-status-chip ${getOrderStatusClass(order.status)}`}>
+                          {order.statusDisplay || getOrderStatusText(order.status)}
                           </span>
                           <span className="order-meta-secondary">
                             {formatDateTime(order.orderDate)}
@@ -967,7 +1017,7 @@ function SellerDashboard() {
             ) : (
               <div className="orders-list">
                 {activeOrders.map(order => {
-                  const statusUpper = (order.status || 'PAID').toUpperCase();
+                  const statusUpper = normalizeOrderStatus(order.status || 'PAID');
                   return (
                     <div key={order.orderItemId} className="order-card">
                       <div className="order-header">
@@ -979,7 +1029,7 @@ function SellerDashboard() {
                           </div>
                         </div>
                         <span className={`order-status ${getOrderStatusClass(order.status)}`}>
-                          {getOrderStatusText(order.status)}
+                          {order.statusDisplay || getOrderStatusText(order.status)}
                         </span>
                       </div>
                       <div className="order-body">
@@ -1148,7 +1198,7 @@ function SellerDashboard() {
                           </div>
                         </div>
                         <span className={`order-status ${getOrderStatusClass(order.status)}`}>
-                          {getOrderStatusText(order.status)}
+                          {order.statusDisplay || getOrderStatusText(order.status)}
                         </span>
                       </div>
                       <div className="order-body">

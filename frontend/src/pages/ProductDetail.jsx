@@ -206,6 +206,9 @@ function ProductDetail() {
     : 0;
 
   const maxQuantity = selectedProduct ? selectedProduct.stock || 1 : 1;
+  const isOutOfStock = !!(selectedProduct && (selectedProduct.stock ?? 0) <= 0);
+  const cartDisabled = isSellerUser || cartProcessing || isOutOfStock;
+  const buyDisabled = isSellerUser || isOutOfStock;
 
   const ensureCustomerAvailable = () => {
     if (!sessionUser) {
@@ -280,6 +283,10 @@ function ProductDetail() {
     if (!ensureCustomerAvailable()) return;
     if (!ensureSelectionValid()) return;
     if (!sessionUser || !selectedProduct) return;
+    if (isOutOfStock) {
+      alert('품절된 옵션은 장바구니에 담을 수 없습니다.');
+      return;
+    }
 
     setCartProcessing(true);
     try {
@@ -302,6 +309,10 @@ function ProductDetail() {
   const handleBuyNow = () => {
     if (!ensureCustomerAvailable()) return;
     if (!ensureSelectionValid()) return;
+    if (!selectedProduct || isOutOfStock) {
+      alert('품절된 옵션입니다.');
+      return;
+    }
 
     const orderItem = {
       postId: detail.postId,
@@ -548,18 +559,18 @@ function ProductDetail() {
                 <span className="wish-count">찜 {wishCount.toLocaleString()}</span>
               </div>
               <button 
-                className={`btn-cart ${isSellerUser ? 'disabled-button' : ''}`}
+                className={`btn-cart ${cartDisabled ? 'disabled-button' : ''}`}
                 onClick={handleAddToCart}
-                disabled={isSellerUser || cartProcessing}
+                disabled={cartDisabled}
               >
                 {cartProcessing ? '담는 중...' : '장바구니'}
               </button>
               <button 
-                className={`btn-buy ${isSellerUser ? 'disabled-button' : ''}`}
+                className={`btn-buy ${buyDisabled ? 'disabled-button' : ''}`}
                 onClick={handleBuyNow}
-                disabled={isSellerUser}
+                disabled={buyDisabled}
               >
-                바로 구매
+                {isOutOfStock ? '품절' : '바로 구매'}
               </button>
             </div>
 

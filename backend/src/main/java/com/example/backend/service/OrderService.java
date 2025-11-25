@@ -506,7 +506,7 @@ public class OrderService {
             orderItem.getProduct().setStock(stock + qty);
             productDAO.save(orderItem.getProduct());
         }
-        orderItem.setStatus("REFUNDED"); // 환불 완료로 변경
+        orderItem.setStatus(convertOrderItemStatusToDb("REFUNDED")); // 환불 완료로 변경
         orderItemRepository.save(orderItem);
         refundRepository.save(refund);
 

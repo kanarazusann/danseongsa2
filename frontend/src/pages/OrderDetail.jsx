@@ -29,6 +29,34 @@ const REFUND_STATUS_TEXT = {
   [REFUND_STATUS.CANCELED]: '사용자 취소'
 };
 
+const normalizeOrderStatus = (status) => {
+  if (status === null || status === undefined) return 'PAID';
+  const key = status.toString().trim().toUpperCase();
+  switch (key) {
+    case 'PAY':
+    case 'PAID':
+      return 'PAID';
+    case 'DLV':
+    case 'DELIVERING':
+      return 'DELIVERING';
+    case 'DLD':
+    case 'DELIVERED':
+      return 'DELIVERED';
+    case 'CNF':
+    case 'CONFIRMED':
+      return 'CONFIRMED';
+    case 'CAN':
+    case 'CANCELED':
+    case 'CANCELLED':
+      return 'CANCELLED';
+    case 'REF':
+    case 'REFUNDED':
+      return 'REFUNDED';
+    default:
+      return key || 'PAID';
+  }
+};
+
 const normalizeRefundStatus = (status) => {
   if (!status) return '';
   const upper = status.toUpperCase();
@@ -159,10 +187,12 @@ function OrderDetail() {
   }, [orderId, refreshOrderData]);
 
   const getStatusText = (status) => {
+    const normalized = normalizeOrderStatus(status);
     const statusMap = {
       'PAID': '결제완료',
       'DELIVERING': '배송중',
       'DELIVERED': '배송완료',
+      'CONFIRMED': '구매확정',
       'CANCELED': '취소됨',
       'CANCELLED': '취소됨',
       'REFUND': '환불',
@@ -171,9 +201,7 @@ function OrderDetail() {
       'PROCESSING': '처리중',
       'COMPLETED': '처리완료'
     };
-    if (!status) return statusMap['PAID'];
-    const key = status.toUpperCase();
-    return statusMap[key] || status;
+    return statusMap[normalized] || normalized || '결제완료';
   };
 
   const getRefundStatusText = (status) => {
@@ -321,8 +349,14 @@ function OrderDetail() {
               </div>
               <div className="info-item">
                 <span className="info-label">주문상태</span>
-                <span className={`info-value status ${(order.orderStatus || order.status || 'PAID').toLowerCase()}`}>
-                  {getStatusText(order.orderStatus || order.status || 'PAID')}
+                {(() => {
+                  const headerStatus = normalizeOrderStatus(order.orderStatus || order.status || 'PAID');
+                  return (
+                    <span className={`info-value status ${headerStatus.toLowerCase()}`}>
+                      {getStatusText(headerStatus)}
+                    </span>
+                  );
+                })()}
                 </span>
               </div>
             </div>
@@ -399,9 +433,9 @@ function OrderDetail() {
                       <span className="total-label">합계</span>
                       <span className="total-price">{itemTotal.toLocaleString()}원</span>
                       {(() => {
-                        const itemStatus = (item.status || 'PAID').toUpperCase();
+                        const itemStatus = normalizeOrderStatus(item.status || 'PAID');
                         const refundInfo = refunds.find((ref) => ref.orderItemId === item.orderItemId);
-                        const refundStatus = refundInfo?.status?.toUpperCase();
+                        const refundStatus = normalizeRefundStatus(refundInfo?.status);
 
                         if (refundInfo) {
                           return (
