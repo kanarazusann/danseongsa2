@@ -17,15 +17,15 @@ public class ProductImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "productimage_seq")
-    @SequenceGenerator(name = "productimage_seq", sequenceName = "SEQ_PRODUCTIMAGE_IMAGEID", allocationSize = 1)
-    @Column(name = "IMAGEID")
+    @SequenceGenerator(name = "productimage_seq", sequenceName = "SEQ_PRODUCTIMAGE_IMAGEID_SEQ", allocationSize = 1)
+    @Column(name = "IMAGEID_SEQ")
     private int imageId;
 
-    @Column(name = "POSTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "POSTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int postId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POSTID", nullable = false)
+    @JoinColumn(name = "POSTID_SEQ", nullable = false)
     private ProductPost productPost;  // 상품게시물 (FK -> ProductPost)
 
     @Column(name = "IMAGEURL", nullable = false, length = 500)

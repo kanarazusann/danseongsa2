@@ -15,6 +15,7 @@ import com.example.backend.repository.PaymentRepository;
 import com.example.backend.dto.UserDTO;
 import com.example.backend.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,9 @@ public class UserService {
 
     @Autowired
     private UserDAO userDAO;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private CartDAO cartDAO;
@@ -68,7 +72,8 @@ public class UserService {
     public User registerUser(UserDTO request) {
         User user = new User();
         user.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
-        user.setPassword(request.getPassword());
+        // 비밀번호 암호화
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
         user.setPhone(request.getPhone());
         user.setZipcode(request.getZipcode());
@@ -98,7 +103,8 @@ public class UserService {
             return null;
         }
         
-        if (!user.getPassword().equals(password)) {
+        // BCrypt로 암호화된 비밀번호 검증
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             return null;
         }
         
@@ -182,12 +188,13 @@ public class UserService {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             
-            // 기존 비밀번호와 동일한지 확인
-            if (user.getPassword().equals(newPassword)) {
+            // 기존 비밀번호와 동일한지 확인 (BCrypt로 검증)
+            if (passwordEncoder.matches(newPassword, user.getPassword())) {
                 throw new IllegalArgumentException("기존 비밀번호와 동일한 비밀번호는 사용할 수 없습니다.");
             }
             
-            user.setPassword(newPassword);
+            // 새 비밀번호 암호화
+            user.setPassword(passwordEncoder.encode(newPassword));
             userDAO.save(user);
             return true;
         }
@@ -218,7 +225,8 @@ public class UserService {
         User user = userDAO.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         
-        user.setPassword(newPassword);
+        // 새 비밀번호 암호화
+        user.setPassword(passwordEncoder.encode(newPassword));
         return userDAO.save(user);
     }
 

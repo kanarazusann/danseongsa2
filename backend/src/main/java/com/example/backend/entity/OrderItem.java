@@ -18,36 +18,36 @@ public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderitem_seq")
-    @SequenceGenerator(name = "orderitem_seq", sequenceName = "SEQ_ORDERITEM_ORDERITEMID", allocationSize = 1)
-    @Column(name = "ORDERITEMID")
+    @SequenceGenerator(name = "orderitem_seq", sequenceName = "SEQ_ORDERITEM_ORDERITEMID_SEQ", allocationSize = 1)
+    @Column(name = "ORDERITEMID_SEQ")
     private int orderItemId;
 
-    @Column(name = "ORDERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "ORDERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int orderId;
 
-    @Column(name = "PRODUCTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "PRODUCTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int productId;
 
-    @Column(name = "POSTID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "POSTID_SEQ", nullable = false, insertable = false, updatable = false)
     private int postId;
 
-    @Column(name = "SELLERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "USERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int sellerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ORDERID", nullable = false)
+    @JoinColumn(name = "ORDERID_SEQ", nullable = false)
     private Order order;  // 주문 (FK -> Order)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PRODUCTID", nullable = false)
+    @JoinColumn(name = "PRODUCTID_SEQ", nullable = false)
     private Product product;  // 상품 (FK -> Product)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POSTID", nullable = false)
+    @JoinColumn(name = "POSTID_SEQ", nullable = false)
     private ProductPost productPost;  // 상품게시물 (FK -> ProductPost)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SELLERID", nullable = false)
+    @JoinColumn(name = "USERID_SEQ", nullable = false)
     private User seller;  // 판매자 (FK -> User)
 
     @Column(name = "POSTNAME", length = 200)
@@ -65,8 +65,8 @@ public class OrderItem {
     @Column(name = "PRICE", nullable = false)
     private Integer price;
 
-    @Column(name = "STATUS", length = 20)
-    private String status;  // CONFIRMED, CANCELLED, REFUNDED
+    @Column(name = "STATUS", length = 3)
+    private String status;  // con=CONFIRMED, can=CANCELLED, ref=REFUNDED (DB 저장용), API는 "CONFIRMED"/"CANCELLED"/"REFUNDED" 문자열로 변환
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)

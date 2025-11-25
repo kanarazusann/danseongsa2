@@ -18,18 +18,18 @@ public class Refund {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "refund_seq")
-    @SequenceGenerator(name = "refund_seq", sequenceName = "SEQ_REFUND_REFUNDID", allocationSize = 1)
-    @Column(name = "REFUNDID")
+    @SequenceGenerator(name = "refund_seq", sequenceName = "SEQ_REFUND_REFUNDID_SEQ", allocationSize = 1)
+    @Column(name = "REFUNDID_SEQ")
     private int refundId;
 
-    @Column(name = "ORDERITEMID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "ORDERITEMID_SEQ", nullable = false, insertable = false, updatable = false)
     private int orderItemId;
 
-    @Column(name = "USERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "USERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int userId;
 
-    @Column(name = "REFUNDTYPE", length = 20)
-    private String refundType;  // REFUND, EXCHANGE
+    @Column(name = "REFUNDTYPE", length = 3)
+    private String refundType;  // REF=환불, EXC=교환 (DB 저장용), API는 "REFUND"/"EXCHANGE"로 변환
 
     @Column(name = "REASON", nullable = false, length = 100)
     private String reason;
@@ -41,11 +41,11 @@ public class Refund {
     private Integer refundAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ORDERITEMID", nullable = false)
+    @JoinColumn(name = "ORDERITEMID_SEQ", nullable = false)
     private OrderItem orderItem;  // 주문상세 (FK -> OrderItem)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USERID", nullable = false)
+    @JoinColumn(name = "USERID_SEQ", nullable = false)
     private User user;  // 사용자 (FK -> User)
 
     @Column(name = "STATUS", length = 20)

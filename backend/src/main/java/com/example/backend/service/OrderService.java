@@ -27,6 +27,15 @@ public class OrderService {
     private static final String REFUND_STATUS_COMPLETED = "COM";
     private static final String REFUND_STATUS_REJECTED = "REJ";
     private static final String REFUND_STATUS_CANCELED = "CAN";
+    
+    // REFUNDTYPE 상수 (DB 저장용: 짧은 코드)
+    private static final String REFUND_TYPE_REF = "REF";  // 환불
+    private static final String REFUND_TYPE_EXC = "EXC";  // 교환
+    
+    // ORDERITEM STATUS 상수 (DB 저장용: 짧은 코드)
+    private static final String ORDERITEM_STATUS_CONFIRMED = "con";  // CONFIRMED
+    private static final String ORDERITEM_STATUS_CANCELLED = "can";  // CANCELLED
+    private static final String ORDERITEM_STATUS_REFUNDED = "ref";   // REFUNDED
 
     @Autowired
     private OrderRepository orderRepository;
@@ -191,7 +200,7 @@ public class OrderService {
         orderItem.setProductSize(product.getProductSize());
         orderItem.setQuantity(cart.getQuantity());
         orderItem.setPrice(effectivePrice);
-        orderItem.setStatus("PAID");  // 결제 완료 시 즉시 PAID로 설정
+        orderItem.setStatus(convertOrderItemStatusToDb("CONFIRMED"));  // 결제 완료 시 즉시 CONFIRMED로 설정
         return orderItem;
     }
 
@@ -210,7 +219,7 @@ public class OrderService {
         orderItem.setProductSize(product.getProductSize());
         orderItem.setQuantity(itemRequest.getQuantity());
         orderItem.setPrice(effectivePrice);
-        orderItem.setStatus("PAID");  // 결제 완료 시 즉시 PAID로 설정
+        orderItem.setStatus(convertOrderItemStatusToDb("CONFIRMED"));  // 결제 완료 시 즉시 CONFIRMED로 설정
         return orderItem;
     }
 
@@ -279,12 +288,12 @@ public class OrderService {
             throw new IllegalArgumentException("해당 주문에 접근할 수 없습니다.");
         }
 
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "PAID";
-        if (!"PAID".equals(currentStatus) && !"DELIVERING".equals(currentStatus)) {
+        String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
+        if (!"CONFIRMED".equalsIgnoreCase(currentStatus) && !"DELIVERING".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("배송 처리할 수 없는 상태입니다.");
         }
 
-        orderItem.setStatus(newStatus.toUpperCase());
+        orderItem.setStatus(convertOrderItemStatusToDb(newStatus));
         OrderItem savedItem = orderItemRepository.save(orderItem);
         updateOrderStatusBasedOnItems(orderItem.getOrder());
         return buildSellerOrderItemResponse(savedItem);
@@ -293,8 +302,8 @@ public class OrderService {
     @Transactional
     public Map<String, Object> cancelOrderItem(int orderItemId, int userId) {
         OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "PAID";
-        if (!"PAID".equals(currentStatus)) {
+        String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
+        if (!"CONFIRMED".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("결제 취소할 수 없는 상태입니다.");
         }
 
@@ -306,7 +315,7 @@ public class OrderService {
             productDAO.save(product);
         }
 
-        orderItem.setStatus("CANCELED");
+        orderItem.setStatus(convertOrderItemStatusToDb("CANCELLED"));
         orderItemRepository.save(orderItem);
 
         Order order = orderItem.getOrder();
@@ -326,8 +335,8 @@ public class OrderService {
         if (orderItem.getSellerId() != sellerId) {
             throw new IllegalArgumentException("해당 주문에 접근할 수 없습니다.");
         }
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "PAID";
-        if (!"PAID".equals(currentStatus)) {
+        String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
+        if (!"CONFIRMED".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("결제 취소할 수 없는 상태입니다.");
         }
         Product product = orderItem.getProduct();
@@ -338,7 +347,7 @@ public class OrderService {
             productDAO.save(product);
         }
 
-        orderItem.setStatus("CANCELED");
+        orderItem.setStatus(convertOrderItemStatusToDb("CANCELLED"));
         orderItemRepository.save(orderItem);
 
         Order order = orderItem.getOrder();
@@ -361,12 +370,12 @@ public class OrderService {
     @Transactional
     public Map<String, Object> confirmOrderItem(int orderItemId, int userId) {
         OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "";
-        if (!"DELIVERING".equals(currentStatus) && !"DELIVERED".equals(currentStatus)) {
+        String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
+        if (!"DELIVERING".equalsIgnoreCase(currentStatus) && !"DELIVERED".equalsIgnoreCase(currentStatus)) {
             throw new IllegalStateException("구매 확정할 수 없는 상태입니다.");
         }
 
-        orderItem.setStatus("DELIVERED");
+        orderItem.setStatus(convertOrderItemStatusToDb("CONFIRMED"));  // 구매 확정은 CONFIRMED로 처리
         orderItemRepository.save(orderItem);
         updateOrderStatusBasedOnItems(orderItem.getOrder());
         Order refreshedOrder = orderRepository.findById(orderItem.getOrder().getOrderId())
@@ -392,7 +401,7 @@ public class OrderService {
                                                    String reasonDetail,
                                                    Integer refundAmount) {
         OrderItem orderItem = getOrderItemForUser(orderItemId, userId);
-        String currentStatus = orderItem.getStatus() != null ? orderItem.getStatus().toUpperCase() : "";
+        String currentStatus = convertOrderItemStatusFromDb(orderItem.getStatus());
         validateRefundRequestStatus(refundType, currentStatus);
 
         refundRepository.findByOrderItem_OrderItemIdAndStatusIn(
@@ -405,14 +414,16 @@ public class OrderService {
         Refund refund = new Refund();
         refund.setOrderItem(orderItem);
         refund.setUser(orderItem.getOrder().getUser());
-        refund.setRefundType(refundType != null ? refundType.toUpperCase() : "REFUND");
+        // API는 "REFUND"/"EXCHANGE"를 받지만, DB에는 "REF"/"EXC"로 저장
+        refund.setRefundType(normalizeRefundType(refundType != null ? refundType.toUpperCase() : "REFUND"));
         refund.setReason(reason);
         refund.setReasonDetail(reasonDetail);
         refund.setRefundAmount(refundAmount);
         refund.setStatus(REFUND_STATUS_REQUESTED);
         refund.setPreviousStatus(orderItem.getStatus());
 
-        orderItem.setStatus("REFUND_REQUESTED");
+        // REFUND_REQUESTED는 임시 상태이므로 DB에는 저장하지 않고, 실제 환불 완료 시 REFUNDED로 저장
+        // orderItem.setStatus(convertOrderItemStatusToDb("REFUNDED")); // 환불 요청 시점에는 상태 변경하지 않음
         orderItemRepository.save(orderItem);
 
         Refund saved = refundRepository.save(refund);
@@ -437,6 +448,7 @@ public class OrderService {
         }
 
         OrderItem orderItem = refund.getOrderItem();
+        // previousStatus는 이미 DB 형식(짧은 코드)이므로 그대로 사용
         orderItem.setStatus(refund.getPreviousStatus());
         orderItemRepository.save(orderItem);
 
@@ -500,6 +512,7 @@ public class OrderService {
 
         refund.setStatus(REFUND_STATUS_REJECTED);
         refund.setSellerResponse(sellerResponse);
+        // previousStatus는 이미 DB 형식(짧은 코드)이므로 그대로 사용
         orderItem.setStatus(refund.getPreviousStatus());
         orderItemRepository.save(orderItem);
         refundRepository.save(refund);
@@ -553,7 +566,8 @@ public class OrderService {
     private Map<String, Object> buildRefundResponse(Refund refund) {
         Map<String, Object> map = new HashMap<>();
         map.put("refundId", refund.getRefundId());
-        map.put("refundType", refund.getRefundType());
+        // DB에는 "REF"/"EXC"로 저장되지만, API 응답은 "REFUND"/"EXCHANGE"로 변환
+        map.put("refundType", denormalizeRefundType(refund.getRefundType()));
         map.put("status", normalizeRefundStatus(refund.getStatus()));
         map.put("reason", refund.getReason());
         map.put("reasonDetail", refund.getReasonDetail());
@@ -644,7 +658,7 @@ public class OrderService {
         map.put("productSize", orderItem.getProductSize());
         map.put("price", orderItem.getPrice());
         map.put("quantity", orderItem.getQuantity());
-        map.put("status", orderItem.getStatus());
+        map.put("status", convertOrderItemStatusFromDb(orderItem.getStatus()));
         map.put("productImage", resolveMainImageUrl(orderItem.getPostId()));
         if (orderItem.getProductPost() != null) {
             map.put("brand", orderItem.getProductPost().getBrand());
@@ -676,7 +690,7 @@ public class OrderService {
         }
         map.put("orderDate", orderDateStr);
 
-        map.put("status", orderItem.getStatus());
+        map.put("status", convertOrderItemStatusFromDb(orderItem.getStatus()));
         map.put("productName", orderItem.getPostName());
         map.put("productId", orderItem.getProductId());
         map.put("postId", orderItem.getPostId());
@@ -797,6 +811,94 @@ public class OrderService {
                 return REFUND_STATUS_CANCELED;
             default:
                 return upper;
+        }
+    }
+    
+    /**
+     * REFUNDTYPE을 DB 저장용 짧은 코드로 변환
+     * "REFUND" -> "REF", "EXCHANGE" -> "EXC"
+     */
+    private String normalizeRefundType(String refundType) {
+        if (refundType == null) {
+            return REFUND_TYPE_REF; // 기본값: 환불
+        }
+        String upper = refundType.trim().toUpperCase(Locale.ROOT);
+        switch (upper) {
+            case "REFUND":
+                return REFUND_TYPE_REF;
+            case "EXCHANGE":
+                return REFUND_TYPE_EXC;
+            case REFUND_TYPE_REF:
+            case REFUND_TYPE_EXC:
+                return upper; // 이미 변환된 경우 그대로 반환
+            default:
+                return REFUND_TYPE_REF; // 기본값: 환불
+        }
+    }
+    
+    /**
+     * DB의 짧은 코드를 API 응답용 긴 이름으로 변환
+     * "REF" -> "REFUND", "EXC" -> "EXCHANGE"
+     */
+    private String denormalizeRefundType(String refundType) {
+        if (refundType == null) {
+            return "REFUND"; // 기본값
+        }
+        String upper = refundType.trim().toUpperCase(Locale.ROOT);
+        switch (upper) {
+            case REFUND_TYPE_REF:
+                return "REFUND";
+            case REFUND_TYPE_EXC:
+                return "EXCHANGE";
+            case "REFUND":
+            case "EXCHANGE":
+                return upper; // 이미 긴 이름인 경우 그대로 반환
+            default:
+                return "REFUND"; // 기본값
+        }
+    }
+    
+    // ORDERITEM STATUS 변환: String → String (DB 저장용: 짧은 코드)
+    private String convertOrderItemStatusToDb(String status) {
+        if (status == null) return ORDERITEM_STATUS_CONFIRMED; // 기본값: CONFIRMED
+        String upper = status.trim().toUpperCase(Locale.ROOT);
+        switch (upper) {
+            case "CONFIRMED":
+            case "PAID":
+            case "DELIVERED":
+                return ORDERITEM_STATUS_CONFIRMED;  // con
+            case "CANCELLED":
+            case "CANCELED":
+                return ORDERITEM_STATUS_CANCELLED;  // can
+            case "REFUNDED":
+            case "REFUND_REQUESTED":
+                return ORDERITEM_STATUS_REFUNDED;   // ref
+            case "con":
+            case "can":
+            case "ref":
+                return status.toLowerCase(); // 이미 짧은 코드인 경우 그대로 반환
+            default:
+                return ORDERITEM_STATUS_CONFIRMED; // 기본값: CONFIRMED
+        }
+    }
+    
+    // ORDERITEM STATUS 변환: String → String (API 응답용: 긴 이름)
+    private String convertOrderItemStatusFromDb(String status) {
+        if (status == null) return "CONFIRMED";
+        String lower = status.trim().toLowerCase(Locale.ROOT);
+        switch (lower) {
+            case ORDERITEM_STATUS_CONFIRMED:
+                return "CONFIRMED";
+            case ORDERITEM_STATUS_CANCELLED:
+                return "CANCELLED";
+            case ORDERITEM_STATUS_REFUNDED:
+                return "REFUNDED";
+            case "confirmed":
+            case "cancelled":
+            case "refunded":
+                return status.toUpperCase(); // 이미 긴 이름인 경우 그대로 반환
+            default:
+                return "CONFIRMED"; // 기본값
         }
     }
 }

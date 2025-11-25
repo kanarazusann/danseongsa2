@@ -13,6 +13,10 @@ import java.util.List;
 @Service
 public class ProductService {
     
+    // STATUS 변환 상수
+    private static final int STATUS_SELLING = 1;
+    private static final int STATUS_SOLD_OUT = 0;
+    
     @Autowired
     private ProductDAO productDAO;
     
@@ -40,8 +44,27 @@ public class ProductService {
         product.setPrice(productDto.getPrice());
         product.setDiscountPrice(productDto.getDiscountPrice());
         product.setStock(productDto.getStock() != null ? productDto.getStock() : 0);
-        product.setStatus(productDto.getStatus() != null ? productDto.getStatus() : "SELLING");
+        // STATUS 변환: String → Integer (DB 저장용)
+        product.setStatus(convertStatusToDb(productDto.getStatus() != null ? productDto.getStatus() : "SELLING"));
         return product;
+    }
+    
+    // STATUS 변환: String → Integer (DB 저장용)
+    private Integer convertStatusToDb(String status) {
+        if (status == null) return STATUS_SELLING;
+        String upper = status.trim().toUpperCase();
+        if ("SELLING".equals(upper) || "1".equals(status)) {
+            return STATUS_SELLING;
+        } else if ("SOLD_OUT".equals(upper) || "SOLDOUT".equals(upper) || "0".equals(status)) {
+            return STATUS_SOLD_OUT;
+        }
+        return STATUS_SELLING; // 기본값
+    }
+    
+    // STATUS 변환: Integer → String (API 응답용)
+    public String convertStatusFromDb(Integer status) {
+        if (status == null) return "SELLING";
+        return status == STATUS_SELLING ? "SELLING" : "SOLD_OUT";
     }
 }
 

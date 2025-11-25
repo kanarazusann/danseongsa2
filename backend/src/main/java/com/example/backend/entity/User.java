@@ -19,8 +19,8 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(name = "user_seq", sequenceName = "SEQ_USER_USERID", allocationSize = 1)
-    @Column(name = "USERID")
+    @SequenceGenerator(name = "user_seq", sequenceName = "SEQ_USER_USERID_SEQ", allocationSize = 1)
+    @Column(name = "USERID_SEQ")
     private int userId;
 
     @Column(name = "EMAIL", nullable = false, unique = true, length = 100)
@@ -38,7 +38,7 @@ public class User {
     @Column(name = "ISSELLER", nullable = false)
     private Integer isSeller = 0;  // 0: 일반, 1: 사업자
 
-    @Column(name = "BUSINESSNUMBER", length = 20)
+    @Column(name = "BN_NO", length = 20)
     private String businessNumber;
 
     @Column(name = "BRAND", length = 100)
@@ -47,10 +47,10 @@ public class User {
     @Column(name = "ZIPCODE", length = 10)
     private String zipcode;
 
-    @Column(name = "ADDRESS", length = 500)
+    @Column(name = "ADDR", length = 500)
     private String address;
 
-    @Column(name = "DETAILADDRESS", length = 200)
+    @Column(name = "D_ADDR", length = 200)
     private String detailAddress;
 
     @CreationTimestamp

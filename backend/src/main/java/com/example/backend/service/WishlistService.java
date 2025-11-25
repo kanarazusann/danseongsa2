@@ -100,7 +100,9 @@ public class WishlistService {
             item.put("postId", post.getPostId());
             item.put("postName", post.getPostName());
             item.put("brand", post.getBrand());
-            item.put("categoryName", post.getCategoryName());
+            String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+            item.put("categoryId", post.getCategoryId());
+            item.put("categoryName", categoryName);
             item.put("status", post.getStatus());
             
             // 대표 이미지 조회 (ISMAIN = 1인 이미지, 없으면 첫 번째 이미지)

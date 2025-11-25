@@ -19,24 +19,28 @@ public class ProductPost {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "productpost_seq")
-    @SequenceGenerator(name = "productpost_seq", sequenceName = "SEQ_PRODUCTPOST_POSTID", allocationSize = 1)
-    @Column(name = "POSTID")
+    @SequenceGenerator(name = "productpost_seq", sequenceName = "SEQ_PRODUCTPOST_POSTID_SEQ", allocationSize = 1)
+    @Column(name = "POSTID_SEQ")
     private int postId;
 
-    @Column(name = "SELLERID", nullable = false, insertable = false, updatable = false)
+    @Column(name = "USERID_SEQ", nullable = false, insertable = false, updatable = false)
     private int sellerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SELLERID", nullable = false)
+    @JoinColumn(name = "USERID_SEQ", nullable = false)
     private User seller;  // 판매자 (FK -> User)
 
-    @Column(name = "CATEGORYNAME", nullable = false, length = 100)
-    private String categoryName;
+    @Column(name = "CATEGORYID_SEQ", nullable = false, insertable = false, updatable = false)
+    private int categoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CATEGORYID_SEQ", nullable = false)
+    private Category category;  // 카테고리 (FK -> Category)
 
     @Column(name = "POSTNAME", nullable = false, length = 200)
     private String postName;
 
-    @Column(name = "DESCRIPTION", columnDefinition = "CLOB")
+    @Column(name = "DESCRIPTION", length = 2000)
     private String description;
 
     @Column(name = "BRAND", length = 100)
@@ -51,14 +55,14 @@ public class ProductPost {
     @Column(name = "WISHCOUNT", nullable = false)
     private Integer wishCount = 0;
 
-    @Column(name = "STATUS", length = 20)
-    private String status;  // SELLING, SOLD_OUT
+    @Column(name = "STATUS", nullable = false)
+    private Integer status;  // 1=SELLING, 0=SOLD_OUT
 
-    @Column(name = "GENDER", length = 10)
-    private String gender;  // MEN, WOMEN, UNISEX
+    @Column(name = "GENDER", length = 1)
+    private String gender;  // M=MEN, W=WOMEN, U=UNISEX
 
-    @Column(name = "SEASON", length = 20)
-    private String season;  // SPRING, SUMMER, FALL, WINTER, ALL_SEASON
+    @Column(name = "SEASON", length = 3)
+    private String season;  // SPR=SPRING, SMR=SUMMER, FAL=FALL, WTR=WINTER, ALL=ALL_SEASON
 
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)

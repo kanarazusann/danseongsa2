@@ -71,7 +71,9 @@ public class SellerService {
         product.put("name", post.getPostName()); // 프론트엔드 ProductCard에서 name 사용
         product.put("postName", post.getPostName());
         product.put("brand", post.getBrand());
-        product.put("categoryName", post.getCategoryName());
+        String categoryName = post.getCategory() != null ? post.getCategory().getCategoryName() : null;
+        product.put("categoryId", post.getCategoryId());
+        product.put("categoryName", categoryName);
         
         // 최소 가격 계산 (ProductDAO를 통해 조회)
         List<Product> products = productDAO.findByPostId(post.getPostId());
