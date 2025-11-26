@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EditProfile.css';
-import { fetchSessionUser, updateUserInfo, setSession } from '../services/authService';
+import { fetchSessionUser, updateUserInfo, setSession, verifyCredentials } from '../services/authService';
 
 function EditProfile() {
   const navigate = useNavigate();
@@ -157,8 +157,13 @@ function EditProfile() {
       // 세션에서 사용자 정보 가져오기
       const { item } = await fetchSessionUser();
       
-      // 세션의 비밀번호와 입력한 비밀번호 비교
-      if (item.password === passwordVerification) {
+      // 백엔드 API를 통해 비밀번호 확인 (암호화된 비밀번호와 비교)
+      const result = await verifyCredentials({
+        email: item.email,
+        password: passwordVerification
+      });
+      
+      if (result.rt === 'OK') {
         setIsPasswordVerified(true);
         setPasswordVerification('');
         alert('비밀번호가 확인되었습니다.');
@@ -168,7 +173,7 @@ function EditProfile() {
       }
     } catch (error) {
       console.error('비밀번호 확인 중 오류:', error);
-      alert('비밀번호 확인 중 오류가 발생했습니다.');
+      alert(error.message || '비밀번호가 일치하지 않습니다.');
       setPasswordVerification('');
     }
   };
