@@ -436,18 +436,45 @@ function OrderDetail() {
                         const refundInfo = refunds.find((ref) => ref.orderItemId === item.orderItemId);
                         const refundStatus = normalizeRefundStatus(refundInfo?.status);
 
+                        // 환불 정보가 있는 경우
+                        const isRefundRejected = refundInfo && refundStatus === REFUND_STATUS.REJECTED;
+                        const canWriteReview = (itemStatus === 'DELIVERED' || itemStatus === 'CONFIRMED') && 
+                                              (!refundInfo || isRefundRejected);
+                        
                         if (refundInfo) {
                           return (
-                            <div className={`refund-info ${refundStatus ? refundStatus.toLowerCase() : ''}`}>
-                              <div className="refund-status-text">
-                                <strong>신청 상태:</strong> {getRefundStatusText(refundInfo.status)}
-                              </div>
-                              {refundInfo.reason && (
-                                <div className="refund-status-text">사유: {refundInfo.reason}</div>
-                              )}
-                              {refundInfo.sellerResponse && (
+                            <div>
+                              <div className={`refund-info ${refundStatus ? refundStatus.toLowerCase() : ''}`}>
                                 <div className="refund-status-text">
-                                  판매자 메모: {refundInfo.sellerResponse}
+                                  <strong>신청 상태:</strong> {getRefundStatusText(refundInfo.status)}
+                                </div>
+                                {refundInfo.reason && (
+                                  <div className="refund-status-text">사유: {refundInfo.reason}</div>
+                                )}
+                                {refundInfo.sellerResponse && (
+                                  <div className="refund-status-text">
+                                    판매자 메모: {refundInfo.sellerResponse}
+                                  </div>
+                                )}
+                              </div>
+                              {/* 환불 거절 후 구매확정된 경우 리뷰 작성 버튼 표시 */}
+                              {canWriteReview && (
+                                <div className="payment-item-actions" style={{ marginTop: '10px' }}>
+                                  {item.reviewId || item.hasReview ? (
+                                    <button
+                                      className="btn-review"
+                                      onClick={() => handleViewReview(item.reviewId)}
+                                    >
+                                      리뷰 보기
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="btn-review"
+                                      onClick={() => handleWriteReview(item)}
+                                    >
+                                      리뷰 작성
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>

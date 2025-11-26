@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import './SellerDashboard.css';
-import { fetchSessionUser } from '../services/authService';
+import { fetchSessionUser, changePassword, setSession, verifyCredentials, deleteUser, logout } from '../services/authService';
 import {
   getSellerOrders,
   shipOrderItem,
@@ -217,6 +217,21 @@ function SellerDashboard() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  
+  // 비밀번호 변경 관련 상태
+  const [passwordVerification, setPasswordVerification] = useState('');
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    new: false,
+    confirm: false
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [newPasswordError, setNewPasswordError] = useState('');
 
   // URL 파라미터가 변경되면 activeTab 업데이트
   useEffect(() => {
@@ -701,28 +716,180 @@ function SellerDashboard() {
     }
   };
 
+  // 비밀번호 확인
+  const handleVerifyPassword = async () => {
+    if (!passwordVerification.trim()) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
 
+    try {
+      const { item } = await fetchSessionUser();
+      
+      const result = await verifyCredentials({
+        email: item.email,
+        password: passwordVerification
+      });
+      
+      if (result.rt === 'OK') {
+        setIsPasswordVerified(true);
+        setPasswordVerification('');
+        alert('비밀번호가 확인되었습니다.');
+      } else {
+        alert('비밀번호가 일치하지 않습니다.');
+        setPasswordVerification('');
+      }
+    } catch (error) {
+      console.error('비밀번호 확인 중 오류:', error);
+      alert(error.message || '비밀번호가 일치하지 않습니다.');
+      setPasswordVerification('');
+    }
+  };
+
+  // 비밀번호 입력 핸들러
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    
+    setPasswordData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+      
+      if (name === 'newPassword') {
+        if (!value) {
+          setNewPasswordError('');
+        } else if (value.length < 8) {
+          setNewPasswordError('비밀번호는 8자 이상이어야 합니다.');
+        } else if (!/[A-Za-z]/.test(value)) {
+          setNewPasswordError('비밀번호에 영문을 포함해야 합니다.');
+        } else if (!/\d/.test(value)) {
+          setNewPasswordError('비밀번호에 숫자를 포함해야 합니다.');
+        } else {
+          setNewPasswordError('');
+        }
+        
+        if (updated.confirmPassword && value !== updated.confirmPassword) {
+          setPasswordError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+        } else if (updated.confirmPassword && value === updated.confirmPassword) {
+          setPasswordError('');
+        } else {
+          setPasswordError('');
+        }
+      }
+      
+      if (name === 'confirmPassword') {
+        if (updated.newPassword && value !== updated.newPassword) {
+          setPasswordError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+        } else if (updated.newPassword && value === updated.newPassword) {
+          setPasswordError('');
+        } else {
+          setPasswordError('');
+        }
+      }
+      
+      return updated;
+    });
+  };
+
+  // 비밀번호 보기/숨기기 토글
+  const togglePasswordVisibility = (field) => {
+    if (field === 'verify') {
+      setShowPassword(!showPassword);
+    } else {
+      setShowPasswords(prev => ({
+        ...prev,
+        [field]: !prev[field]
+      }));
+    }
+  };
+
+  // 비밀번호 유효성 검사
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  // 비밀번호 변경 처리
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+
+    if (!isPasswordVerified) {
+      setPasswordError('비밀번호 확인이 필요합니다.');
+      return;
+    }
+
+    if (!passwordData.newPassword) {
+      setPasswordError('새 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    if (!validatePassword(passwordData.newPassword)) {
+      setPasswordError('비밀번호는 8자 이상이며 영문과 숫자를 포함해야 합니다.');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      const { item } = await fetchSessionUser();
+      const userId = item.userId;
+
+      const result = await changePassword(userId, passwordData.newPassword);
+
+      if (result.rt === 'OK') {
+        await setSession(result.item);
+        setIsPasswordVerified(false);
+        setPasswordVerification('');
+        setPasswordData({
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setPasswordError('');
+        setNewPasswordError('');
+        alert('비밀번호가 성공적으로 변경되었습니다.');
+      } else {
+        alert(result.message || '비밀번호 변경에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('비밀번호 변경 중 오류:', error);
+      alert(error.message || '비밀번호 변경 중 오류가 발생했습니다.');
+    }
+  };
 
   // 회원탈퇴 처리
-  const handleDeleteAccount = () => {
-    // TODO: API 연동 필요
-    // DB: User 테이블에서 삭제 또는 isSeller = 0으로 변경
-    // DELETE FROM "USER" WHERE userId = ? AND isSeller = 1
-    // 또는
-    // UPDATE "USER" SET isSeller = 0 WHERE userId = ? AND isSeller = 1
-    
-    // localStorage에서 사용자 정보 삭제
-    localStorage.removeItem('user');
-    
-    // 홈으로 이동
-    navigate('/');
-    
-    // 모달 닫기
-    setShowDeleteModal(false);
-    setDeleteConfirmText('');
-    
-    // 실제로는 API 호출 후 성공 시 처리
-    alert('회원탈퇴가 완료되었습니다.');
+  const handleDeleteAccount = async () => {
+    if (!sellerId) {
+      alert('사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      // 회원 탈퇴 API 호출 (백엔드에서 모든 관련 데이터 삭제)
+      await deleteUser(sellerId);
+      
+      // 로그아웃 처리
+      try {
+        await logout();
+      } catch (error) {
+        console.error('로그아웃 오류:', error);
+      }
+
+      // 모달 닫기
+      setShowDeleteModal(false);
+      setDeleteConfirmText('');
+      
+      // 홈으로 이동
+      navigate('/');
+      
+      alert('회원탈퇴가 완료되었습니다.');
+    } catch (error) {
+      console.error('회원탈퇴 오류:', error);
+      alert(error.message || '회원탈퇴 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -907,18 +1074,143 @@ function SellerDashboard() {
                   정보 수정
                 </button>
                 <button 
-                  className="btn-secondary"
-                  onClick={() => navigate('/change-password')}
-                >
-                  비밀번호 변경
-                </button>
-                <button 
                   className="btn-delete-account"
                   onClick={() => setShowDeleteModal(true)}
                 >
                   회원탈퇴
                 </button>
               </div>
+            </div>
+            
+            {/* 비밀번호 변경 섹션 */}
+            <div className="profile-section" style={{ marginTop: '30px' }}>
+              <h2>비밀번호 변경</h2>
+              
+              {!isPasswordVerified ? (
+                <div className="password-verify-section">
+                  <div className="form-group">
+                    <label className="form-label">현재 비밀번호 확인</label>
+                    <div className="password-input-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordVerification}
+                        onChange={(e) => setPasswordVerification(e.target.value)}
+                        className="form-input password-input"
+                        placeholder="현재 비밀번호를 입력하세요"
+                        style={{ flex: 1 }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleVerifyPassword();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('verify')}
+                        style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handleVerifyPassword}
+                    style={{ marginTop: '10px' }}
+                  >
+                    확인
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleChangePassword} className="info-edit-form">
+                  <div className="form-group">
+                    <label className="form-label">새 비밀번호</label>
+                    <div className="password-input-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input
+                        type={showPasswords.new ? 'text' : 'password'}
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        className="form-input password-input"
+                        placeholder="새 비밀번호를 입력하세요"
+                        style={{ flex: 1 }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('new')}
+                        style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        {showPasswords.new ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                    {newPasswordError && (
+                      <p style={{ fontSize: '12px', color: '#e74c3c', marginTop: '4px' }}>
+                        {newPasswordError}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">새 비밀번호 확인</label>
+                    <div className="password-input-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        className="form-input password-input"
+                        placeholder="새 비밀번호를 다시 입력하세요"
+                        style={{ flex: 1 }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        {showPasswords.confirm ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {passwordError && (
+                    <p style={{ fontSize: '12px', color: '#e74c3c', marginTop: '8px', marginLeft: '0' }}>
+                      {passwordError}
+                    </p>
+                  )}
+
+                  <div className="profile-actions" style={{ marginTop: '20px' }}>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                    >
+                      비밀번호 변경
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        setIsPasswordVerified(false);
+                        setPasswordVerification('');
+                        setPasswordData({
+                          newPassword: '',
+                          confirmPassword: ''
+                        });
+                        setPasswordError('');
+                        setNewPasswordError('');
+                      }}
+                      style={{ marginLeft: '10px' }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}
