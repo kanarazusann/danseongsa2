@@ -1,0 +1,9 @@
+# Elastic Beanstalk 배포 시 제외할 파일
+.gradle/
+build/
+.idea/
+*.iml
+*.log
+.DS_Store
+src/test/
+

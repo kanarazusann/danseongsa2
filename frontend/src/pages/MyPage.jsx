@@ -181,7 +181,7 @@ function MyPage() {
 
   // 주문 목록 필터링: 진행 중인 주문만 (PAID, DELIVERING, DELIVERED, PROCESSING)
   // order의 status 또는 orderItem 중 하나라도 진행 중인 상태면 포함
-  const activeOrders = orders.filter(order => {
+  const activeOrders = (Array.isArray(orders) ? orders : []).filter(order => {
     const orderStatus = normalizeOrderStatus(order.status);
     
     // order status가 진행 중인 상태면 포함
@@ -201,7 +201,7 @@ function MyPage() {
   });
 
   // 취소/반품된 주문만
-  const cancelledOrders = orders.filter(order => {
+  const cancelledOrders = (Array.isArray(orders) ? orders : []).filter(order => {
     const status = normalizeOrderStatus(order.status);
     return ['CANCEL', 'CANCELLED', 'CANCELED', 'REFUND', 'REFUND_REQUESTED', 'REFUNDED', 'REJECTED'].includes(status);
   });
@@ -212,10 +212,11 @@ function MyPage() {
     const refundOrderItemIds = new Set();
     
     // refunds를 상품별로 변환 (환불/교환 신청이 있는 것만, 거절된 것은 제외)
+    if (!Array.isArray(refunds)) return items;
     refunds.forEach(refund => {
       // 환불 거절된 것은 제외 (주문내역에서만 표시)
       const normalizedRefundStatus = normalizeRefundStatus(refund.status);
-      if (normalizedRefundStatus === REFUND_STATUS_REJECTED) {
+      if (normalizedRefundStatus === REFUND_STATUS.REJECTED) {
         return; // 거절된 환불은 취소/반품 내역에 표시하지 않음
       }
       
@@ -225,13 +226,13 @@ function MyPage() {
         const normalizedItemStatus = normalizeOrderStatus(refund.orderItemStatus);
         const fallbackStatus = (() => {
           switch (normalizedRefundStatus) {
-            case REFUND_STATUS_REQUESTED:
+            case REFUND_STATUS.REQUESTED:
               return 'REFUND_REQUESTED';
-            case REFUND_STATUS_APPROVED:
+            case REFUND_STATUS.APPROVED:
               return 'REFUND';
-            case REFUND_STATUS_COMPLETED:
+            case REFUND_STATUS.COMPLETED:
               return 'REFUNDED';
-            case REFUND_STATUS_CANCELED:
+            case REFUND_STATUS.CANCELED:
               return 'CANCELLED';
             default:
               return 'REFUND';
@@ -267,6 +268,7 @@ function MyPage() {
     });
     
     // orders에서 결제 취소한 item 추가 (refunds에 없는 것만)
+    if (!Array.isArray(orders)) return items;
     orders.forEach(order => {
       if (order.items && order.items.length > 0) {
         order.items.forEach(item => {

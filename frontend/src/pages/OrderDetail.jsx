@@ -357,7 +357,6 @@ function OrderDetail() {
                     </span>
                   );
                 })()}
-                </span>
               </div>
             </div>
           </section>
