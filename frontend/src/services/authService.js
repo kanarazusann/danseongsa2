@@ -154,33 +154,26 @@ export const checkEmailExists = async (email) => {
   return false;
 };
 
-// 세션 사용자 정보 가져오기 (로컬 스토리지에서 가져온 후 백엔드에서 존재 여부 확인)
+// 세션 사용자 정보 가져오기 (백엔드 세션에서 가져오기)
 export const fetchSessionUser = async () => {
   try {
-    const storedUser = getStoredUser();
-    console.log('로컬 스토리지에서 사용자 정보:', storedUser);
-    
-    if (!storedUser || !storedUser.userId) {
-      console.log('로컬 스토리지에 사용자 정보 없음');
-      throw new Error('로그인 정보가 없습니다.');
-    }
-
-    // 백엔드에서 유저 존재 여부 확인
-    const response = await fetch(`${API_BASE_URL}/api/users/${storedUser.userId}/exists`, {
+    // 백엔드에서 실제 세션 정보 가져오기
+    const response = await fetch(`${API_BASE_URL}/auth/get-session`, {
       method: 'GET',
       credentials: 'include'
     });
 
     const data = await response.json();
-    console.log('유저 존재 여부 확인 결과:', data);
+    console.log('세션 확인 결과:', data);
     
-    if (data.rt === 'OK' && data.exists) {
-      // 유저가 존재하면 로컬 스토리지의 정보 반환
-      console.log('세션 사용자 정보 반환:', storedUser);
-      return { item: storedUser };
+    if (data.rt === 'OK' && data.item) {
+      // 세션이 유효하면 로컬 스토리지도 업데이트
+      setStoredUser(data.item);
+      console.log('세션 사용자 정보 반환:', data.item);
+      return { item: data.item };
     } else {
-      // 유저가 존재하지 않으면 로컬 스토리지 제거
-      console.log('유저가 존재하지 않음, 로컬 스토리지 제거');
+      // 세션이 없으면 로컬 스토리지 제거
+      console.log('세션이 만료되었거나 없음, 로컬 스토리지 제거');
       removeStoredUser();
       throw new Error('로그인 정보가 유효하지 않습니다.');
     }

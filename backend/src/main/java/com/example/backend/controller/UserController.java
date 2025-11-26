@@ -82,6 +82,27 @@ public class UserController {
         return result;
     }
 
+    // 세션에서 사용자 정보 가져오기 API
+    @GetMapping("/auth/get-session")
+    public Map<String, Object> getSession(HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Object userInfo = session.getAttribute(SESSION_USER_KEY);
+            if (userInfo != null) {
+                result.put("rt", "OK");
+                result.put("item", userInfo);
+                result.put("message", "세션 정보가 있습니다.");
+            } else {
+                result.put("rt", "FAIL");
+                result.put("message", "세션이 만료되었거나 로그인되지 않았습니다.");
+            }
+        } catch (Exception e) {
+            result.put("rt", "FAIL");
+            result.put("message", "세션 확인 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return result;
+    }
+
     // 로그아웃 API
     @PostMapping("/auth/logout")
     public Map<String, Object> logout(HttpSession session) {
