@@ -491,11 +491,11 @@ function OrderDetail() {
                             </div>
                           );
                         }
-                        if (itemStatus === 'DELIVERED') {
-                          // DELIVERED 상태는 이미 구매확정된 상태이므로 구매확정 버튼 표시 안 함
+                        if (itemStatus === 'DELIVERED' || itemStatus === 'CONFIRMED') {
+                          // DELIVERED 또는 CONFIRMED 상태일 때 리뷰 작성/보기 버튼 표시
                           return (
                             <div className="payment-item-actions">
-                              {item.hasReview ? (
+                              {item.reviewId || item.hasReview ? (
                                 <button
                                   className="btn-review"
                                   onClick={() => handleViewReview(item.reviewId)}
