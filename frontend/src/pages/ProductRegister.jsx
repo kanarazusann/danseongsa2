@@ -206,7 +206,8 @@ function ProductRegister() {
         const newImage = {
           file: file,
           preview: reader.result,
-          isMain: images.length === 0 // 첫 번째 이미지를 대표 이미지로
+          isMain: images.length === 0, // 첫 번째 이미지를 대표 이미지로
+          link: '' // 이미지 클릭 시 이동할 링크 주소
         };
         setImages(prev => [...prev, newImage]);
         setPreviewUrls(prev => [...prev, reader.result]);
@@ -267,6 +268,17 @@ function ProductRegister() {
       ...img,
       isMain: i === index
     }));
+    setImages(newImages);
+  };
+
+  // 이미지 링크 변경 핸들러
+  const handleImageLinkChange = (index, link) => {
+    const newImages = images.map((img, i) => {
+      if (i === index) {
+        return { ...img, link };
+      }
+      return img;
+    });
     setImages(newImages);
   };
 
@@ -853,6 +865,16 @@ function ProductRegister() {
                       >
                         삭제
                       </button>
+                    </div>
+                    <div className="image-link-input">
+                      <label className="form-label-small">링크 주소 (선택)</label>
+                      <input
+                        type="text"
+                        value={image.link || ''}
+                        onChange={(e) => handleImageLinkChange(index, e.target.value)}
+                        className="form-input-small"
+                        placeholder="/product/123 (링크가 있으면 클릭 시 이동)"
+                      />
                     </div>
                   </div>
                 ))}

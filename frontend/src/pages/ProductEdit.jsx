@@ -186,7 +186,8 @@ function ProductEdit() {
               preview: imageUrl || img.imageUrl,
               isMain: img.isMain === 1 || index === 0,
               isExisting: true, // 기존 이미지 표시
-              file: null // 기존 이미지는 file이 없음
+              file: null, // 기존 이미지는 file이 없음
+              link: img.link || '' // 기존 이미지 링크
             };
           });
           setImages(existingImagesList);
@@ -332,7 +333,8 @@ function ProductEdit() {
           file: file,
           preview: reader.result,
           isMain: images.length === 0, // 첫 번째 이미지를 대표 이미지로
-          isExisting: false
+          isExisting: false,
+          link: '' // 이미지 클릭 시 이동할 링크 주소
         };
         setImages(prev => [...prev, newImage]);
         setPreviewUrls(prev => [...prev, reader.result]);
@@ -395,6 +397,17 @@ function ProductEdit() {
       ...img,
       isMain: i === index
     }));
+    setImages(newImages);
+  };
+
+  // 이미지 링크 변경 핸들러
+  const handleImageLinkChange = (index, link) => {
+    const newImages = images.map((img, i) => {
+      if (i === index) {
+        return { ...img, link };
+      }
+      return img;
+    });
     setImages(newImages);
   };
 
@@ -567,6 +580,16 @@ function ProductEdit() {
         .filter(img => img.isExisting && img.imageId)
         .map(img => img.imageId);
       
+      // 기존 이미지의 링크 정보 (이미지 ID와 링크 매핑)
+      const keptImageLinks = {};
+      images
+        .filter(img => img.isExisting && img.imageId)
+        .forEach(img => {
+          if (img.link) {
+            keptImageLinks[img.imageId] = img.link;
+          }
+        });
+      
       // 새로 추가된 이미지 파일들
       const newImages = images.filter(img => !img.isExisting && img.file);
       
@@ -587,6 +610,7 @@ function ProductEdit() {
         formData,
         normalizedOptions,
         keptImageIds,
+        keptImageLinks,
         newImages,
         mainImageIndex >= 0 ? mainImageIndex : null,
         keptDescriptionImageIds,
@@ -1024,6 +1048,16 @@ function ProductEdit() {
                       >
                         삭제
                       </button>
+                    </div>
+                    <div className="image-link-input">
+                      <label className="form-label-small">링크 주소 (선택)</label>
+                      <input
+                        type="text"
+                        value={image.link || ''}
+                        onChange={(e) => handleImageLinkChange(index, e.target.value)}
+                        className="form-input-small"
+                        placeholder="/product/123 (링크가 있으면 클릭 시 이동)"
+                      />
                     </div>
                   </div>
                 ))}

@@ -395,22 +395,49 @@ function ProductDetail() {
           <div className="product-images">
             <div className="main-image">
               {mainImageUrl ? (
-                <img src={mainImageUrl} alt={detail.postName} />
+                (() => {
+                  const currentImage = galleryImages[selectedImageIndex];
+                  const hasLink = currentImage?.link && currentImage.link.trim() !== '';
+                  return (
+                    <img 
+                      src={mainImageUrl} 
+                      alt={detail.postName}
+                      onClick={() => {
+                        if (hasLink) {
+                          navigate(currentImage.link);
+                        }
+                      }}
+                      style={{ cursor: hasLink ? 'pointer' : 'default' }}
+                    />
+                  );
+                })()
               ) : (
                 <div className="image-placeholder">이미지가 없습니다.</div>
               )}
             </div>
             {galleryImages.length > 0 && (
             <div className="thumbnail-images">
-                {galleryImages.map((image, index) => (
-                <button
-                    key={image.imageId || `${image.imageUrl}-${index}`}
-                  className={`thumbnail ${selectedImageIndex === index ? 'active' : ''}`}
-                  onClick={() => setSelectedImageIndex(index)}
-                >
-                    <img src={resolveImageUrl(image.imageUrl)} alt={`${detail.postName} ${index + 1}`} />
-                </button>
-              ))}
+                {galleryImages.map((image, index) => {
+                  const hasLink = image.link && image.link.trim() !== '';
+                  return (
+                    <button
+                      key={image.imageId || `${image.imageUrl}-${index}`}
+                      className={`thumbnail ${selectedImageIndex === index ? 'active' : ''}`}
+                      onClick={() => {
+                        if (hasLink) {
+                          // 링크가 있으면 해당 링크로 이동
+                          navigate(image.link);
+                        } else {
+                          // 링크가 없으면 기존처럼 이미지 선택
+                          setSelectedImageIndex(index);
+                        }
+                      }}
+                    >
+                      <img src={resolveImageUrl(image.imageUrl)} alt={`${detail.postName} ${index + 1}`} />
+                      {hasLink && <span className="link-indicator">🔗</span>}
+                    </button>
+                  );
+                })}
             </div>
             )}
           </div>

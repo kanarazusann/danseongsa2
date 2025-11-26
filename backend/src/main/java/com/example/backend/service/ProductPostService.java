@@ -160,7 +160,8 @@ public class ProductPostService {
     
     // 게시물 생성
     @Transactional
-    public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles, List<MultipartFile> descriptionImages) throws IOException {
+    public ProductPost createProductPost(ProductPostDTO dto, int sellerId, List<MultipartFile> imageFiles, 
+                                         List<String> imageLinks, List<String> imageIsMain, List<MultipartFile> descriptionImages) throws IOException {
         User seller = getUserById(sellerId);
         System.out.println("판매자 정보 - userId: " + seller.getUserId() + ", brand: " + seller.getBrand());
         ProductPost productPost = createProductPostEntity(dto, seller);
@@ -168,8 +169,8 @@ public class ProductPostService {
         ProductPost savedPost = productPostDAO.save(productPost);
         
         productService.createProducts(savedPost, dto.getProducts());
-        productImageService.saveProductImages(savedPost, imageFiles, "GALLERY");
-        productImageService.saveProductImages(savedPost, descriptionImages, "DESCRIPTION");
+        productImageService.saveProductImages(savedPost, imageFiles, imageLinks, imageIsMain, "GALLERY");
+        productImageService.saveProductImages(savedPost, descriptionImages, null, null, "DESCRIPTION");
         
         return savedPost;
     }
@@ -207,6 +208,7 @@ public class ProductPostService {
                     imageMap.put("imageId", img.getImageId());
                     imageMap.put("imageUrl", img.getImageUrl());
                     imageMap.put("isMain", img.getIsMain());
+                    imageMap.put("link", img.getLink());
                     return imageMap;
                 })
                 .collect(Collectors.toList());
@@ -334,7 +336,9 @@ public class ProductPostService {
     
     // 게시물 수정
     @Transactional
-    public ProductPost updateProductPost(int postId, ProductPostDTO dto, List<Integer> keptImageIds, List<MultipartFile> newImageFiles, Integer mainImageIndex, List<Integer> keptDescriptionImageIds, List<MultipartFile> newDescriptionImages) throws IOException {
+    public ProductPost updateProductPost(int postId, ProductPostDTO dto, List<Integer> keptImageIds, Map<Integer, String> keptImageLinks, 
+                                        List<MultipartFile> newImageFiles, List<String> imageLinks, List<String> imageIsMain, Integer mainImageIndex, 
+                                        List<Integer> keptDescriptionImageIds, List<MultipartFile> newDescriptionImages) throws IOException {
         ProductPost post = productPostDAO.findById(postId);
         if (post == null) {
             throw new IllegalArgumentException("게시물을 찾을 수 없습니다.");
@@ -361,7 +365,7 @@ public class ProductPostService {
         updateProducts(updatedPost, dto.getProducts());
         
         // 이미지 업데이트
-        updateProductImages(updatedPost, keptImageIds, newImageFiles, mainImageIndex, keptDescriptionImageIds, newDescriptionImages);
+        updateProductImages(updatedPost, keptImageIds, keptImageLinks, newImageFiles, imageLinks, imageIsMain, mainImageIndex, keptDescriptionImageIds, newDescriptionImages);
         
         return updatedPost;
     }
@@ -419,7 +423,9 @@ public class ProductPostService {
     }
     
     // 이미지 업데이트
-    private void updateProductImages(ProductPost post, List<Integer> keptImageIds, List<MultipartFile> newImageFiles, Integer mainImageIndex, List<Integer> keptDescriptionImageIds, List<MultipartFile> newDescriptionImages) throws IOException {
+    private void updateProductImages(ProductPost post, List<Integer> keptImageIds, Map<Integer, String> keptImageLinks, 
+                                   List<MultipartFile> newImageFiles, List<String> imageLinks, List<String> imageIsMain, Integer mainImageIndex, 
+                                   List<Integer> keptDescriptionImageIds, List<MultipartFile> newDescriptionImages) throws IOException {
         List<ProductImage> allImages = productImageDAO.findByPostId(post.getPostId());
         
         // GALLERY 이미지 처리
@@ -436,23 +442,33 @@ public class ProductPostService {
                 .collect(Collectors.toList());
         productImageDAO.deleteAll(imagesToDelete);
         
-        // 유지할 이미지의 isMain 초기화 (나중에 mainImageIndex에 따라 설정)
+        // 유지할 이미지의 isMain 초기화 및 링크 업데이트 (나중에 mainImageIndex에 따라 설정)
         List<ProductImage> keptImages = galleryImages.stream()
                 .filter(img -> keptIds.contains(img.getImageId()))
                 .collect(Collectors.toList());
         
         for (ProductImage img : keptImages) {
             img.setIsMain(0);
+            // 기존 이미지의 링크 업데이트
+            if (keptImageLinks != null && keptImageLinks.containsKey(img.getImageId())) {
+                String link = keptImageLinks.get(img.getImageId());
+                img.setLink(link != null && !link.trim().isEmpty() ? link.trim() : null);
+            }
             productImageDAO.save(img);
         }
         
         // 새로운 이미지 파일 저장
         List<ProductImage> newImages = new ArrayList<>();
         if (newImageFiles != null && !newImageFiles.isEmpty()) {
-            for (MultipartFile file : newImageFiles) {
+            for (int i = 0; i < newImageFiles.size(); i++) {
+                MultipartFile file = newImageFiles.get(i);
                 if (!file.isEmpty()) {
                     ProductImage productImage = createProductImageEntity(post, file, "GALLERY");
                     productImage.setIsMain(0);
+                    // 새 이미지의 링크 설정
+                    if (imageLinks != null && i < imageLinks.size() && imageLinks.get(i) != null && !imageLinks.get(i).trim().isEmpty()) {
+                        productImage.setLink(imageLinks.get(i).trim());
+                    }
                     newImages.add(productImage);
                 }
             }

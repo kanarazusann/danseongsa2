@@ -46,10 +46,18 @@ export const createProductPost = async (formData, productOptions, images, descri
     }));
     submitData.append('products', JSON.stringify(productsData));
     
-    // 갤러리 이미지 파일들
-    images.forEach((image) => {
+    // 갤러리 이미지 파일들 및 링크 정보
+    images.forEach((image, index) => {
       if (image.file) {
         submitData.append('images', image.file);
+        // 이미지 링크 정보 전송
+        if (image.link) {
+          submitData.append(`imageLinks`, image.link);
+        } else {
+          submitData.append(`imageLinks`, '');
+        }
+        // 대표 이미지 여부
+        submitData.append(`imageIsMain`, image.isMain ? '1' : '0');
       }
     });
 
@@ -265,7 +273,7 @@ export const getProductPostsByBrand = async (brand) => {
 };
 
 // 상품 게시물 수정
-export const updateProductPost = async (postId, formData, productOptions, keptImageIds, newImages, mainImageIndex, keptDescriptionImageIds, newDescriptionImages) => {
+export const updateProductPost = async (postId, formData, productOptions, keptImageIds, keptImageLinks, newImages, mainImageIndex, keptDescriptionImageIds, newDescriptionImages) => {
   try {
     console.log('상품 수정 시작:', {
       postId,
@@ -306,11 +314,24 @@ export const updateProductPost = async (postId, formData, productOptions, keptIm
       submitData.append('keptImageIds', JSON.stringify(keptImageIds));
     }
     
-    // 새로운 갤러리 이미지 파일들
+    // 유지할 이미지의 링크 정보 (JSON으로 전송)
+    if (keptImageLinks && Object.keys(keptImageLinks).length > 0) {
+      submitData.append('keptImageLinks', JSON.stringify(keptImageLinks));
+    }
+    
+    // 새로운 갤러리 이미지 파일들 및 링크 정보
     if (newImages && newImages.length > 0) {
-      newImages.forEach((image) => {
+      newImages.forEach((image, index) => {
         if (image.file) {
           submitData.append('images', image.file);
+          // 이미지 링크 정보 전송
+          if (image.link) {
+            submitData.append(`imageLinks`, image.link);
+          } else {
+            submitData.append(`imageLinks`, '');
+          }
+          // 대표 이미지 여부
+          submitData.append(`imageIsMain`, image.isMain ? '1' : '0');
         }
       });
     }

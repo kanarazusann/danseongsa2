@@ -37,6 +37,9 @@ public class ProductImage {
     @Column(name = "IMAGETYPE", length = 20)
     private String imageType;  // 'GALLERY': 갤러리 이미지, 'DESCRIPTION': 상품 설명 이미지
 
+    @Column(name = "LINK", length = 500)
+    private String link;  // 이미지 클릭 시 이동할 링크 주소 (예: /product/123)
+
     @CreationTimestamp
     @Column(name = "CREATEDAT", nullable = false, updatable = false)
     private Timestamp createdAt;

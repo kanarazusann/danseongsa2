@@ -1399,6 +1399,7 @@ feat: 상품 조회 API 구현
 - imageUrl (String, not null)  //이미지경로
 - isMain (Integer, default: 0) // 대표이미지 여부 (0: 일반, 1: 대표)
 - imageType (String) // 이미지 타입 (GALLERY: 갤러리 이미지, DESCRIPTION: 상품 설명 이미지)
+- link (String, nullable) // 이미지 클릭 시 이동할 링크 주소 (예: /product/123) - 링크가 있으면 이미지 확대가 아닌 해당 링크로 이동
 - createdAt (Timestamp)  // 이미지 만들어진 날짜
 
  장바구니(Cart)

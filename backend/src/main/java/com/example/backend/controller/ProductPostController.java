@@ -32,6 +32,8 @@ public class ProductPostController {
             @RequestParam("products") String productsJson,  // JSON 문자열
             @RequestParam("sellerId") int sellerId,  // 실제 로그인한 판매자 ID
             @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "imageLinks", required = false) List<String> imageLinks,
+            @RequestParam(value = "imageIsMain", required = false) List<String> imageIsMain,
             @RequestParam(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
         
         Map<String, Object> map = new HashMap<>();
@@ -57,7 +59,7 @@ public class ProductPostController {
             dto.setProducts(products);
             
             // 실제 로그인한 판매자 ID 사용
-            ProductPost savedPost = productPostService.createProductPost(dto, sellerId, images, descriptionImages);
+            ProductPost savedPost = productPostService.createProductPost(dto, sellerId, images, imageLinks, imageIsMain, descriptionImages);
             
             // 순환 참조 방지를 위해 필요한 필드만 Map으로 구성
             Map<String, Object> item = new HashMap<>();
@@ -256,7 +258,10 @@ public class ProductPostController {
             @RequestParam("status") String status,
             @RequestParam("products") String productsJson,
             @RequestParam(value = "keptImageIds", required = false) String keptImageIdsJson,
+            @RequestParam(value = "keptImageLinks", required = false) String keptImageLinksJson,
             @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "imageLinks", required = false) List<String> imageLinks,
+            @RequestParam(value = "imageIsMain", required = false) List<String> imageIsMain,
             @RequestParam(value = "mainImageIndex", required = false) Integer mainImageIndex,
             @RequestParam(value = "keptDescriptionImageIds", required = false) String keptDescriptionImageIdsJson,
             @RequestParam(value = "descriptionImages", required = false) List<MultipartFile> descriptionImages) {
@@ -291,6 +296,15 @@ public class ProductPostController {
                 );
             }
             
+            // keptImageLinks JSON 파싱 (이미지 ID와 링크 매핑)
+            Map<Integer, String> keptImageLinks = null;
+            if (keptImageLinksJson != null && !keptImageLinksJson.isEmpty()) {
+                keptImageLinks = objectMapper.readValue(
+                    keptImageLinksJson,
+                    new TypeReference<Map<Integer, String>>() {}
+                );
+            }
+            
             // keptDescriptionImageIds JSON 파싱
             List<Integer> keptDescriptionImageIds = null;
             if (keptDescriptionImageIdsJson != null && !keptDescriptionImageIdsJson.isEmpty()) {
@@ -302,7 +316,7 @@ public class ProductPostController {
             
             // 게시물 수정
             ProductPost updatedPost = productPostService.updateProductPost(
-                postId, dto, keptImageIds, images, mainImageIndex, 
+                postId, dto, keptImageIds, keptImageLinks, images, imageLinks, imageIsMain, mainImageIndex, 
                 keptDescriptionImageIds, descriptionImages);
             
             // 순환 참조 방지를 위해 필요한 필드만 Map으로 구성
