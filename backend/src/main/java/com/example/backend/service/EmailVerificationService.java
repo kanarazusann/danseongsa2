@@ -1,20 +1,20 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.EmailVerificationResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeUtility;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,21 +22,26 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class EmailVerificationService {
 
-    private final JavaMailSender mailSender;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
     private Map<String, VerificationInfo> verificationStorage;
+
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
 
     @Value("${mail.verification.subject:[단성사] 이메일 인증 코드}")
     private String subject;
 
-    @Value("${mail.verification.from:${spring.mail.username:}}")
+    @Value("${mail.verification.from:kanarazusann@gmail.com}")
     private String fromAddress;
 
     @Value("${mail.verification.expire-minutes:5}")
     private long expireMinutes;
 
-    public EmailVerificationService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailVerificationService() {
+        this.httpClient = HttpClient.newHttpClient();
+        this.objectMapper = new ObjectMapper();
     }
 
     @PostConstruct
@@ -96,26 +101,49 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("수신 이메일 정보가 비어 있습니다.");
         }
 
+        if (!StringUtils.hasText(brevoApiKey)) {
+            throw new IllegalStateException("Brevo API 키가 설정되지 않았습니다.");
+        }
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(
-                    message,
-                    false,
-                    StandardCharsets.UTF_8.name()
-            );
+            // Brevo API 요청 본문 구성
+            Map<String, Object> requestBody = new HashMap<>();
+            Map<String, String> sender = new HashMap<>();
+            sender.put("email", fromAddress != null ? fromAddress.trim() : "kanarazusann@gmail.com");
+            sender.put("name", "단성사");
+            requestBody.put("sender", sender);
 
-            String toAddress = sanitizedEmail;
-            helper.setTo(toAddress);
-            String from = fromAddress != null ? fromAddress.trim() : "";
-            if (StringUtils.hasText(from)) {
-                helper.setFrom(from);
+            Map<String, String> to = new HashMap<>();
+            to.put("email", sanitizedEmail);
+            requestBody.put("to", new Object[]{to});
+
+            requestBody.put("subject", resolveSubject());
+            requestBody.put("htmlContent", buildEmailBodyHtml(code));
+            requestBody.put("textContent", buildEmailBody(code));
+
+            // JSON 변환
+            String jsonBody = objectMapper.writeValueAsString(requestBody);
+
+            // HTTP 요청 생성
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("accept", "application/json")
+                    .header("api-key", brevoApiKey)
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
+
+            // 요청 전송
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // 응답 확인
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException(
+                    String.format("Brevo API 오류: %d - %s", response.statusCode(), response.body())
+                );
             }
-            helper.setSubject(encodeSubject(resolveSubject()));
-            helper.setText(buildEmailBody(code), false);
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("이메일 전송 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 
@@ -124,15 +152,6 @@ public class EmailVerificationService {
             return subject;
         }
         return "[단성사] 이메일 인증 코드";
-    }
-
-    private String encodeSubject(String value) {
-        String text = StringUtils.hasText(value) ? value : "[단성사] 이메일 인증 코드";
-        try {
-            return MimeUtility.encodeText(text, StandardCharsets.UTF_8.name(), "B");
-        } catch (UnsupportedEncodingException e) {
-            return text;
-        }
     }
 
     private String buildEmailBody(String code) {
@@ -144,6 +163,22 @@ public class EmailVerificationService {
                 인증번호: %s
 
                 본 메일은 발신전용입니다. 문의는 고객센터를 이용해주세요.
+                """.formatted(code);
+    }
+
+    private String buildEmailBodyHtml(String code) {
+        return """
+                <html>
+                <body style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>단성사 이메일 인증 요청</h2>
+                    <p>이메일 인증 요청이 접수되었습니다.</p>
+                    <p>아래 인증번호를 <strong>5분 이내</strong>에 입력해주세요.</p>
+                    <div style="background-color: #f0f0f0; padding: 15px; margin: 20px 0; text-align: center; font-size: 24px; font-weight: bold;">
+                        %s
+                    </div>
+                    <p style="color: #666; font-size: 12px;">본 메일은 발신전용입니다. 문의는 고객센터를 이용해주세요.</p>
+                </body>
+                </html>
                 """.formatted(code);
     }
 

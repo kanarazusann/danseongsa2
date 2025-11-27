@@ -6,7 +6,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -59,11 +58,11 @@ public class ImageService {
         String normalizedFolder = folder.endsWith("/") ? folder.substring(0, folder.length() - 1) : folder;
         String key = normalizedFolder + "/" + fileName;
 
+        // ACL을 사용하지 않음 (버킷 정책으로 퍼블릭 읽기 허용)
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
                 .contentType(StringUtils.hasText(file.getContentType()) ? file.getContentType() : "application/octet-stream")
-                .acl(ObjectCannedACL.PUBLIC_READ)
                 .build();
 
         s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
