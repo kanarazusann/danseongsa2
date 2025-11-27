@@ -17,13 +17,20 @@ public class AwsS3Config {
             @Value("${aws.access-key-id}") String accessKeyId,
             @Value("${aws.secret-access-key}") String secretAccessKey
     ) {
+        // 리전이 비어있거나 잘못된 경우 기본값 사용
+        String actualRegion = (region != null && !region.trim().isEmpty()) 
+                ? region.trim() 
+                : "ap-northeast-2";
+        
         return S3Client.builder()
-                .region(Region.of(region))
+                .region(Region.of(actualRegion))
                 .credentialsProvider(
                         StaticCredentialsProvider.create(
                                 AwsBasicCredentials.create(accessKeyId, secretAccessKey)
                         )
                 )
+                // 리전 자동 감지 활성화 (301 리다이렉트 처리)
+                .forcePathStyle(false)
                 .build();
     }
 }
