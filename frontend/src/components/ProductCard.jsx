@@ -1,23 +1,22 @@
 import { Link } from 'react-router-dom';
 import './ProductCard.css';
+import { resolveImageUrl } from '../utils/image';
 
 function ProductCard({ product }) {
   const displayPrice = product.discountPrice || product.price;
   const hasDiscount = product.discountPrice !== null && product.discountPrice !== undefined;
+  const resolvedImage = resolveImageUrl(product.image);
+  const hasValidImage = !!resolvedImage && resolvedImage.trim() !== '';
 
   return (
     <Link to={`/product/${product.id}`} className="product-card">
       <div className="product-image">
-        {product.image && 
-         typeof product.image === 'string' && 
-         product.image.trim() !== '' && 
-         product.image !== 'null' && 
-         product.image !== 'undefined' ? (
+        {hasValidImage ? (
           <img 
-            src={product.image} 
+            src={resolvedImage} 
             alt={product.name || '상품 이미지'}
             onError={(e) => {
-              console.error('이미지 로드 실패:', product.image);
+              console.error('이미지 로드 실패:', resolvedImage);
               e.target.style.display = 'none';
               const placeholder = e.target.parentElement.querySelector('.product-image-placeholder');
               if (placeholder) {
@@ -30,12 +29,7 @@ function ProductCard({ product }) {
               }
             }}
           />
-        ) : null}
-        {(!product.image || 
-          typeof product.image !== 'string' || 
-          product.image.trim() === '' || 
-          product.image === 'null' || 
-          product.image === 'undefined') && (
+        ) : (
           <div className="product-image-placeholder">이미지 없음</div>
         )}
         <div className="product-overlay">

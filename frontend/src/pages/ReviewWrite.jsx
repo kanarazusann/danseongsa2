@@ -3,8 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './ReviewWrite.css';
 import { fetchSessionUser } from '../services/authService';
 import { createReview } from '../services/reviewService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { resolveImageUrl } from '../utils/image';
 
 function ReviewWrite() {
   const navigate = useNavigate();
@@ -146,7 +145,7 @@ function ReviewWrite() {
           <div className="product-info-card">
             <Link to={`/product/${productInfo.postId}`} className="product-image-link">
               <img 
-                src={productInfo.productImage.startsWith('http') ? productInfo.productImage : `${API_BASE_URL}${productInfo.productImage}`}
+                src={resolveImageUrl(productInfo.productImage)}
                 alt={productInfo.productName}
                 className="product-image"
                 onError={(e) => {

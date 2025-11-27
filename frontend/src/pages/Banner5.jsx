@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { getProductPostsByBrand } from '../services/productService';
+import { resolveImageUrl } from '../utils/image';
 import './Banner5.css';
 import './Home.css';
 
@@ -38,7 +39,7 @@ function Banner5() {
               name: item.postName || '',
               price: item.price || 0,
               discountPrice: item.discountPrice || null,
-              image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+              image: resolveImageUrl(item.imageUrl)
             }));
             
             brandData[brand] = { products: formattedProducts, loading: false };

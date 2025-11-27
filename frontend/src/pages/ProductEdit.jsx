@@ -5,19 +5,7 @@ import { getProductPostDetail } from '../services/productService';
 import { updateProductPost } from '../services/productService';
 import { fetchSessionUser } from '../services/authService';
 import './ProductEdit.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-const resolveImageUrl = (url) => {
-  if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
-    return null;
-  }
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_BASE_URL}${path}`;
-};
+import { resolveImageUrl } from '../utils/image';
 
 function ProductEdit() {
   const { id } = useParams();

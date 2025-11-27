@@ -3,8 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './ReviewWrite.css';
 import { fetchSessionUser } from '../services/authService';
 import { getReviewById, updateReview } from '../services/reviewService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { resolveImageUrl } from '../utils/image';
 
 function ReviewEdit() {
   const navigate = useNavigate();
@@ -63,9 +62,7 @@ function ReviewEdit() {
               isExisting: true,
               imageId: img.imageId, // 이미지 ID 저장 (유지할 이미지 식별용)
               imageUrl: img.imageUrl || img,
-              preview: img.imageUrl?.startsWith('http') 
-                ? img.imageUrl 
-                : `${API_BASE_URL}${img.imageUrl}`
+              preview: resolveImageUrl(img.imageUrl || img)
             }));
             setImages(existingImages);
           }
@@ -200,13 +197,6 @@ function ReviewEdit() {
     productImage: reviewData.productImage || stateData.productImage || '',
     brand: reviewData.brand || stateData.brand || '',
     orderNumber: reviewData.orderNumber || stateData.orderNumber || ''
-  };
-  
-  const resolveImageUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-    return `${API_BASE_URL}/${url}`;
   };
   
   return (

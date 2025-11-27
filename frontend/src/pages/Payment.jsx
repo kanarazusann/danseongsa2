@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Payment.css';
 import { fetchSessionUser } from '../services/authService';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
+import { resolveImageUrl } from '../utils/image';
 
 function Payment() {
   const navigate = useNavigate();
@@ -160,11 +161,12 @@ function Payment() {
                 const itemPrice = item.discountPrice || item.price;
                 const itemTotal = itemPrice * item.quantity;
 
+                const imageUrl = resolveImageUrl(item.productImage || item.imageUrl);
                 return (
                   <div key={item.cartId || item.productId || index} className="payment-item">
                     <div className="payment-item-image">
-                      {item.productImage ? (
-                        <img src={item.productImage} alt={item.productName} />
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={item.productName} />
                       ) : (
                         <div className="product-image-placeholder">이미지 없음</div>
                       )}

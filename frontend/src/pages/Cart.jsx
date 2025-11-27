@@ -8,15 +8,7 @@ import {
   removeCartItem,
   removeCartItems
 } from '../services/cartService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-const resolveImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-  return `${API_BASE_URL}/${url}`;
-};
+import { resolveImageUrl } from '../utils/image';
 
 function Cart() {
   const navigate = useNavigate();

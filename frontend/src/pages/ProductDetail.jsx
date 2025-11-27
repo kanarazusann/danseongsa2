@@ -9,10 +9,7 @@ import {
 } from '../services/productService';
 import { addCartItem as addCartItemApi } from '../services/cartService';
 import { getReviewsByPostId } from '../services/reviewService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-
+import { resolveImageUrl } from '../utils/image';
 function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,13 +49,6 @@ function ProductDetail() {
     };
     loadUser();
   }, []);
-
-  const resolveImageUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-    return `${API_BASE_URL}/${url}`;
-  };
 
   // 날짜 포맷팅 함수 (YYYY-MM-DD)
   const formatDate = (dateString) => {

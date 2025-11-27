@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import categoryStructure from '../data/categories.json';
 import { getPopularProductPosts, getNewestProductPosts } from '../services/productService';
+import { resolveImageUrl } from '../utils/image';
 import './Home.css';
 
 function Home() {
@@ -55,7 +56,7 @@ function Home() {
             name: item.postName || '',
             price: item.price || 0,
             discountPrice: item.discountPrice || null,
-            image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+            image: resolveImageUrl(item.imageUrl)
           }));
           setPopularProducts(formattedProducts);
         }
@@ -84,7 +85,7 @@ function Home() {
             name: item.postName || '',
             price: item.price || 0,
             discountPrice: item.discountPrice || null,
-            image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+            image: resolveImageUrl(item.imageUrl)
           }));
           setNewProducts(formattedProducts);
         }

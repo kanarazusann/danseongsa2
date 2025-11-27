@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './RefundRequest.css';
+import { resolveImageUrl } from '../utils/image';
 
 function RefundRequest() {
   const navigate = useNavigate();
@@ -134,7 +135,13 @@ function RefundRequest() {
             <h2 className="section-title">환불 상품</h2>
             <div className="refund-item">
               <div className="refund-item-image">
-                <img src={refundItem.productImage || 'https://via.placeholder.com/300x400/CCCCCC/666666?text=PRODUCT'} alt={refundItem.productName} />
+                <img
+                  src={
+                    resolveImageUrl(refundItem.productImage) ||
+                    'https://via.placeholder.com/300x400/CCCCCC/666666?text=PRODUCT'
+                  }
+                  alt={refundItem.productName}
+                />
               </div>
               <div className="refund-item-info">
                 <div className="refund-item-name">{refundItem.productName}</div>

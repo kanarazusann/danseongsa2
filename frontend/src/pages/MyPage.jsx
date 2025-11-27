@@ -6,8 +6,7 @@ import { getWishlist, removeWishlist } from '../services/productService';
 import { getOrdersByUserId, getUserRefunds, cancelRefundRequest, getOrderDetail, confirmOrderItem } from '../services/orderService';
 import { getReviewsByUserId, updateReview, deleteReview } from '../services/reviewService';
 import ProductCard from '../components/ProductCard';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { resolveImageUrl as buildImageUrl } from '../utils/image';
 
 const REFUND_STATUS = {
   REQUESTED: 'REQ',
@@ -153,10 +152,8 @@ function MyPage() {
   
   // 이미지 URL 처리
   const resolveImageUrl = (url) => {
-    if (!url) return 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-    return `${API_BASE_URL}/${url}`;
+    const resolved = buildImageUrl(url);
+    return resolved || 'https://via.placeholder.com/200x250/CCCCCC/666666?text=No+Image';
   };
 
   const getStatusText = (status) => {
@@ -444,10 +441,7 @@ function MyPage() {
             name: item.postName || '',
             price: item.price || 0,
             discountPrice: item.discountPrice || null,
-            image: item.imageUrl ? (item.imageUrl.startsWith('http') 
-              ? item.imageUrl 
-              : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) 
-              : null
+            image: resolveImageUrl(item.imageUrl)
           }));
           setWishlist(formattedProducts);
         } else {

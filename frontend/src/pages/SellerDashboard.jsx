@@ -12,16 +12,7 @@ import {
 } from '../services/orderService';
 import { getProductPostsByBrand, deleteProductPost } from '../services/productService';
 import { getReviewsBySellerId, addSellerReply, deleteSellerReply } from '../services/reviewService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-const resolveImageUrl = (url) => {
-  if (!url || typeof url !== 'string') return null;
-  const trimmed = url.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-  if (trimmed.startsWith('/')) return `${API_BASE_URL}${trimmed}`;
-  return `${API_BASE_URL}/${trimmed}`;
-};
+import { resolveImageUrl } from '../utils/image';
 
 const PRODUCT_STATUS_TEXT = {
   SELLING: '판매',
@@ -340,7 +331,7 @@ function SellerDashboard() {
           wishCount: item.wishCount || 0,
           createdAt: item.createdAt ? item.createdAt.split('T')[0] : '', // 날짜만 추출
           // 이미지 URL 처리
-          image: item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${item.imageUrl}`) : null
+          image: resolveImageUrl(item.imageUrl)
         }));
         setProducts(formattedProducts);
       } else {

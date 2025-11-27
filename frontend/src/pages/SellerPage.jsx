@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import { fetchSessionUser } from '../services/authService';
+import { resolveImageUrl } from '../utils/image';
 import './SellerPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -93,19 +94,10 @@ function SellerPage() {
             totalProducts: sellerInfo.totalProducts || 0
           });
           
-          // 이미지 URL 해결 함수
-          const resolveImageUrl = (url) => {
-            if (!url || typeof url !== 'string' || url.trim() === '') return null;
-            const trimmedUrl = url.trim();
-            if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) return trimmedUrl;
-            if (trimmedUrl.startsWith('/')) return `${API_BASE_URL}${trimmedUrl}`;
-            return `${API_BASE_URL}/${trimmedUrl}`;
-          };
-          
           // 상품 목록 설정
           const sellerProducts = (sellerInfo.products || []).map(product => {
             const imageUrl = product.image || product.imageUrl;
-            const resolvedImage = imageUrl ? resolveImageUrl(imageUrl) : null;
+            const resolvedImage = resolveImageUrl(imageUrl);
             console.log('상품 이미지:', { 
               postId: product.postId || product.id,
               name: product.name || product.postName,

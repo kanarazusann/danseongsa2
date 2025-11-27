@@ -10,8 +10,7 @@ import {
   cancelRefundRequest,
   getUserRefunds
 } from '../services/orderService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { resolveImageUrl } from '../utils/image';
 
 const REFUND_STATUS = {
   REQUESTED: 'REQ',
@@ -80,13 +79,6 @@ const normalizeRefundStatus = (status) => {
     default:
       return upper;
   }
-};
-
-const resolveImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-  return `${API_BASE_URL}/${url}`;
 };
 
 const formatDate = (dateString) => {
