@@ -7,7 +7,8 @@ RUN ./gradlew bootJar --no-daemon
 FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/build/libs/backend-0.0.1-SNAPSHOT.jar app.jar
-ENV PORT=8080
+COPY backend/wallet /app/wallet
+ENV TNS_ADMIN=/app/wallet
 ENV SERVER_PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]
