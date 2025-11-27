@@ -105,6 +105,12 @@ public class EmailVerificationService {
             throw new IllegalStateException("Brevo API 키가 설정되지 않았습니다.");
         }
 
+        // 디버깅: API 키 확인 (처음 몇 글자만 로그)
+        String apiKeyPreview = brevoApiKey != null && brevoApiKey.length() > 4 
+            ? brevoApiKey.substring(0, 4) + "..." 
+            : "null";
+        System.out.println("Brevo API 키 사용 중: " + apiKeyPreview);
+
         try {
             // Brevo API 요청 본문 구성
             Map<String, Object> requestBody = new HashMap<>();
@@ -113,9 +119,10 @@ public class EmailVerificationService {
             sender.put("name", "단성사");
             requestBody.put("sender", sender);
 
-            Map<String, String> to = new HashMap<>();
-            to.put("email", sanitizedEmail);
-            requestBody.put("to", new Object[]{to});
+            // to는 배열 형식
+            Map<String, String> toRecipient = new HashMap<>();
+            toRecipient.put("email", sanitizedEmail);
+            requestBody.put("to", java.util.Arrays.asList(toRecipient));
 
             requestBody.put("subject", resolveSubject());
             requestBody.put("htmlContent", buildEmailBodyHtml(code));
@@ -128,13 +135,19 @@ public class EmailVerificationService {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
                     .header("accept", "application/json")
-                    .header("api-key", brevoApiKey)
+                    .header("api-key", brevoApiKey.trim()) // 공백 제거
                     .header("content-type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
                     .build();
+            
+            System.out.println("Brevo API 요청 URL: https://api.brevo.com/v3/smtp/email");
+            System.out.println("Brevo API 요청 본문: " + jsonBody);
 
             // 요청 전송
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            System.out.println("Brevo API 응답 상태: " + response.statusCode());
+            System.out.println("Brevo API 응답 본문: " + response.body());
 
             // 응답 확인
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
