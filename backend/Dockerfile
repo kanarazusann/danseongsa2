@@ -1,8 +1,7 @@
-# 1. Gradle로 빌드
-FROM gradle:8.10.2-jdk17-alpine AS build
-WORKDIR /app
-COPY . .
-RUN gradle bootJar --no-daemon
+   FROM gradle:8.10.2-jdk17-alpine AS build
+   WORKDIR /app
+   COPY . .
+   RUN chmod +x gradlew 
 
 # 2. 실행용 이미지
 FROM eclipse-temurin:17-jdk-jammy
