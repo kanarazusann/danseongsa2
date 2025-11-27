@@ -12,7 +12,6 @@ import com.example.backend.entity.ProductPost;
 import java.util.*;
 
 @RestController
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class ProductPostController {
     
     @Autowired

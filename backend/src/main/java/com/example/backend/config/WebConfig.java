@@ -16,9 +16,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         String[] origins = allowedOrigins != null ? allowedOrigins.split(",") : new String[0];
+        // Spring Boot 3.x에서는 allowedOriginPatterns를 사용해야 크로스 도메인 쿠키가 작동함
         registry.addMapping("/**")
-                .allowedOrigins(origins)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedOriginPatterns(origins)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
