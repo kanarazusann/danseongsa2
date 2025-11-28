@@ -14,5 +14,11 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Integer> {
     
     // 사용자 ID로 찜 목록 조회 (최신순)
     List<Wishlist> findByUserIdOrderByCreatedAtDesc(int userId);
+    
+    // 게시물 ID로 찜 목록 조회
+    List<Wishlist> findByPostId(int postId);
+    
+    // 게시물 ID로 찜 목록 삭제
+    void deleteByPostId(int postId);
 }
 

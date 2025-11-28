@@ -36,5 +36,15 @@ public class WishlistDAO {
     public List<Wishlist> findByUserIdOrderByCreatedAtDesc(int userId) {
         return wishlistRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
+    
+    // 게시물 ID로 찜 목록 조회
+    public List<Wishlist> findByPostId(int postId) {
+        return wishlistRepository.findByPostId(postId);
+    }
+    
+    // 게시물 ID로 찜 목록 삭제
+    public void deleteByPostId(int postId) {
+        wishlistRepository.deleteByPostId(postId);
+    }
 }
 

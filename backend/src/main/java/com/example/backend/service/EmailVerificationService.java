@@ -48,6 +48,10 @@ public class EmailVerificationService {
     @PostConstruct
     private void initStorage() {
         this.verificationStorage = new ConcurrentHashMap<>();
+        System.out.println("=== EmailVerificationService 초기화 ===");
+        System.out.println("발신자 이메일 주소: " + fromAddress);
+        System.out.println("Brevo API 키 (처음 4자): " + (brevoApiKey != null && brevoApiKey.length() > 4 ? brevoApiKey.substring(0, 4) + "..." : "null"));
+        System.out.println("================================");
     }
 
     public EmailVerificationResponse sendVerificationCode(String email) {
@@ -141,6 +145,9 @@ public class EmailVerificationService {
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
                     .build();
             
+            System.out.println("=== Brevo 이메일 전송 시도 ===");
+            System.out.println("발신자: " + (fromAddress != null ? fromAddress.trim() : "kanarazusann@gmail.com"));
+            System.out.println("수신자: " + sanitizedEmail);
             System.out.println("Brevo API 요청 URL: https://api.brevo.com/v3/smtp/email");
             System.out.println("Brevo API 요청 본문: " + jsonBody);
 
@@ -149,6 +156,7 @@ public class EmailVerificationService {
             
             System.out.println("Brevo API 응답 상태: " + response.statusCode());
             System.out.println("Brevo API 응답 본문: " + response.body());
+            System.out.println("=== Brevo 이메일 전송 완료 ===");
 
             // 응답 확인
             if (response.statusCode() < 200 || response.statusCode() >= 300) {

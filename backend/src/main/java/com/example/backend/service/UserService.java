@@ -333,7 +333,8 @@ public class UserService {
                 }
                 
                 // 5-2. 게시물에 대한 찜 목록 삭제 (productPost로 연결)
-                // Wishlist는 user와 productPost 둘 다 연결되어 있으므로 이미 처리됨
+                // 다른 유저가 찜한 목록도 모두 삭제해야 함
+                wishlistDAO.deleteByPostId(postId);
                 
                 // 5-3. 게시물에 대한 주문상세 삭제 (productPost로 연결)
                 // ProductPost를 삭제하기 전에 해당 게시물에 대한 OrderItem을 먼저 삭제
