@@ -273,6 +273,9 @@ function OrderDetail() {
 
   const handleConfirmPurchase = async (orderItemId) => {
     if (!userId) return;
+    if (!window.confirm('구매를 확정하시겠습니까? 구매확정 후에는 환불 신청이 제한될 수 있습니다.')) {
+      return;
+    }
     try {
       await confirmOrderItem(orderItemId, userId);
       await refreshOrderData();

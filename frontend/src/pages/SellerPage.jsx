@@ -67,12 +67,18 @@ function SellerPage() {
       setLoading(true);
       
       try {
-        // 본인 체크: 세션 유저와 sellerId 비교
-        const sessionUser = await fetchSessionUser();
-        if (sessionUser?.item?.userId === parseInt(sellerId)) {
-          // 본인이면 판매자 대시보드로 이동
-          navigate('/sellerDashboard');
-          return;
+        // 본인 체크: 세션 유저와 sellerId 비교 (비로그인 상태에서는 체크하지 않음)
+        let sessionUser = null;
+        try {
+          sessionUser = await fetchSessionUser();
+          if (sessionUser?.item?.userId === parseInt(sellerId)) {
+            // 본인이면 판매자 대시보드로 이동
+            navigate('/sellerDashboard');
+            return;
+          }
+        } catch (error) {
+          // 비로그인 상태이거나 세션 오류인 경우 무시하고 계속 진행
+          console.log('세션 확인 실패 (비로그인 상태일 수 있음):', error.message);
         }
 
         // 판매자 정보 및 상품 목록 조회

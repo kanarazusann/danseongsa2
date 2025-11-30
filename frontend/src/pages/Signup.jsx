@@ -51,6 +51,22 @@ function Signup() {
   });
 
   const isValidPassword = (password) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/.test(password);
+  
+  // 이메일 형식 검증: @ 뒤에 최소 1글자, . 뒤에 최소 1글자
+  const isValidEmail = (email) => {
+    if (!email || !email.trim()) return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) return false;
+    // @ 뒤에 최소 1글자, . 뒤에 최소 1글자 확인
+    const parts = email.trim().split('@');
+    if (parts.length !== 2) return false;
+    const domain = parts[1];
+    if (!domain || domain.length < 3) return false; // 최소 a.b 형태
+    const domainParts = domain.split('.');
+    if (domainParts.length < 2) return false;
+    // @ 뒤 부분이 있고, . 뒤 부분이 있는지 확인
+    return domainParts[0].length > 0 && domainParts[domainParts.length - 1].length > 0;
+  };
 
   useEffect(() => {
     if (window.daum && window.daum.Postcode) {
@@ -209,6 +225,11 @@ function Signup() {
       return;
     }
 
+    if (!isValidEmail(targetForm.email)) {
+      alert('올바른 이메일 형식을 입력해주세요. (예: user@domain.com)');
+      return;
+    }
+
     try {
       setIsSendingCode(true);
       resetVerificationState(userType, { keepCode: false });
@@ -278,6 +299,10 @@ function Signup() {
       alert('이메일을 입력해주세요.');
       return;
     }
+    if (!isValidEmail(generalForm.email)) {
+      alert('올바른 이메일 형식을 입력해주세요. (예: user@domain.com)');
+      return;
+    }
     if (!generalForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
       return;
@@ -292,6 +317,10 @@ function Signup() {
     }
     if (generalForm.password.trim().length < 8) {
       alert('비밀번호는 8자리 이상이어야 합니다.');
+      return;
+    }
+    if (generalForm.password.trim().length > 20) {
+      alert('비밀번호는 20자 이하여야 합니다.');
       return;
     }
     if (!isValidPassword(generalForm.password)) {
@@ -312,6 +341,10 @@ function Signup() {
     }
     if (!generalForm.detailAddress || !generalForm.detailAddress.trim()) {
       alert('상세 주소를 입력해주세요.');
+      return;
+    }
+    if (generalForm.detailAddress.trim().length > 30) {
+      alert('상세 주소는 30자 이하여야 합니다.');
       return;
     }
     const submitData = {
@@ -348,6 +381,10 @@ function Signup() {
       alert('이메일을 입력해주세요.');
       return;
     }
+    if (!isValidEmail(businessForm.email)) {
+      alert('올바른 이메일 형식을 입력해주세요. (예: user@domain.com)');
+      return;
+    }
     if (!businessForm.emailVerified) {
       alert('이메일 인증을 완료해주세요.');
       return;
@@ -372,6 +409,10 @@ function Signup() {
       alert('비밀번호는 8자리 이상이어야 합니다.');
       return;
     }
+    if (businessForm.password.trim().length > 20) {
+      alert('비밀번호는 20자 이하여야 합니다.');
+      return;
+    }
     if (!isValidPassword(businessForm.password)) {
       alert('비밀번호는 숫자, 영문, 특수문자를 모두 포함해야 합니다.');
       return;
@@ -390,6 +431,10 @@ function Signup() {
     }
     if (!businessForm.detailAddress || !businessForm.detailAddress.trim()) {
       alert('상세 주소를 입력해주세요.');
+      return;
+    }
+    if (businessForm.detailAddress.trim().length > 30) {
+      alert('상세 주소는 30자 이하여야 합니다.');
       return;
     }
     const submitData = {
@@ -462,7 +507,7 @@ function Signup() {
                     type="button"
                     onClick={handleSendEmailCode}
                     className="btn-verify"
-                    disabled={generalForm.emailVerified || !generalForm.email || isSendingCode}
+                    disabled={generalForm.emailVerified || !generalForm.email || !isValidEmail(generalForm.email) || isSendingCode}
                   >
                     {generalForm.emailVerified ? '인증완료' : isSendingCode ? '전송중...' : '인증코드 전송'}
                   </button>
@@ -510,10 +555,11 @@ function Signup() {
                 <input
                   type="password"
                   name="password"
-                  placeholder="비밀번호 *"
+                  placeholder="비밀번호 * (8-20자)"
                   value={generalForm.password}
                   onChange={handleGeneralChange}
                   className="form-input"
+                  maxLength={20}
                 />
               </div>
               <div className="form-group">
@@ -524,6 +570,7 @@ function Signup() {
                   value={generalForm.passwordConfirm}
                   onChange={handleGeneralChange}
                   className="form-input"
+                  maxLength={20}
                 />
               </div>
               <div className="form-group">
@@ -571,10 +618,11 @@ function Signup() {
                 <input
                   type="text"
                   name="detailAddress"
-                  placeholder="상세 주소"
+                  placeholder="상세 주소 (최대 30자)"
                   value={generalForm.detailAddress}
                   onChange={handleGeneralChange}
                   className="form-input"
+                  maxLength={30}
                 />
               </div>
               <button type="submit" className="btn-signup" disabled={isSubmitting}>
@@ -603,7 +651,7 @@ function Signup() {
                     type="button"
                     onClick={handleSendEmailCode}
                     className="btn-verify"
-                    disabled={businessForm.emailVerified || !businessForm.email || isSendingCode}
+                    disabled={businessForm.emailVerified || !businessForm.email || !isValidEmail(businessForm.email) || isSendingCode}
                   >
                     {businessForm.emailVerified ? '인증완료' : isSendingCode ? '전송중...' : '인증코드 전송'}
                   </button>
@@ -672,10 +720,11 @@ function Signup() {
                 <input
                   type="password"
                   name="password"
-                  placeholder="비밀번호 *"
+                  placeholder="비밀번호 * (8-20자)"
                   value={businessForm.password}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  maxLength={20}
                 />
               </div>
               <div className="form-group">
@@ -686,6 +735,7 @@ function Signup() {
                   value={businessForm.passwordConfirm}
                   onChange={handleBusinessChange} 
                   className="form-input"
+                  maxLength={20}
                 />
               </div>
               <div className="form-group">
@@ -733,10 +783,11 @@ function Signup() {
                 <input
                   type="text"
                   name="detailAddress"
-                  placeholder="상세 주소 *"
+                  placeholder="상세 주소 * (최대 30자)"
                   value={businessForm.detailAddress}
                   onChange={handleBusinessChange}
                   className="form-input"
+                  maxLength={30}
                 />
               </div>
               <button type="submit" className="btn-signup" disabled={isSubmitting}>

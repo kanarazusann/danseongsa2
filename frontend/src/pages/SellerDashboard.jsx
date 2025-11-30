@@ -528,6 +528,9 @@ function SellerDashboard() {
 
   const handleShipOrder = async (orderItemId) => {
     if (!sellerId) return;
+    if (!window.confirm('배송 처리를 하시겠습니까?')) {
+      return;
+    }
     try {
       const response = await shipOrderItem(orderItemId, sellerId);
       if (response.item) {
