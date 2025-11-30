@@ -19,17 +19,23 @@ public interface ProductPostRepository extends JpaRepository<ProductPost, Intege
     // 인기순 조회 (찜수 기준) - WISHCOUNT 컬럼 사용
     // 찜수가 많은 순서대로 정렬 (DESC: 내림차순)
     // STATUS = 1 (SELLING)만 조회
-    @Query(value = "SELECT pp.* FROM PRODUCTPOST pp " +
-           "WHERE pp.STATUS = 1 " +
-           "ORDER BY NVL(pp.WISHCOUNT, 0) DESC, pp.CREATEDAT DESC", 
+    // 최대 4개만 조회 (성능 최적화)
+    @Query(value = "SELECT * FROM (" +
+           "  SELECT pp.* FROM PRODUCTPOST pp " +
+           "  WHERE pp.STATUS = 1 " +
+           "  ORDER BY NVL(pp.WISHCOUNT, 0) DESC, pp.CREATEDAT DESC" +
+           ") WHERE ROWNUM <= 4", 
            nativeQuery = true)
     List<ProductPost> findAllOrderByPopularity();
     
     // 최신순 조회 (생성일 기준)
     // STATUS = 1 (SELLING)만 조회
-    @Query(value = "SELECT pp.* FROM PRODUCTPOST pp " +
-           "WHERE pp.STATUS = 1 " +
-           "ORDER BY pp.CREATEDAT DESC", 
+    // 최대 4개만 조회 (성능 최적화)
+    @Query(value = "SELECT * FROM (" +
+           "  SELECT pp.* FROM PRODUCTPOST pp " +
+           "  WHERE pp.STATUS = 1 " +
+           "  ORDER BY pp.CREATEDAT DESC" +
+           ") WHERE ROWNUM <= 4", 
            nativeQuery = true)
     List<ProductPost> findAllOrderByCreatedAtDesc();
 }

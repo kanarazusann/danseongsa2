@@ -15,6 +15,7 @@ function ProductCard({ product }) {
           <img 
             src={resolvedImage} 
             alt={product.name || '상품 이미지'}
+            loading="lazy"
             onError={(e) => {
               console.error('이미지 로드 실패:', resolvedImage);
               e.target.style.display = 'none';

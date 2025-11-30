@@ -361,9 +361,10 @@ function MyPage() {
   useEffect(() => {
     const loadOrders = async () => {
       if (activeTab !== 'orders' && activeTab !== 'refunds') return;
+      if (!userId) return;
       
       // 주문내역 탭에서도 환불 내역을 로드해야 환불 거절 여부를 확인할 수 있음
-      if (activeTab === 'orders' && userId) {
+      if (activeTab === 'orders') {
         try {
           const refundResponse = await getUserRefunds(userId);
           setRefunds(refundResponse.items || []);
@@ -374,8 +375,7 @@ function MyPage() {
       
       try {
         setLoadingOrders(true);
-        const { item: userInfo } = await fetchSessionUser();
-        const response = await getOrdersByUserId(userInfo.userId);
+        const response = await getOrdersByUserId(userId);
         
         if (response.rt === 'OK' && response.items) {
           // API 응답을 UI 형식에 맞게 변환
@@ -421,17 +421,17 @@ function MyPage() {
     };
     
     loadOrders();
-  }, [activeTab, navigate]);
+  }, [activeTab, userId]);
 
   // 찜목록 로드
   useEffect(() => {
     const loadWishlist = async () => {
       if (activeTab !== 'wishlist') return;
+      if (!userId) return;
       
       try {
         setLoadingWishlist(true);
-        const { item: userInfo } = await fetchSessionUser();
-        const response = await getWishlist(userInfo.userId);
+        const response = await getWishlist(userId);
         
         if (response.rt === 'OK' && response.items) {
           // Home.jsx와 동일한 변환 로직
@@ -456,17 +456,17 @@ function MyPage() {
     };
     
     loadWishlist();
-  }, [activeTab, navigate]);
+  }, [activeTab, userId]);
   
   // 리뷰 목록 로드
   useEffect(() => {
     const loadReviews = async () => {
       if (activeTab !== 'reviews') return;
+      if (!userId) return;
       
       try {
         setLoadingReviews(true);
-        const { item: userInfo } = await fetchSessionUser();
-        const response = await getReviewsByUserId(userInfo.userId);
+        const response = await getReviewsByUserId(userId);
         
         if (response.rt === 'OK' && response.items) {
           const formattedReviews = response.items.map(review => ({
@@ -505,7 +505,7 @@ function MyPage() {
     };
     
     loadReviews();
-  }, [activeTab, navigate]);
+  }, [activeTab, userId]);
 
   // 취소/반품 내역 로드
   useEffect(() => {
@@ -545,9 +545,13 @@ function MyPage() {
       return;
     }
     
+    if (!userId) {
+      alert('사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
     try {
-      const { item: userInfo } = await fetchSessionUser();
-      await removeWishlist(userInfo.userId, postId);
+      await removeWishlist(userId, postId);
       
       // 목록에서 제거
       setWishlist(wishlist.filter(item => item.id !== postId));
@@ -665,17 +669,21 @@ function MyPage() {
       return;
     }
 
+    if (!userId) {
+      alert('사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
     try {
-      const { item: userInfo } = await fetchSessionUser();
       await updateReview(editingReviewId, {
-        userId: userInfo.userId,
+        userId: userId,
         rating: editRating,
         content: editContent.trim(),
         images: [] // 이미지 수정은 나중에 추가 가능
       });
 
       // 리뷰 목록 다시 로드
-      const response = await getReviewsByUserId(userInfo.userId);
+      const response = await getReviewsByUserId(userId);
       if (response.rt === 'OK' && response.items) {
         const formattedReviews = response.items.map(review => ({
           reviewId: review.reviewId,
@@ -718,9 +726,13 @@ function MyPage() {
       return;
     }
 
+    if (!userId) {
+      alert('사용자 정보를 찾을 수 없습니다.');
+      return;
+    }
+
     try {
-      const { item: userInfo } = await fetchSessionUser();
-      await deleteReview(reviewId, userInfo.userId);
+      await deleteReview(reviewId, userId);
 
       // 리뷰 목록에서 제거
       setReviews(reviews.filter(review => review.reviewId !== reviewId));

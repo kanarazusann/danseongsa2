@@ -42,15 +42,22 @@ function Home() {
     setCurrentSlide(index);
   };
 
-  // 인기 상품 목록 로드 (4개만)
+  // 인기 상품과 최신 상품 목록 병렬 로드 (4개만)
   useEffect(() => {
-    const loadPopularProducts = async () => {
+    const loadProducts = async () => {
       try {
         setLoadingPopular(true);
-        const response = await getPopularProductPosts();
-        if (response.rt === 'OK' && response.items) {
-          // API 응답을 ProductCard 컴포넌트 형식으로 변환 (최대 4개)
-          const formattedProducts = response.items.slice(0, 4).map(item => ({
+        setLoadingNew(true);
+        
+        // 두 API를 병렬로 호출하여 로딩 시간 단축
+        const [popularResponse, newestResponse] = await Promise.all([
+          getPopularProductPosts(),
+          getNewestProductPosts()
+        ]);
+        
+        // 인기 상품 처리
+        if (popularResponse.rt === 'OK' && popularResponse.items) {
+          const formattedProducts = popularResponse.items.slice(0, 4).map(item => ({
             id: item.postId,
             brand: item.brand || '',
             name: item.postName || '',
@@ -59,27 +66,13 @@ function Home() {
             image: resolveImageUrl(item.imageUrl)
           }));
           setPopularProducts(formattedProducts);
+        } else {
+          setPopularProducts([]);
         }
-      } catch (error) {
-        console.error('인기 상품 로드 오류:', error);
-        setPopularProducts([]);
-      } finally {
-        setLoadingPopular(false);
-      }
-    };
-
-    loadPopularProducts();
-  }, []);
-
-  // 최신 상품 목록 로드 (4개만)
-  useEffect(() => {
-    const loadNewProducts = async () => {
-      try {
-        setLoadingNew(true);
-        const response = await getNewestProductPosts();
-        if (response.rt === 'OK' && response.items) {
-          // API 응답을 ProductCard 컴포넌트 형식으로 변환 (최대 4개)
-          const formattedProducts = response.items.slice(0, 4).map(item => ({
+        
+        // 최신 상품 처리
+        if (newestResponse.rt === 'OK' && newestResponse.items) {
+          const formattedProducts = newestResponse.items.slice(0, 4).map(item => ({
             id: item.postId,
             brand: item.brand || '',
             name: item.postName || '',
@@ -88,16 +81,20 @@ function Home() {
             image: resolveImageUrl(item.imageUrl)
           }));
           setNewProducts(formattedProducts);
+        } else {
+          setNewProducts([]);
         }
       } catch (error) {
-        console.error('최신 상품 로드 오류:', error);
+        console.error('상품 로드 오류:', error);
+        setPopularProducts([]);
         setNewProducts([]);
       } finally {
+        setLoadingPopular(false);
         setLoadingNew(false);
       }
     };
 
-    loadNewProducts();
+    loadProducts();
   }, []);
 
   // TODO: API 연동 필요
