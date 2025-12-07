@@ -1,0 +1,90 @@
+# ============================================
+# 단성사 쇼핑몰 Backend 설정 파일 예시
+# ============================================
+# 이 파일을 복사해서 application.properties를 만들고 실제 값으로 변경하세요
+# application.properties는 .gitignore에 포함되어 있어 Git에 올라가지 않습니다
+
+spring.application.name=backend
+
+# 서버 포트 설정
+server.port=${SERVER_PORT:8080}
+
+# ============================================
+# 1. 데이터베이스 설정 (필수)
+# ============================================
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+# HikariCP 연결 풀 설정
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.idle-timeout=600000
+spring.datasource.hikari.max-lifetime=1800000
+spring.datasource.hikari.leak-detection-threshold=60000
+
+# ============================================
+# 2. JPA 설정
+# ============================================
+spring.jpa.hibernate.ddl-auto=validate
+spring.sql.init.mode=never
+spring.jpa.show-sql=${JPA_SHOW_SQL:false}
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.OracleDialect
+
+# ============================================
+# 3. 이메일 설정 (Brevo API)
+# ============================================
+brevo.api.key=${BREVO_API_KEY}
+mail.verification.from=${MAIL_FROM}
+spring.mail.default-encoding=UTF-8
+mail.verification.subject=[단성사] 이메일 인증 코드
+mail.verification.expire-minutes=5
+
+# ============================================
+# 4. Toss Payments 설정
+# ============================================
+toss.payments.secret-key=${TOSS_SECRET_KEY}
+
+# ============================================
+# 5. CORS 설정
+# ============================================
+cors.allowed.origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+# ============================================
+# 6. Session 설정
+# ============================================
+server.servlet.session.cookie.same-site=none
+server.servlet.session.cookie.secure=true
+
+# ============================================
+# 7. AWS S3 설정 (이미지 업로드)
+# ============================================
+aws.region=${AWS_REGION:ap-northeast-2}
+aws.access-key-id=${AWS_ACCESS_KEY_ID}
+aws.secret-access-key=${AWS_SECRET_ACCESS_KEY}
+aws.s3.bucket=${AWS_S3_BUCKET}
+aws.s3.base-url=${AWS_S3_BASE_URL}
+
+# ============================================
+# 환경 변수 설정 예시
+# ============================================
+# Linux/Mac: export DB_URL=jdbc:oracle:thin:@your-db-url
+# Windows: set DB_URL=jdbc:oracle:thin:@your-db-url
+#
+# 또는 IDE에서 Run Configuration > Environment Variables에 설정
+#
+# 필수 환경 변수:
+# - DB_URL: Oracle 데이터베이스 연결 URL
+# - DB_USERNAME: 데이터베이스 사용자명
+# - DB_PASSWORD: 데이터베이스 비밀번호
+# - BREVO_API_KEY: Brevo 이메일 서비스 API 키
+# - MAIL_FROM: 발신 이메일 주소
+# - TOSS_SECRET_KEY: Toss Payments 시크릿 키
+# - AWS_ACCESS_KEY_ID: AWS Access Key ID
+# - AWS_SECRET_ACCESS_KEY: AWS Secret Access Key
+# - AWS_S3_BUCKET: S3 버킷 이름
+# - AWS_S3_BASE_URL: S3 Base URL
+
