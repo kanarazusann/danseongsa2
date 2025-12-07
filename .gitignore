@@ -1,15 +1,2 @@
 /.metadata/
-
-### Environment Variables ###
 .env
-.env.local
-.env.*.local
-
-### Oracle Wallet ###
-**/wallet/
-*.jks
-*.sso
-*.ora
-
-### Uploads ###
-**/uploads/
